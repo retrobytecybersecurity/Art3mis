@@ -20,6 +20,13 @@
     --border: #d7e2ec;
     --error: #c84c63;
     --shadow: 0 20px 50px rgba(31, 42, 55, 0.08);
+
+    --dog-brown: #a86a3a;
+    --dog-brown-dark: #7a4a28;
+    --dog-white: #ffffff;
+    --dog-nose: #7b4b3a;
+    --dog-line: #2f3e4e;
+    --dog-eye: #2d2d2d;
   }
 
   * {
@@ -52,25 +59,6 @@
     margin-bottom: 28px;
   }
 
-  .logo-mark {
-    width: 74px;
-    height: 74px;
-    margin: 0 auto 16px;
-    border-radius: 20px;
-    display: grid;
-    place-items: center;
-    background: linear-gradient(145deg, #ffffff, #edf4f9);
-    border: 1px solid rgba(111, 168, 201, 0.25);
-    box-shadow: 0 12px 30px rgba(75, 137, 173, 0.10);
-  }
-
-  .logo-mark span {
-    font-size: 1.4rem;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    color: var(--accent-strong);
-  }
-
   .logo-title {
     font-size: 1.9rem;
     font-weight: 700;
@@ -85,6 +73,151 @@
     letter-spacing: 0.22em;
     text-transform: uppercase;
   }
+
+  /* Dog logo */
+  .dog-logo {
+    position: relative;
+    width: 140px;
+    height: 140px;
+    margin: 0 auto 16px;
+    filter: drop-shadow(0 14px 24px rgba(75, 137, 173, 0.10));
+  }
+
+  .dog-ring {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 3px solid rgba(111, 168, 201, 0.35);
+    background: rgba(255, 255, 255, 0.22);
+  }
+
+  .dog-ear {
+    position: absolute;
+    width: 48px;
+    height: 58px;
+    background: var(--dog-brown);
+    border: 3px solid var(--dog-line);
+    top: 10px;
+    z-index: 1;
+  }
+
+  .dog-ear.left {
+    left: 12px;
+    transform: rotate(-20deg);
+    border-radius: 60% 40% 50% 50%;
+  }
+
+  .dog-ear.right {
+    right: 12px;
+    transform: rotate(20deg);
+    border-radius: 40% 60% 50% 50%;
+  }
+
+  .dog-head {
+    position: absolute;
+    left: 50%;
+    top: 25px;
+    transform: translateX(-50%);
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    border: 3px solid var(--dog-line);
+    background:
+      linear-gradient(
+        to right,
+        var(--dog-brown) 0%,
+        var(--dog-brown) 45%,
+        var(--dog-white) 45%,
+        var(--dog-white) 55%,
+        var(--dog-brown) 55%
+      );
+    z-index: 2;
+  }
+
+  .dog-eye {
+    position: absolute;
+    width: 8px;
+    height: 10px;
+    background: var(--dog-eye);
+    border-radius: 50%;
+    top: 32px;
+  }
+
+  .dog-eye.left { left: 22px; }
+  .dog-eye.right { right: 22px; }
+
+  .dog-eye::after {
+    content: "";
+    position: absolute;
+    width: 3px;
+    height: 3px;
+    background: white;
+    border-radius: 50%;
+    top: 2px;
+    left: 2px;
+  }
+
+  .dog-snout {
+    position: absolute;
+    left: 50%;
+    top: 45px;
+    transform: translateX(-50%);
+    width: 60px;
+    height: 40px;
+    background: white;
+    border-radius: 50%;
+    border: 3px solid var(--dog-line);
+  }
+
+  .dog-nose {
+    position: absolute;
+    left: 50%;
+    top: 48px;
+    transform: translateX(-50%);
+    width: 32px;
+    height: 22px;
+    background: var(--dog-nose);
+    border-radius: 50%;
+    border: 3px solid var(--dog-line);
+    z-index: 3;
+  }
+
+  .dog-nose::before,
+  .dog-nose::after {
+    content: "";
+    position: absolute;
+    width: 5px;
+    height: 8px;
+    background: #5a3428;
+    border-radius: 50%;
+    top: 6px;
+  }
+
+  .dog-nose::before { left: 7px; }
+  .dog-nose::after  { right: 7px; }
+
+  .dog-mouth {
+    position: absolute;
+    left: 50%;
+    top: 70px;
+    transform: translateX(-50%);
+    width: 24px;
+    height: 10px;
+    z-index: 3;
+  }
+
+  .dog-mouth::before,
+  .dog-mouth::after {
+    content: "";
+    position: absolute;
+    width: 10px;
+    height: 8px;
+    border-bottom: 2px solid var(--dog-line);
+    border-radius: 0 0 10px 10px;
+  }
+
+  .dog-mouth::before { left: 0; }
+  .dog-mouth::after { right: 0; }
 
   .card {
     background: var(--panel);
@@ -211,6 +344,11 @@
       padding-left: 18px;
       padding-right: 18px;
     }
+
+    .dog-logo {
+      width: 124px;
+      height: 124px;
+    }
   }
 </style>
 </head>
@@ -218,9 +356,20 @@
 <div class="login-wrap">
 
   <div class="logo-block">
-    <div class="logo-mark">
-      <span>A</span>
+    <div class="dog-logo" aria-hidden="true">
+      <div class="dog-ring"></div>
+      <div class="dog-ear left"></div>
+      <div class="dog-ear right"></div>
+
+      <div class="dog-head">
+        <div class="dog-eye left"></div>
+        <div class="dog-eye right"></div>
+        <div class="dog-snout"></div>
+        <div class="dog-nose"></div>
+        <div class="dog-mouth"></div>
+      </div>
     </div>
+
     <div class="logo-title">ARTEMIS</div>
     <div class="logo-sub">External Pentest Suite</div>
   </div>
