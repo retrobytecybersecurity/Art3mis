@@ -19,6 +19,12 @@
     --text:      #e8eaf0;
     --dim:       #5a6a8a;
     --border:    #1e2a40;
+
+    --dog-brown: #a86a3a;
+    --dog-white: #ffffff;
+    --dog-nose:  #7b4b3a;
+    --dog-line:  #2f3e4e;
+    --dog-eye:   #2d2d2d;
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -40,13 +46,290 @@
     padding: 14px 28px 10px;
     border-bottom: 1px solid var(--accent);
   }
-  .logo { font-size: 1.6rem; color: var(--accent); letter-spacing: 2px; }
-  .logo span { color: var(--dim); font-size: 0.9rem; margin-left: 12px; }
+
+  .header-brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .logo {
+    font-size: 1.6rem;
+    color: var(--accent);
+    letter-spacing: 2px;
+  }
+
+  .logo span {
+    color: var(--dim);
+    font-size: 0.9rem;
+    margin-left: 12px;
+  }
+
   #status-badge {
     font-size: 0.8rem;
     color: var(--success);
     letter-spacing: 1px;
   }
+
+  /* ── Dog logo ── */
+  .dog-logo {
+    position: relative;
+    flex-shrink: 0;
+    filter: drop-shadow(0 0 10px rgba(0, 212, 255, 0.12));
+  }
+
+  .dog-logo.header {
+    width: 54px;
+    height: 54px;
+  }
+
+  .dog-logo.confirmed {
+    width: 120px;
+    height: 120px;
+    margin-bottom: 8px;
+  }
+
+  .dog-ring {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 2px solid rgba(0, 212, 255, 0.35);
+    background: rgba(15, 20, 32, 0.28);
+  }
+
+  .dog-logo.confirmed .dog-ring {
+    border-width: 3px;
+  }
+
+  .dog-ear {
+    position: absolute;
+    background: var(--dog-brown);
+    border: 2px solid var(--dog-line);
+    top: 4px;
+    z-index: 1;
+  }
+
+  .dog-logo.header .dog-ear {
+    width: 18px;
+    height: 22px;
+  }
+
+  .dog-logo.confirmed .dog-ear {
+    width: 40px;
+    height: 48px;
+    top: 10px;
+    border-width: 3px;
+  }
+
+  .dog-ear.left {
+    left: 6px;
+    transform: rotate(-20deg);
+    border-radius: 60% 40% 50% 50%;
+  }
+
+  .dog-ear.right {
+    right: 6px;
+    transform: rotate(20deg);
+    border-radius: 40% 60% 50% 50%;
+  }
+
+  .dog-logo.confirmed .dog-ear.left {
+    left: 10px;
+  }
+
+  .dog-logo.confirmed .dog-ear.right {
+    right: 10px;
+  }
+
+  .dog-head {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    border-radius: 50%;
+    border: 2px solid var(--dog-line);
+    background:
+      linear-gradient(
+        to right,
+        var(--dog-brown) 0%,
+        var(--dog-brown) 45%,
+        var(--dog-white) 45%,
+        var(--dog-white) 55%,
+        var(--dog-brown) 55%
+      );
+    z-index: 2;
+  }
+
+  .dog-logo.header .dog-head {
+    top: 10px;
+    width: 34px;
+    height: 34px;
+  }
+
+  .dog-logo.confirmed .dog-head {
+    top: 22px;
+    width: 74px;
+    height: 74px;
+    border-width: 3px;
+  }
+
+  .dog-eye {
+    position: absolute;
+    background: var(--dog-eye);
+    border-radius: 50%;
+    top: 11px;
+  }
+
+  .dog-logo.header .dog-eye {
+    width: 4px;
+    height: 5px;
+  }
+
+  .dog-logo.confirmed .dog-eye {
+    width: 7px;
+    height: 9px;
+    top: 26px;
+  }
+
+  .dog-eye.left { left: 8px; }
+  .dog-eye.right { right: 8px; }
+
+  .dog-logo.confirmed .dog-eye.left { left: 18px; }
+  .dog-logo.confirmed .dog-eye.right { right: 18px; }
+
+  .dog-eye::after {
+    content: "";
+    position: absolute;
+    background: white;
+    border-radius: 50%;
+    top: 1px;
+    left: 1px;
+  }
+
+  .dog-logo.header .dog-eye::after {
+    width: 1.5px;
+    height: 1.5px;
+  }
+
+  .dog-logo.confirmed .dog-eye::after {
+    width: 2px;
+    height: 2px;
+  }
+
+  .dog-snout {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--dog-white);
+    border-radius: 50%;
+    border: 2px solid var(--dog-line);
+  }
+
+  .dog-logo.header .dog-snout {
+    top: 16px;
+    width: 22px;
+    height: 14px;
+  }
+
+  .dog-logo.confirmed .dog-snout {
+    top: 34px;
+    width: 48px;
+    height: 30px;
+    border-width: 3px;
+  }
+
+  .dog-nose {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--dog-nose);
+    border-radius: 50%;
+    border: 2px solid var(--dog-line);
+    z-index: 3;
+  }
+
+  .dog-logo.header .dog-nose {
+    top: 17px;
+    width: 12px;
+    height: 8px;
+  }
+
+  .dog-logo.confirmed .dog-nose {
+    top: 36px;
+    width: 24px;
+    height: 16px;
+    border-width: 3px;
+  }
+
+  .dog-nose::before,
+  .dog-nose::after {
+    content: "";
+    position: absolute;
+    background: #5a3428;
+    border-radius: 50%;
+    top: 2px;
+  }
+
+  .dog-logo.header .dog-nose::before,
+  .dog-logo.header .dog-nose::after {
+    width: 2px;
+    height: 3px;
+  }
+
+  .dog-logo.confirmed .dog-nose::before,
+  .dog-logo.confirmed .dog-nose::after {
+    width: 4px;
+    height: 6px;
+    top: 4px;
+  }
+
+  .dog-nose::before { left: 2px; }
+  .dog-nose::after  { right: 2px; }
+
+  .dog-logo.confirmed .dog-nose::before { left: 5px; }
+  .dog-logo.confirmed .dog-nose::after  { right: 5px; }
+
+  .dog-mouth {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 3;
+  }
+
+  .dog-logo.header .dog-mouth {
+    top: 25px;
+    width: 10px;
+    height: 4px;
+  }
+
+  .dog-logo.confirmed .dog-mouth {
+    top: 51px;
+    width: 20px;
+    height: 8px;
+  }
+
+  .dog-mouth::before,
+  .dog-mouth::after {
+    content: "";
+    position: absolute;
+    border-bottom: 1.5px solid var(--dog-line);
+    border-radius: 0 0 8px 8px;
+  }
+
+  .dog-logo.header .dog-mouth::before,
+  .dog-logo.header .dog-mouth::after {
+    width: 4px;
+    height: 3px;
+  }
+
+  .dog-logo.confirmed .dog-mouth::before,
+  .dog-logo.confirmed .dog-mouth::after {
+    width: 8px;
+    height: 6px;
+    border-bottom-width: 2px;
+  }
+
+  .dog-mouth::before { left: 0; }
+  .dog-mouth::after { right: 0; }
 
   /* ── Main layout ── */
   .main {
@@ -80,6 +363,7 @@
     margin-bottom: 10px;
     overflow: hidden;
   }
+
   .section-title {
     color: var(--accent);
     font-size: 0.85rem;
@@ -87,6 +371,7 @@
     letter-spacing: 1px;
     border-bottom: 1px solid var(--border);
   }
+
   .section-body { padding: 10px 12px; }
 
   label {
@@ -96,6 +381,7 @@
     margin-bottom: 3px;
     margin-top: 8px;
   }
+
   label:first-child { margin-top: 0; }
 
   .hint {
@@ -119,12 +405,14 @@
     resize: vertical;
     transition: border-color 0.2s;
   }
+
   input[type="text"]:focus, textarea:focus { border-color: var(--accent); }
 
   textarea { min-height: 80px; }
 
   /* ── Checkboxes ── */
   .phase-checks { padding: 6px 0 0; }
+
   .phase-check {
     display: flex;
     align-items: center;
@@ -134,7 +422,13 @@
     color: var(--text);
     cursor: pointer;
   }
-  .phase-check input[type="checkbox"] { accent-color: var(--accent); width: 14px; height: 14px; cursor: pointer; }
+
+  .phase-check input[type="checkbox"] {
+    accent-color: var(--accent);
+    width: 14px;
+    height: 14px;
+    cursor: pointer;
+  }
 
   /* ── Buttons ── */
   .btn {
@@ -149,6 +443,7 @@
     letter-spacing: 1px;
     transition: background 0.15s, color 0.15s;
   }
+
   .btn-submit  { background: var(--bg-panel); color: var(--accent2); border: 1px solid var(--accent2); width: 100%; margin-top: 10px; }
   .btn-submit:hover  { background: var(--accent2); color: var(--bg-dark); }
   .btn-run     { background: var(--bg-panel); color: var(--accent);  border: 1px solid var(--accent);  }
@@ -168,11 +463,6 @@
     align-items: center;
     padding: 20px 0 12px;
   }
-  .artemis-icon {
-    width: 120px; height: 120px;
-    position: relative;
-  }
-  .artemis-icon svg { width: 100%; height: 100%; }
 
   .engagement-badge {
     background: var(--bg-panel);
@@ -180,6 +470,7 @@
     margin: 0 0 10px;
     overflow: hidden;
   }
+
   .engagement-badge-title {
     color: var(--success);
     font-size: 0.85rem;
@@ -187,6 +478,7 @@
     border-bottom: 1px solid var(--border);
     letter-spacing: 1px;
   }
+
   .info-grid {
     padding: 10px 14px;
     display: grid;
@@ -194,6 +486,7 @@
     gap: 5px 8px;
     font-size: 0.78rem;
   }
+
   .info-label { color: var(--dim); }
   .info-value { color: var(--text); word-break: break-all; }
   .info-value.accent  { color: var(--accent); }
@@ -206,6 +499,7 @@
     overflow: hidden;
     margin-bottom: 10px;
   }
+
   .phase-queued-title {
     color: var(--accent);
     font-size: 0.85rem;
@@ -213,10 +507,12 @@
     border-bottom: 1px solid var(--border);
     letter-spacing: 1px;
   }
+
   .phase-item {
     padding: 5px 14px;
     font-size: 0.78rem;
   }
+
   .phase-item.on  { color: var(--success); }
   .phase-item.off { color: var(--dim); }
 
@@ -228,6 +524,7 @@
     overflow: hidden;
     padding: 16px;
   }
+
   .log-header {
     color: var(--accent);
     font-size: 0.85rem;
@@ -236,6 +533,7 @@
     padding-bottom: 6px;
     border-bottom: 1px solid var(--accent);
   }
+
   #log-box {
     flex: 1;
     background: var(--bg-panel);
@@ -247,6 +545,7 @@
     scrollbar-width: thin;
     scrollbar-color: var(--border) transparent;
   }
+
   .log-line       { white-space: pre-wrap; word-break: break-all; }
   .log-info       { color: var(--text); }
   .log-success    { color: var(--success); }
@@ -264,6 +563,7 @@
     align-items: center;
     flex-wrap: wrap;
   }
+
   footer .spacer { flex: 1; }
 
   /* ── Progress bar ── */
@@ -273,16 +573,19 @@
     background: var(--bg-input);
     overflow: hidden;
   }
+
   #progress-bar {
     height: 100%;
     width: 0%;
     background: var(--accent);
     transition: width 0.3s;
   }
+
   #progress-bar.indeterminate {
     width: 30%;
     animation: slide 1.4s infinite ease-in-out;
   }
+
   @keyframes slide {
     0%   { transform: translateX(-100%); }
     100% { transform: translateX(400%); }
@@ -290,6 +593,7 @@
 
   /* ── Report links ── */
   #report-links { display: none; gap: 10px; margin-top: 8px; }
+
   #report-links a {
     color: var(--accent);
     text-decoration: none;
@@ -298,6 +602,7 @@
     padding: 4px 10px;
     border-radius: 3px;
   }
+
   #report-links a:hover { background: var(--accent); color: var(--bg-dark); }
   #report-links.visible { display: flex; }
 
@@ -313,29 +618,40 @@
     font-size: 0.82rem;
     text-align: center;
   }
+
   #complete-banner.visible { display: block; }
 </style>
 </head>
 <body>
 
-<!-- ── HEADER ── -->
 <header>
-  <div>
-    <span class="logo">◈ ARTEMIS</span>
-    <span style="color:var(--dim);font-size:0.85rem;margin-left:8px">// External Penetration Testing Suite</span>
+  <div class="header-brand">
+    <div class="dog-logo header" aria-hidden="true">
+      <div class="dog-ring"></div>
+      <div class="dog-ear left"></div>
+      <div class="dog-ear right"></div>
+      <div class="dog-head">
+        <div class="dog-eye left"></div>
+        <div class="dog-eye right"></div>
+        <div class="dog-snout"></div>
+        <div class="dog-nose"></div>
+        <div class="dog-mouth"></div>
+      </div>
+    </div>
+    <div>
+      <span class="logo">ARTEMIS</span>
+      <span style="color:var(--dim);font-size:0.85rem;margin-left:8px">// External Penetration Testing Suite</span>
+    </div>
   </div>
   <div id="status-badge">● READY</div>
 </header>
 
 <div id="progress-bar-wrap"><div id="progress-bar"></div></div>
 
-<!-- ── MAIN ── -->
 <div class="main">
 
-  <!-- ── LEFT PANEL ── -->
   <div class="left-panel">
 
-    <!-- FORM (shown before submit) -->
     <div id="form-panel">
 
       <div class="section">
@@ -377,35 +693,21 @@
       <button class="btn btn-submit" onclick="submitForm()">◈ SUBMIT &amp; CREATE FOLDER</button>
     </div>
 
-    <!-- CONFIRMED (shown after submit) -->
     <div id="confirmed-panel">
 
       <div class="confirmed-logo">
-        <!-- Artemis dog logo SVG -->
-        <svg viewBox="0 0 160 160" xmlns="http://www.w3.org/2000/svg" width="140" height="140">
-          <!-- glow rings -->
-          <circle cx="80" cy="90" r="68" fill="none" stroke="#00d4ff" stroke-width="1" opacity="0.5"/>
-          <circle cx="80" cy="90" r="62" fill="none" stroke="#ff6b35" stroke-width="1" opacity="0.4"/>
-          <!-- body -->
-          <circle cx="80" cy="100" r="48" fill="#0f1420" stroke="#00d4ff" stroke-width="1.5"/>
-          <!-- left ear -->
-          <polygon points="30,80 10,30 58,68" fill="#ff6b35"/>
-          <!-- right ear -->
-          <polygon points="130,80 150,30 102,68" fill="#ff6b35"/>
-          <!-- snout -->
-          <ellipse cx="80" cy="122" rx="20" ry="16" fill="#141926" stroke="#00d4ff" stroke-width="1"/>
-          <!-- nose -->
-          <ellipse cx="80" cy="116" rx="8" ry="6" fill="#ff6b35"/>
-          <!-- left eye -->
-          <circle cx="62" cy="96" r="10" fill="#0a0d14" stroke="#00d4ff" stroke-width="1.5"/>
-          <circle cx="62" cy="96" r="5" fill="#00d4ff"/>
-          <!-- right eye -->
-          <circle cx="98" cy="96" r="10" fill="#0a0d14" stroke="#00d4ff" stroke-width="1.5"/>
-          <circle cx="98" cy="96" r="5" fill="#00d4ff"/>
-          <!-- collar tag -->
-          <rect x="73" y="140" width="14" height="10" rx="2" fill="#ff6b35"/>
-          <text x="80" y="149" text-anchor="middle" font-size="7" fill="#0a0d14" font-family="monospace" font-weight="bold">A</text>
-        </svg>
+        <div class="dog-logo confirmed" aria-hidden="true">
+          <div class="dog-ring"></div>
+          <div class="dog-ear left"></div>
+          <div class="dog-ear right"></div>
+          <div class="dog-head">
+            <div class="dog-eye left"></div>
+            <div class="dog-eye right"></div>
+            <div class="dog-snout"></div>
+            <div class="dog-nose"></div>
+            <div class="dog-mouth"></div>
+          </div>
+        </div>
         <div style="color:var(--success);font-size:0.9rem;letter-spacing:2px;margin-top:6px">ENGAGEMENT LOCKED</div>
       </div>
 
@@ -429,14 +731,13 @@
       <div id="complete-banner">✅ SCAN COMPLETE — Generate report or start a new scan below.</div>
 
       <div id="report-links">
-        <a id="pdf-link"  href="#" download>📄 Download PDF</a>
-        <a id="docx-link" href="#" download>📝 Download DOCX</a>
+        <a id="pdf-link"  href="#" download> Download PDF</a>
+        <a id="docx-link" href="#" download> Download DOCX</a>
       </div>
 
     </div>
   </div>
 
-  <!-- ── RIGHT PANEL — LOG ── -->
   <div class="right-panel">
     <div class="log-header">◈ LIVE OUTPUT</div>
     <div id="log-box"></div>
@@ -444,10 +745,9 @@
 
 </div>
 
-<!-- ── FOOTER ── -->
 <footer>
   <button class="btn btn-run"    id="btn-run"    onclick="startScan()"      disabled>▶  RUN SCAN</button>
-  <button class="btn btn-report" id="btn-report" onclick="generateReport()" disabled>📄  GENERATE REPORT</button>
+  <button class="btn btn-report" id="btn-report" onclick="generateReport()" disabled>  GENERATE REPORT</button>
   <div class="spacer"></div>
   <button class="btn btn-reset"  id="btn-reset"  onclick="saveAndExit()"    style="display:none">↺  NEW SCAN</button>
   <button class="btn btn-exit"   onclick="saveAndExit()">✕  EXIT</button>
@@ -509,7 +809,6 @@ async function submitForm() {
   const data = await res.json();
   if (!data.ok) { alert(data.error); return; }
 
-  // Populate confirmed panel
   document.getElementById('cf-client').textContent = client;
   document.getElementById('cf-date').textContent   = date;
   document.getElementById('cf-domain').textContent = domain || '—';
@@ -517,7 +816,6 @@ async function submitForm() {
   document.getElementById('cf-urls').textContent   = `${data.url_count} URL(s)`;
   document.getElementById('cf-folder').textContent = data.folder;
 
-  // Phase summary
   const phasesEl = document.getElementById('cf-phases');
   phasesEl.innerHTML = '';
   [
@@ -532,7 +830,6 @@ async function submitForm() {
     phasesEl.appendChild(div);
   });
 
-  // Swap panels
   document.getElementById('form-panel').style.display      = 'none';
   document.getElementById('confirmed-panel').style.display = 'block';
   document.getElementById('btn-run').disabled    = false;
@@ -573,7 +870,6 @@ async function startScan() {
   setStatus('● SCANNING', 'var(--warning)');
   progressStart();
 
-  // Open SSE stream
   sseSource = new EventSource('/api/stream');
   sseSource.onmessage = (e) => {
     const parts = e.data.split('|');
@@ -586,7 +882,7 @@ async function startScan() {
       onScanComplete();
       return;
     }
-    // Append to log
+
     const box  = document.getElementById('log-box');
     const line = document.createElement('div');
     line.className = `log-line log-${tag}`;
@@ -594,6 +890,7 @@ async function startScan() {
     box.appendChild(line);
     box.scrollTop = box.scrollHeight;
   };
+
   sseSource.onerror = () => {
     sseSource.close();
     if (scanning) {
@@ -635,7 +932,7 @@ async function generateReport() {
 }
 
 // ══════════════════════════════════════════════════════════════════════
-// SAVE & EXIT  — saves assessment to dashboard history, redirects home
+// SAVE & EXIT
 // ══════════════════════════════════════════════════════════════════════
 async function saveAndExit() {
   if (scanning) {
@@ -648,7 +945,6 @@ async function saveAndExit() {
     vuln:  document.getElementById('ph-vuln').checked,
   };
 
-  // Save to history if we have an active engagement
   if (submitted) {
     try {
       await fetch('/api/save-assessment', {
@@ -657,7 +953,6 @@ async function saveAndExit() {
         body:    JSON.stringify({ phases }),
       });
     } catch (e) {
-      // Best effort — redirect regardless
     }
   }
 
@@ -671,6 +966,7 @@ function progressStart() {
   const bar = document.getElementById('progress-bar');
   bar.classList.add('indeterminate');
 }
+
 function progressStop() {
   const bar = document.getElementById('progress-bar');
   bar.classList.remove('indeterminate');
