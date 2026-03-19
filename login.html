@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARTEMIS // Login</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+  :root {
+    --bg:      #0a0d14;
+    --panel:   #0f1420;
+    --input:   #141926;
+    --accent:  #00d4ff;
+    --accent2: #ff6b35;
+    --success: #00ff88;
+    --error:   #ff3355;
+    --text:    #e8eaf0;
+    --dim:     #5a6a8a;
+    --border:  #1e2a40;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    font-family: 'Share Tech Mono', monospace;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .login-wrap {
+    width: 100%;
+    max-width: 420px;
+    padding: 20px;
+  }
+
+  .logo-block {
+    text-align: center;
+    margin-bottom: 32px;
+  }
+
+  .logo-block svg { margin-bottom: 16px; }
+
+  .logo-title {
+    font-size: 2rem;
+    color: var(--accent);
+    letter-spacing: 4px;
+  }
+  .logo-sub {
+    font-size: 0.8rem;
+    color: var(--dim);
+    margin-top: 4px;
+    letter-spacing: 2px;
+  }
+
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .card-header {
+    border-bottom: 1px solid var(--accent);
+    padding: 12px 20px;
+    color: var(--accent);
+    font-size: 0.85rem;
+    letter-spacing: 1px;
+  }
+  .card-body { padding: 24px 20px; }
+
+  label {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--dim);
+    margin-bottom: 5px;
+    margin-top: 16px;
+    letter-spacing: 1px;
+  }
+  label:first-child { margin-top: 0; }
+
+  input[type="text"],
+  input[type="password"] {
+    width: 100%;
+    background: var(--input);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.9rem;
+    padding: 10px 12px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  input:focus { border-color: var(--accent); }
+
+  .btn-login {
+    width: 100%;
+    margin-top: 24px;
+    padding: 12px;
+    background: var(--panel);
+    border: 1px solid var(--accent);
+    border-radius: 3px;
+    color: var(--accent);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.9rem;
+    letter-spacing: 2px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+  }
+  .btn-login:hover { background: var(--accent); color: var(--bg); }
+
+  .error-msg {
+    background: rgba(255, 51, 85, 0.1);
+    border: 1px solid var(--error);
+    border-radius: 3px;
+    color: var(--error);
+    font-size: 0.8rem;
+    padding: 8px 12px;
+    margin-top: 14px;
+    text-align: center;
+  }
+
+  .footer-note {
+    text-align: center;
+    color: var(--dim);
+    font-size: 0.7rem;
+    margin-top: 20px;
+    letter-spacing: 1px;
+  }
+</style>
+</head>
+<body>
+<div class="login-wrap">
+
+  <div class="logo-block">
+    <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" width="100" height="100">
+      <circle cx="60" cy="68" r="52" fill="none" stroke="#00d4ff" stroke-width="1" opacity="0.5"/>
+      <circle cx="60" cy="68" r="46" fill="none" stroke="#ff6b35" stroke-width="1" opacity="0.4"/>
+      <circle cx="60" cy="76" r="36" fill="#0f1420" stroke="#00d4ff" stroke-width="1.5"/>
+      <polygon points="22,60 6,22 44,52" fill="#ff6b35"/>
+      <polygon points="98,60 114,22 76,52" fill="#ff6b35"/>
+      <ellipse cx="60" cy="92" rx="15" ry="12" fill="#141926" stroke="#00d4ff" stroke-width="1"/>
+      <ellipse cx="60" cy="88" rx="6" ry="4.5" fill="#ff6b35"/>
+      <circle cx="46" cy="72" r="7.5" fill="#0a0d14" stroke="#00d4ff" stroke-width="1.5"/>
+      <circle cx="46" cy="72" r="3.5" fill="#00d4ff"/>
+      <circle cx="74" cy="72" r="7.5" fill="#0a0d14" stroke="#00d4ff" stroke-width="1.5"/>
+      <circle cx="74" cy="72" r="3.5" fill="#00d4ff"/>
+      <rect x="54" y="103" width="12" height="8" rx="2" fill="#ff6b35"/>
+      <text x="60" y="110" text-anchor="middle" font-size="6" fill="#0a0d14" font-family="monospace" font-weight="bold">A</text>
+    </svg>
+    <div class="logo-title">ARTEMIS</div>
+    <div class="logo-sub">EXTERNAL PENTEST SUITE</div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">◈ AUTHORIZED ACCESS ONLY</div>
+    <div class="card-body">
+      <form method="POST" action="/login">
+        <label>USERNAME</label>
+        <input type="text" name="username" autocomplete="username" autofocus>
+
+        <label>PASSWORD</label>
+        <input type="password" name="password" autocomplete="current-password">
+
+        <button type="submit" class="btn-login">▶  AUTHENTICATE</button>
+
+        {% if error %}
+        <div class="error-msg">✗  {{ error }}</div>
+        {% endif %}
+      </form>
+    </div>
+  </div>
+
+  <div class="footer-note">ARTEMIS // CONFIDENTIAL SYSTEM</div>
+</div>
+</body>
+</html>

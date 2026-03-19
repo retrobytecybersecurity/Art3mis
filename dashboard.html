@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARTEMIS // Dashboard</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&display=swap');
+  :root {
+    --bg:      #0a0d14;
+    --panel:   #0f1420;
+    --input:   #141926;
+    --accent:  #00d4ff;
+    --accent2: #ff6b35;
+    --success: #00ff88;
+    --warning: #ffcc00;
+    --error:   #ff3355;
+    --text:    #e8eaf0;
+    --dim:     #5a6a8a;
+    --border:  #1e2a40;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── Header ── */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 32px 10px;
+    border-bottom: 1px solid var(--accent);
+  }
+  .logo { font-size: 1.5rem; color: var(--accent); letter-spacing: 2px; }
+  .header-right { display: flex; align-items: center; gap: 20px; }
+  .nav-link {
+    color: var(--dim);
+    font-size: 0.8rem;
+    text-decoration: none;
+    letter-spacing: 1px;
+    padding: 5px 12px;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    transition: all 0.15s;
+  }
+  .nav-link:hover { color: var(--text); border-color: var(--dim); }
+  .nav-link.logout { color: var(--error); border-color: var(--error); }
+  .nav-link.logout:hover { background: var(--error); color: var(--bg); }
+
+  /* ── Main content ── */
+  main {
+    flex: 1;
+    max-width: 1100px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 40px 32px;
+  }
+
+  /* ── Page title ── */
+  .page-title {
+    font-size: 1.1rem;
+    color: var(--accent);
+    letter-spacing: 2px;
+    margin-bottom: 6px;
+  }
+  .page-sub {
+    color: var(--dim);
+    font-size: 0.78rem;
+    margin-bottom: 32px;
+  }
+
+  /* ── New scan CTA ── */
+  .cta-block {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--panel);
+    border: 1px solid var(--accent);
+    border-radius: 6px;
+    padding: 20px 28px;
+    margin-bottom: 36px;
+  }
+  .cta-text h2 {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+  .cta-text p { font-size: 0.78rem; color: var(--dim); }
+  .btn-new-scan {
+    display: inline-block;
+    padding: 12px 28px;
+    background: var(--accent);
+    color: var(--bg);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.9rem;
+    font-weight: bold;
+    letter-spacing: 1px;
+    text-decoration: none;
+    border-radius: 3px;
+    border: none;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s, opacity 0.15s;
+  }
+  .btn-new-scan:hover { opacity: 0.85; }
+
+  /* ── Section header ── */
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .section-title {
+    font-size: 0.85rem;
+    color: var(--accent);
+    letter-spacing: 2px;
+  }
+  .section-count {
+    font-size: 0.72rem;
+    color: var(--dim);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 2px 8px;
+  }
+
+  /* ── Assessment cards ── */
+  .assessment-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .assessment-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 18px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    transition: border-color 0.15s;
+    position: relative;
+    overflow: hidden;
+  }
+  .assessment-card::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: var(--accent2);
+  }
+  .assessment-card:hover { border-color: var(--accent2); }
+
+  .card-rank {
+    font-size: 1.6rem;
+    color: var(--border);
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    min-width: 32px;
+    text-align: center;
+  }
+  .assessment-card:nth-child(1) .card-rank { color: var(--accent2); }
+
+  .card-main { flex: 1; min-width: 0; }
+  .card-client {
+    font-size: 1rem;
+    color: var(--text);
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 4px;
+  }
+  .card-meta {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .card-meta span {
+    font-size: 0.72rem;
+    color: var(--dim);
+  }
+  .card-meta .meta-val { color: var(--text); }
+
+  .card-phases {
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+  .phase-badge {
+    font-size: 0.65rem;
+    padding: 3px 8px;
+    border-radius: 2px;
+    border: 1px solid var(--border);
+    color: var(--dim);
+    letter-spacing: 0.5px;
+  }
+  .phase-badge.on {
+    border-color: var(--success);
+    color: var(--success);
+    background: rgba(0,255,136,0.05);
+  }
+
+  .card-completed {
+    font-size: 0.7rem;
+    color: var(--dim);
+    text-align: right;
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+
+  /* ── Empty state ── */
+  .empty-state {
+    background: var(--panel);
+    border: 1px dashed var(--border);
+    border-radius: 6px;
+    padding: 48px 24px;
+    text-align: center;
+  }
+  .empty-state .empty-icon {
+    font-size: 2.5rem;
+    margin-bottom: 12px;
+    opacity: 0.3;
+  }
+  .empty-state p {
+    color: var(--dim);
+    font-size: 0.82rem;
+    line-height: 1.8;
+  }
+
+  /* ── Footer ── */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 12px 32px;
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.7rem;
+    color: var(--dim);
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">◈ ARTEMIS</div>
+  <div class="header-right">
+    <a href="/scan" class="nav-link">▶ NEW SCAN</a>
+    <a href="/logout" class="nav-link logout">⎋ LOGOUT</a>
+  </div>
+</header>
+
+<main>
+  <div class="page-title">◈ DASHBOARD</div>
+  <div class="page-sub">Recent assessments — last 5 engagements</div>
+
+  <!-- CTA -->
+  <div class="cta-block">
+    <div class="cta-text">
+      <h2>Start a New Assessment</h2>
+      <p>Configure targets, select phases, and launch the automated scan pipeline.</p>
+    </div>
+    <a href="/scan" class="btn-new-scan">▶  BEGIN ASSESSMENT</a>
+  </div>
+
+  <!-- Recent assessments -->
+  <div class="section-header">
+    <span class="section-title">◈ RECENT ASSESSMENTS</span>
+    <span class="section-count">{{ history|length }} / 5</span>
+  </div>
+
+  <div class="assessment-grid">
+    {% if history %}
+      {% for entry in history %}
+      <div class="assessment-card">
+        <div class="card-rank">{{ loop.index }}</div>
+
+        <div class="card-main">
+          <div class="card-client">{{ entry.client }}</div>
+          <div class="card-meta">
+            <span>Date: <span class="meta-val">{{ entry.date }}</span></span>
+            <span>Domain: <span class="meta-val">{{ entry.domain }}</span></span>
+            <span>Folder: <span class="meta-val" style="font-size:0.65rem;opacity:0.6">{{ entry.folder }}</span></span>
+          </div>
+        </div>
+
+        <div class="card-phases">
+          <span class="phase-badge {{ 'on' if entry.phases.get('recon') else '' }}">P1</span>
+          <span class="phase-badge {{ 'on' if entry.phases.get('scan')  else '' }}">P2</span>
+          <span class="phase-badge {{ 'on' if entry.phases.get('vuln')  else '' }}">P3</span>
+        </div>
+
+        <div class="card-completed">
+          Completed<br>{{ entry.completed }}
+        </div>
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="empty-state">
+        <div class="empty-icon">◈</div>
+        <p>No assessments recorded yet.<br>
+        Complete a scan and click <strong style="color:var(--text)">EXIT</strong> to save it here.</p>
+      </div>
+    {% endif %}
+  </div>
+</main>
+
+<footer>
+  <span>ARTEMIS // External Pentest Suite</span>
+  <span>CONFIDENTIAL — Authorized Use Only</span>
+</footer>
+
+</body>
+</html>
