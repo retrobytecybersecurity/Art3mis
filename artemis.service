@@ -1,0 +1,23 @@
+[Unit]
+Description=Artemis External Pentest Automation Suite (Web)
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/artemis
+ExecStart=/usr/bin/python3 /opt/artemis/artemis_web.py
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=artemis
+
+# Ensure Go tools are in PATH
+Environment="PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/root/go/bin"
+Environment="GOPATH=/root/go"
+Environment="HOME=/root"
+
+[Install]
+WantedBy=multi-user.target

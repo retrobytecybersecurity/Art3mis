@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARTEMIS // Penetration Testing Suite</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&display=swap');
+
+  :root {
+    --bg-dark:   #0a0d14;
+    --bg-panel:  #0f1420;
+    --bg-input:  #141926;
+    --accent:    #00d4ff;
+    --accent2:   #ff6b35;
+    --success:   #00ff88;
+    --warning:   #ffcc00;
+    --error:     #ff3355;
+    --text:      #e8eaf0;
+    --dim:       #5a6a8a;
+    --border:    #1e2a40;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg-dark);
+    color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── Header ── */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 28px 10px;
+    border-bottom: 1px solid var(--accent);
+  }
+  .logo { font-size: 1.6rem; color: var(--accent); letter-spacing: 2px; }
+  .logo span { color: var(--dim); font-size: 0.9rem; margin-left: 12px; }
+  #status-badge {
+    font-size: 0.8rem;
+    color: var(--success);
+    letter-spacing: 1px;
+  }
+
+  /* ── Main layout ── */
+  .main {
+    display: flex;
+    flex: 1;
+    gap: 0;
+    overflow: hidden;
+    height: calc(100vh - 56px);
+  }
+
+  /* ── Left panel ── */
+  .left-panel {
+    width: 420px;
+    min-width: 380px;
+    background: var(--bg-dark);
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    padding: 16px;
+    flex-shrink: 0;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+
+  /* ── Confirmed panel (hidden by default) ── */
+  #confirmed-panel { display: none; }
+
+  /* ── Form sections ── */
+  .section {
+    background: var(--bg-panel);
+    border-radius: 4px;
+    margin-bottom: 10px;
+    overflow: hidden;
+  }
+  .section-title {
+    color: var(--accent);
+    font-size: 0.85rem;
+    padding: 8px 12px 6px;
+    letter-spacing: 1px;
+    border-bottom: 1px solid var(--border);
+  }
+  .section-body { padding: 10px 12px; }
+
+  label {
+    display: block;
+    font-size: 0.72rem;
+    color: var(--dim);
+    margin-bottom: 3px;
+    margin-top: 8px;
+  }
+  label:first-child { margin-top: 0; }
+
+  .hint {
+    font-size: 0.68rem;
+    color: var(--dim);
+    margin-top: 3px;
+    margin-bottom: 6px;
+    opacity: 0.7;
+  }
+
+  input[type="text"], textarea {
+    width: 100%;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.82rem;
+    padding: 7px 10px;
+    outline: none;
+    resize: vertical;
+    transition: border-color 0.2s;
+  }
+  input[type="text"]:focus, textarea:focus { border-color: var(--accent); }
+
+  textarea { min-height: 80px; }
+
+  /* ── Checkboxes ── */
+  .phase-checks { padding: 6px 0 0; }
+  .phase-check {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 4px 0;
+    font-size: 0.8rem;
+    color: var(--text);
+    cursor: pointer;
+  }
+  .phase-check input[type="checkbox"] { accent-color: var(--accent); width: 14px; height: 14px; cursor: pointer; }
+
+  /* ── Buttons ── */
+  .btn {
+    display: inline-block;
+    padding: 9px 20px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.82rem;
+    font-weight: bold;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    letter-spacing: 1px;
+    transition: background 0.15s, color 0.15s;
+  }
+  .btn-submit  { background: var(--bg-panel); color: var(--accent2); border: 1px solid var(--accent2); width: 100%; margin-top: 10px; }
+  .btn-submit:hover  { background: var(--accent2); color: var(--bg-dark); }
+  .btn-run     { background: var(--bg-panel); color: var(--accent);  border: 1px solid var(--accent);  }
+  .btn-run:hover     { background: var(--accent);  color: var(--bg-dark); }
+  .btn-report  { background: var(--bg-panel); color: var(--success); border: 1px solid var(--success); }
+  .btn-report:hover  { background: var(--success); color: var(--bg-dark); }
+  .btn-reset   { background: var(--bg-panel); color: var(--dim);     border: 1px solid var(--dim);     }
+  .btn-reset:hover   { background: var(--dim);     color: var(--bg-dark); }
+  .btn-exit    { background: var(--bg-panel); color: var(--error);   border: 1px solid var(--error);   }
+  .btn-exit:hover    { background: var(--error);   color: var(--bg-dark); }
+  .btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+  /* ── Confirmed panel ── */
+  .confirmed-logo {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px 0 12px;
+  }
+  .artemis-icon {
+    width: 120px; height: 120px;
+    position: relative;
+  }
+  .artemis-icon svg { width: 100%; height: 100%; }
+
+  .engagement-badge {
+    background: var(--bg-panel);
+    border-radius: 4px;
+    margin: 0 0 10px;
+    overflow: hidden;
+  }
+  .engagement-badge-title {
+    color: var(--success);
+    font-size: 0.85rem;
+    padding: 8px 12px 6px;
+    border-bottom: 1px solid var(--border);
+    letter-spacing: 1px;
+  }
+  .info-grid {
+    padding: 10px 14px;
+    display: grid;
+    grid-template-columns: 90px 1fr;
+    gap: 5px 8px;
+    font-size: 0.78rem;
+  }
+  .info-label { color: var(--dim); }
+  .info-value { color: var(--text); word-break: break-all; }
+  .info-value.accent  { color: var(--accent); }
+  .info-value.accent2 { color: var(--accent2); }
+  .info-value.success { color: var(--success); }
+
+  .phase-queued {
+    background: var(--bg-panel);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 10px;
+  }
+  .phase-queued-title {
+    color: var(--accent);
+    font-size: 0.85rem;
+    padding: 8px 12px 6px;
+    border-bottom: 1px solid var(--border);
+    letter-spacing: 1px;
+  }
+  .phase-item {
+    padding: 5px 14px;
+    font-size: 0.78rem;
+  }
+  .phase-item.on  { color: var(--success); }
+  .phase-item.off { color: var(--dim); }
+
+  /* ── Right panel — log ── */
+  .right-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding: 16px;
+  }
+  .log-header {
+    color: var(--accent);
+    font-size: 0.85rem;
+    letter-spacing: 1px;
+    margin-bottom: 6px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--accent);
+  }
+  #log-box {
+    flex: 1;
+    background: var(--bg-panel);
+    border-radius: 4px;
+    padding: 12px 14px;
+    overflow-y: auto;
+    font-size: 0.78rem;
+    line-height: 1.6;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  .log-line       { white-space: pre-wrap; word-break: break-all; }
+  .log-info       { color: var(--text); }
+  .log-success    { color: var(--success); }
+  .log-warn       { color: var(--warning); }
+  .log-error      { color: var(--error); }
+  .log-phase      { color: var(--accent); font-weight: bold; }
+  .log-dim        { color: var(--dim); }
+
+  /* ── Footer ── */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 10px 28px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  footer .spacer { flex: 1; }
+
+  /* ── Progress bar ── */
+  #progress-bar-wrap {
+    width: 100%;
+    height: 3px;
+    background: var(--bg-input);
+    overflow: hidden;
+  }
+  #progress-bar {
+    height: 100%;
+    width: 0%;
+    background: var(--accent);
+    transition: width 0.3s;
+  }
+  #progress-bar.indeterminate {
+    width: 30%;
+    animation: slide 1.4s infinite ease-in-out;
+  }
+  @keyframes slide {
+    0%   { transform: translateX(-100%); }
+    100% { transform: translateX(400%); }
+  }
+
+  /* ── Report links ── */
+  #report-links { display: none; gap: 10px; margin-top: 8px; }
+  #report-links a {
+    color: var(--accent);
+    text-decoration: none;
+    font-size: 0.8rem;
+    border: 1px solid var(--accent);
+    padding: 4px 10px;
+    border-radius: 3px;
+  }
+  #report-links a:hover { background: var(--accent); color: var(--bg-dark); }
+  #report-links.visible { display: flex; }
+
+  /* ── Scan complete banner ── */
+  #complete-banner {
+    display: none;
+    background: var(--bg-panel);
+    border: 1px solid var(--success);
+    border-radius: 4px;
+    padding: 10px 16px;
+    margin-top: 10px;
+    color: var(--success);
+    font-size: 0.82rem;
+    text-align: center;
+  }
+  #complete-banner.visible { display: block; }
+</style>
+</head>
+<body>
+
+<!-- ── HEADER ── -->
+<header>
+  <div>
+    <span class="logo">◈ ARTEMIS</span>
+    <span style="color:var(--dim);font-size:0.85rem;margin-left:8px">// External Penetration Testing Suite</span>
+  </div>
+  <div id="status-badge">● READY</div>
+</header>
+
+<div id="progress-bar-wrap"><div id="progress-bar"></div></div>
+
+<!-- ── MAIN ── -->
+<div class="main">
+
+  <!-- ── LEFT PANEL ── -->
+  <div class="left-panel">
+
+    <!-- FORM (shown before submit) -->
+    <div id="form-panel">
+
+      <div class="section">
+        <div class="section-title">◈ ENGAGEMENT</div>
+        <div class="section-body">
+          <label>Client Name</label>
+          <input type="text" id="client" placeholder="ACME Corp">
+          <label>Engagement Date</label>
+          <input type="text" id="date" placeholder="YYYY-MM-DD">
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">◈ TARGETS</div>
+        <div class="section-body">
+          <label>Domain  (e.g. example.com)</label>
+          <input type="text" id="domain" placeholder="example.com">
+          <p class="hint">→ used by: assetfinder, dnsenum, OSINT tools</p>
+
+          <label>Scope — No https://  (one per line)</label>
+          <textarea id="scope" rows="5" placeholder="192.168.1.1&#10;10.0.0.1&#10;targethost.com"></textarea>
+          <p class="hint">→ scope.txt  |  used by: nmap, metasploit</p>
+
+          <label>URLs — Include https://  (one per line)</label>
+          <textarea id="urls" rows="5" placeholder="https://example.com&#10;https://app.example.com"></textarea>
+          <p class="hint">→ urls.txt  |  used by: curl, sslscan, shcheck, nikto, nuclei, ffuf</p>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">◈ PHASES</div>
+        <div class="section-body phase-checks">
+          <label class="phase-check"><input type="checkbox" id="ph-recon" checked> Phase 1 — Reconnaissance / OSINT</label>
+          <label class="phase-check"><input type="checkbox" id="ph-scan"  checked> Phase 2 — Port & Service Scanning</label>
+          <label class="phase-check"><input type="checkbox" id="ph-vuln"  checked> Phase 3 — Vulnerability Scanning</label>
+        </div>
+      </div>
+
+      <button class="btn btn-submit" onclick="submitForm()">◈ SUBMIT &amp; CREATE FOLDER</button>
+    </div>
+
+    <!-- CONFIRMED (shown after submit) -->
+    <div id="confirmed-panel">
+
+      <div class="confirmed-logo">
+        <!-- Artemis dog logo SVG -->
+        <svg viewBox="0 0 160 160" xmlns="http://www.w3.org/2000/svg" width="140" height="140">
+          <!-- glow rings -->
+          <circle cx="80" cy="90" r="68" fill="none" stroke="#00d4ff" stroke-width="1" opacity="0.5"/>
+          <circle cx="80" cy="90" r="62" fill="none" stroke="#ff6b35" stroke-width="1" opacity="0.4"/>
+          <!-- body -->
+          <circle cx="80" cy="100" r="48" fill="#0f1420" stroke="#00d4ff" stroke-width="1.5"/>
+          <!-- left ear -->
+          <polygon points="30,80 10,30 58,68" fill="#ff6b35"/>
+          <!-- right ear -->
+          <polygon points="130,80 150,30 102,68" fill="#ff6b35"/>
+          <!-- snout -->
+          <ellipse cx="80" cy="122" rx="20" ry="16" fill="#141926" stroke="#00d4ff" stroke-width="1"/>
+          <!-- nose -->
+          <ellipse cx="80" cy="116" rx="8" ry="6" fill="#ff6b35"/>
+          <!-- left eye -->
+          <circle cx="62" cy="96" r="10" fill="#0a0d14" stroke="#00d4ff" stroke-width="1.5"/>
+          <circle cx="62" cy="96" r="5" fill="#00d4ff"/>
+          <!-- right eye -->
+          <circle cx="98" cy="96" r="10" fill="#0a0d14" stroke="#00d4ff" stroke-width="1.5"/>
+          <circle cx="98" cy="96" r="5" fill="#00d4ff"/>
+          <!-- collar tag -->
+          <rect x="73" y="140" width="14" height="10" rx="2" fill="#ff6b35"/>
+          <text x="80" y="149" text-anchor="middle" font-size="7" fill="#0a0d14" font-family="monospace" font-weight="bold">A</text>
+        </svg>
+        <div style="color:var(--success);font-size:0.9rem;letter-spacing:2px;margin-top:6px">ENGAGEMENT LOCKED</div>
+      </div>
+
+      <div class="engagement-badge">
+        <div class="engagement-badge-title">◈ ENGAGEMENT SUMMARY</div>
+        <div class="info-grid">
+          <span class="info-label">Client:</span>  <span class="info-value accent"  id="cf-client"></span>
+          <span class="info-label">Date:</span>    <span class="info-value"         id="cf-date"></span>
+          <span class="info-label">Domain:</span>  <span class="info-value accent2" id="cf-domain"></span>
+          <span class="info-label">Scope:</span>   <span class="info-value success" id="cf-scope"></span>
+          <span class="info-label">URLs:</span>    <span class="info-value success" id="cf-urls"></span>
+          <span class="info-label">Folder:</span>  <span class="info-value dim"     id="cf-folder" style="color:var(--dim);font-size:0.7rem;"></span>
+        </div>
+      </div>
+
+      <div class="phase-queued">
+        <div class="phase-queued-title">◈ PHASES QUEUED</div>
+        <div id="cf-phases"></div>
+      </div>
+
+      <div id="complete-banner">✅ SCAN COMPLETE — Generate report or start a new scan below.</div>
+
+      <div id="report-links">
+        <a id="pdf-link"  href="#" download>📄 Download PDF</a>
+        <a id="docx-link" href="#" download>📝 Download DOCX</a>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── RIGHT PANEL — LOG ── -->
+  <div class="right-panel">
+    <div class="log-header">◈ LIVE OUTPUT</div>
+    <div id="log-box"></div>
+  </div>
+
+</div>
+
+<!-- ── FOOTER ── -->
+<footer>
+  <button class="btn btn-run"    id="btn-run"    onclick="startScan()"      disabled>▶  RUN SCAN</button>
+  <button class="btn btn-report" id="btn-report" onclick="generateReport()" disabled>📄  GENERATE REPORT</button>
+  <div class="spacer"></div>
+  <button class="btn btn-reset"  id="btn-reset"  onclick="resetScan()"      style="display:none">↺  NEW SCAN</button>
+  <button class="btn btn-exit"   onclick="if(confirm('Close browser tab to exit.')){}">✕  EXIT</button>
+</footer>
+
+<script>
+// ══════════════════════════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════════════════════════
+let submitted  = false;
+let scanning   = false;
+let sseSource  = null;
+
+// ══════════════════════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('date').value = today;
+  appendLog('ARTEMIS Web ready. Fill in the form and click SUBMIT.', 'info');
+  appendLog('Startup tool check running in background...', 'dim');
+});
+
+// ══════════════════════════════════════════════════════════════════════
+// LOG HELPERS
+// ══════════════════════════════════════════════════════════════════════
+function appendLog(msg, tag) {
+  const box  = document.getElementById('log-box');
+  const line = document.createElement('div');
+  line.className = `log-line log-${tag}`;
+  const ts = new Date().toLocaleTimeString('en-GB', {hour12: false});
+  line.textContent = `[${ts}] ${msg}`;
+  box.appendChild(line);
+  box.scrollTop = box.scrollHeight;
+}
+
+function clearLog() {
+  document.getElementById('log-box').innerHTML = '';
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// SUBMIT
+// ══════════════════════════════════════════════════════════════════════
+async function submitForm() {
+  const client = document.getElementById('client').value.trim();
+  const date   = document.getElementById('date').value.trim();
+  const domain = document.getElementById('domain').value.trim();
+  const scope  = document.getElementById('scope').value.trim();
+  const urls   = document.getElementById('urls').value.trim();
+
+  if (!client)                        { alert('Client name is required.');               return; }
+  if (!scope && !urls && !domain)     { alert('Enter at least one target.');             return; }
+
+  const res  = await fetch('/api/submit', {
+    method:  'POST',
+    headers: {'Content-Type': 'application/json'},
+    body:    JSON.stringify({client, date, domain, scope, urls}),
+  });
+  const data = await res.json();
+  if (!data.ok) { alert(data.error); return; }
+
+  // Populate confirmed panel
+  document.getElementById('cf-client').textContent = client;
+  document.getElementById('cf-date').textContent   = date;
+  document.getElementById('cf-domain').textContent = domain || '—';
+  document.getElementById('cf-scope').textContent  = `${data.scope_count} host(s)`;
+  document.getElementById('cf-urls').textContent   = `${data.url_count} URL(s)`;
+  document.getElementById('cf-folder').textContent = data.folder;
+
+  // Phase summary
+  const phasesEl = document.getElementById('cf-phases');
+  phasesEl.innerHTML = '';
+  [
+    ['ph-recon', 'Phase 1 — Recon / OSINT'],
+    ['ph-scan',  'Phase 2 — Port Scanning'],
+    ['ph-vuln',  'Phase 3 — Vuln Scanning'],
+  ].forEach(([id, label]) => {
+    const on  = document.getElementById(id).checked;
+    const div = document.createElement('div');
+    div.className = `phase-item ${on ? 'on' : 'off'}`;
+    div.textContent = `  ${on ? '✓' : '✗'}  ${label}`;
+    phasesEl.appendChild(div);
+  });
+
+  // Swap panels
+  document.getElementById('form-panel').style.display      = 'none';
+  document.getElementById('confirmed-panel').style.display = 'block';
+  document.getElementById('btn-run').disabled    = false;
+  document.getElementById('btn-report').disabled = true;
+
+  submitted = true;
+  appendLog(`✓ Folder created: ${data.folder}`, 'success');
+  appendLog(`  Scope: ${data.scope_count} host(s) | URLs: ${data.url_count} | Domain: ${domain || '—'}`, 'info');
+  setStatus('● READY TO SCAN', 'var(--warning)');
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// START SCAN
+// ══════════════════════════════════════════════════════════════════════
+async function startScan() {
+  if (scanning) return;
+
+  const phases = {
+    recon: document.getElementById('ph-recon').checked,
+    scan:  document.getElementById('ph-scan').checked,
+    vuln:  document.getElementById('ph-vuln').checked,
+  };
+
+  const res  = await fetch('/api/start', {
+    method:  'POST',
+    headers: {'Content-Type': 'application/json'},
+    body:    JSON.stringify(phases),
+  });
+  const data = await res.json();
+  if (!data.ok) { alert(data.error); return; }
+
+  scanning = true;
+  document.getElementById('btn-run').disabled    = true;
+  document.getElementById('btn-report').disabled = true;
+  document.getElementById('btn-reset').style.display = 'none';
+  document.getElementById('complete-banner').classList.remove('visible');
+  document.getElementById('report-links').classList.remove('visible');
+  setStatus('● SCANNING', 'var(--warning)');
+  progressStart();
+
+  // Open SSE stream
+  sseSource = new EventSource('/api/stream');
+  sseSource.onmessage = (e) => {
+    const parts = e.data.split('|');
+    if (parts.length < 3) return;
+    const [tag, ts, ...msgParts] = parts;
+    const msg = msgParts.join('|');
+
+    if (tag === 'control' && msg === '__SCAN_COMPLETE__') {
+      sseSource.close();
+      onScanComplete();
+      return;
+    }
+    // Append to log
+    const box  = document.getElementById('log-box');
+    const line = document.createElement('div');
+    line.className = `log-line log-${tag}`;
+    line.textContent = `[${ts}] ${msg}`;
+    box.appendChild(line);
+    box.scrollTop = box.scrollHeight;
+  };
+  sseSource.onerror = () => {
+    sseSource.close();
+    if (scanning) {
+      appendLog('⚠ Stream disconnected — scan may still be running on server.', 'warn');
+    }
+  };
+}
+
+function onScanComplete() {
+  scanning = false;
+  progressStop();
+  setStatus('● COMPLETE', 'var(--success)');
+  document.getElementById('btn-report').disabled = false;
+  document.getElementById('btn-reset').style.display = 'inline-block';
+  document.getElementById('complete-banner').classList.add('visible');
+  appendLog('All phases complete. Click GENERATE REPORT or NEW SCAN.', 'success');
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// GENERATE REPORT
+// ══════════════════════════════════════════════════════════════════════
+async function generateReport() {
+  appendLog('⟶ Generating PDF and Word reports...', 'info');
+  document.getElementById('btn-report').disabled = true;
+
+  const res  = await fetch('/api/report', { method: 'POST' });
+  const data = await res.json();
+
+  if (!data.ok) {
+    appendLog(`✗ Report error: ${data.error}`, 'error');
+    document.getElementById('btn-report').disabled = false;
+    return;
+  }
+
+  appendLog('✓ Reports ready for download.', 'success');
+  document.getElementById('pdf-link').href  = data.pdf;
+  document.getElementById('docx-link').href = data.docx;
+  document.getElementById('report-links').classList.add('visible');
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// RESET
+// ══════════════════════════════════════════════════════════════════════
+async function resetScan() {
+  if (scanning) { alert('Scan is still running.'); return; }
+
+  const res  = await fetch('/api/reset', { method: 'POST' });
+  const data = await res.json();
+  if (!data.ok) { alert(data.error); return; }
+
+  // Reset UI
+  submitted = false;
+  scanning  = false;
+  clearLog();
+  document.getElementById('form-panel').style.display      = 'block';
+  document.getElementById('confirmed-panel').style.display = 'none';
+  document.getElementById('complete-banner').classList.remove('visible');
+  document.getElementById('report-links').classList.remove('visible');
+  document.getElementById('btn-run').disabled    = true;
+  document.getElementById('btn-report').disabled = true;
+  document.getElementById('btn-reset').style.display = 'none';
+  document.getElementById('client').value = '';
+  document.getElementById('domain').value = '';
+  document.getElementById('scope').value  = '';
+  document.getElementById('urls').value   = '';
+  document.getElementById('date').value   = new Date().toISOString().split('T')[0];
+  setStatus('● READY', 'var(--success)');
+  appendLog('Ready for new engagement.', 'success');
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// PROGRESS BAR HELPERS
+// ══════════════════════════════════════════════════════════════════════
+function progressStart() {
+  const bar = document.getElementById('progress-bar');
+  bar.classList.add('indeterminate');
+}
+function progressStop() {
+  const bar = document.getElementById('progress-bar');
+  bar.classList.remove('indeterminate');
+  bar.style.width = '100%';
+  setTimeout(() => { bar.style.width = '0%'; }, 1500);
+}
+
+function setStatus(text, color) {
+  const el = document.getElementById('status-badge');
+  el.textContent = text;
+  el.style.color = color;
+}
+</script>
+</body>
+</html>

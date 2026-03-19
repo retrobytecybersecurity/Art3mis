@@ -1,0 +1,29 @@
+# ══════════════════════════════════════════════════════════════
+# Artemis — Python Package Requirements
+# Install: pip install -r requirements.txt --break-system-packages
+# ══════════════════════════════════════════════════════════════
+
+# ── Web server (web mode) ─────────────────────────────────────
+flask>=3.0.0              # Web framework for artemis_web.py
+
+# ── Report generation ─────────────────────────────────────────
+reportlab>=4.0.0          # PDF report generation
+python-docx>=1.1.0        # Word (.docx) report generation
+
+# ── Scanning tools (Python-based) ────────────────────────────
+pymeta3                   # File metadata OSINT enumeration
+
+# ── GUI (desktop mode only) ───────────────────────────────────
+# tkinter is a system package — install via:
+#   sudo apt install python3-tk
+# Only required if running artemis.py (desktop), not artemis_web.py
+
+# ── NOTE: The following tools are installed separately ────────
+# These are NOT pip packages. See install.sh for full setup.
+#
+#   apt:  nmap, nikto, sslscan, dnsenum, curl, theharvester
+#   go:   nuclei, ffuf, assetfinder, gowitness, termshot
+#   git:  shcheck    → git clone https://github.com/santoru/shcheck /opt/shcheck
+#   git:  spoofy     → git clone https://github.com/MattKeeley/Spoofy /opt/spoofy
+#   git:  o365spray  → git clone https://github.com/0xZDH/o365spray /opt/o365spray
+#   manual: metasploit → https://docs.metasploit.com
