@@ -1,7 +1,6 @@
 [Unit]
 Description=Artemis External Pentest Automation Suite (Web)
 After=network.target
-Wants=network.target
 
 [Service]
 Type=simple
@@ -12,9 +11,15 @@ Restart=on-failure
 RestartSec=5
 StandardOutput=journal
 StandardError=journal
-SyslogIdentifier=artemis
 
-# Ensure Go tools are in PATH
+# ── Credentials — edit these before starting ──────────────────────────
+# Or set them in /etc/artemis.env and uncomment EnvironmentFile below
+Environment="ARTEMIS_USER=artemis"
+Environment="ARTEMIS_PASSWORD=changeme123!"
+Environment="ARTEMIS_SECRET=replace-with-a-long-random-string"
+# EnvironmentFile=/etc/artemis.env
+
+# ── Runtime environment ───────────────────────────────────────────────
 Environment="PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/root/go/bin"
 Environment="GOPATH=/root/go"
 Environment="HOME=/root"
