@@ -449,8 +449,8 @@
   <button class="btn btn-run"    id="btn-run"    onclick="startScan()"      disabled>▶  RUN SCAN</button>
   <button class="btn btn-report" id="btn-report" onclick="generateReport()" disabled>📄  GENERATE REPORT</button>
   <div class="spacer"></div>
-  <button class="btn btn-reset"  id="btn-reset"  onclick="resetScan()"      style="display:none">↺  NEW SCAN</button>
-  <button class="btn btn-exit"   onclick="if(confirm('Close browser tab to exit.')){}">✕  EXIT</button>
+  <button class="btn btn-reset"  id="btn-reset"  onclick="saveAndExit()"    style="display:none">↺  NEW SCAN</button>
+  <button class="btn btn-exit"   onclick="saveAndExit()">✕  EXIT</button>
 </footer>
 
 <script>
@@ -635,33 +635,33 @@ async function generateReport() {
 }
 
 // ══════════════════════════════════════════════════════════════════════
-// RESET
+// SAVE & EXIT  — saves assessment to dashboard history, redirects home
 // ══════════════════════════════════════════════════════════════════════
-async function resetScan() {
-  if (scanning) { alert('Scan is still running.'); return; }
+async function saveAndExit() {
+  if (scanning) {
+    if (!confirm('A scan is still running. Exit anyway? Progress will be lost.')) return;
+  }
 
-  const res  = await fetch('/api/reset', { method: 'POST' });
-  const data = await res.json();
-  if (!data.ok) { alert(data.error); return; }
+  const phases = {
+    recon: document.getElementById('ph-recon').checked,
+    scan:  document.getElementById('ph-scan').checked,
+    vuln:  document.getElementById('ph-vuln').checked,
+  };
 
-  // Reset UI
-  submitted = false;
-  scanning  = false;
-  clearLog();
-  document.getElementById('form-panel').style.display      = 'block';
-  document.getElementById('confirmed-panel').style.display = 'none';
-  document.getElementById('complete-banner').classList.remove('visible');
-  document.getElementById('report-links').classList.remove('visible');
-  document.getElementById('btn-run').disabled    = true;
-  document.getElementById('btn-report').disabled = true;
-  document.getElementById('btn-reset').style.display = 'none';
-  document.getElementById('client').value = '';
-  document.getElementById('domain').value = '';
-  document.getElementById('scope').value  = '';
-  document.getElementById('urls').value   = '';
-  document.getElementById('date').value   = new Date().toISOString().split('T')[0];
-  setStatus('● READY', 'var(--success)');
-  appendLog('Ready for new engagement.', 'success');
+  // Save to history if we have an active engagement
+  if (submitted) {
+    try {
+      await fetch('/api/save-assessment', {
+        method:  'POST',
+        headers: {'Content-Type': 'application/json'},
+        body:    JSON.stringify({ phases }),
+      });
+    } catch (e) {
+      // Best effort — redirect regardless
+    }
+  }
+
+  window.location.href = '/';
 }
 
 // ══════════════════════════════════════════════════════════════════════
