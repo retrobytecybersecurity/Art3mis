@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARTEMIS // User Management</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&display=swap');
+  :root {
+    --bg:      #0a0d14;
+    --panel:   #0f1420;
+    --input:   #141926;
+    --accent:  #00d4ff;
+    --accent2: #ff6b35;
+    --success: #00ff88;
+    --warning: #ffcc00;
+    --error:   #ff3355;
+    --text:    #e8eaf0;
+    --dim:     #5a6a8a;
+    --border:  #1e2a40;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── Header ── */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 32px 10px;
+    border-bottom: 1px solid var(--accent);
+  }
+  .logo { font-size: 1.5rem; color: var(--accent); letter-spacing: 2px; }
+  .header-right { display: flex; align-items: center; gap: 12px; }
+  .nav-link {
+    color: var(--dim); font-size: 0.8rem; text-decoration: none;
+    letter-spacing: 1px; padding: 5px 12px;
+    border: 1px solid var(--border); border-radius: 3px;
+    transition: all 0.15s;
+  }
+  .nav-link:hover { color: var(--text); border-color: var(--dim); }
+  .nav-link.logout { color: var(--error); border-color: var(--error); }
+  .nav-link.logout:hover { background: var(--error); color: var(--bg); }
+
+  /* ── Main ── */
+  main {
+    flex: 1;
+    max-width: 1000px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 36px 32px;
+  }
+  .page-title { font-size: 1.1rem; color: var(--accent); letter-spacing: 2px; margin-bottom: 4px; }
+  .page-sub   { color: var(--dim); font-size: 0.78rem; margin-bottom: 28px; }
+
+  /* ── Section card ── */
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    margin-bottom: 24px;
+  }
+  .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border);
+    color: var(--accent);
+    font-size: 0.85rem;
+    letter-spacing: 1px;
+  }
+  .card-body { padding: 20px; }
+
+  /* ── User table ── */
+  table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+  th {
+    text-align: left; color: var(--accent); font-size: 0.72rem;
+    letter-spacing: 1px; padding: 6px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  td { padding: 10px 12px; border-bottom: 1px solid rgba(30,42,64,0.5); vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(0,212,255,0.03); }
+
+  .role-badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 2px;
+    font-size: 0.68rem;
+    letter-spacing: 0.5px;
+    border: 1px solid;
+  }
+  .role-admin  { color: var(--accent2); border-color: var(--accent2); background: rgba(255,107,53,0.08); }
+  .role-manager { color: var(--accent); border-color: var(--accent); background: rgba(0,212,255,0.06); }
+  .role-junior { color: var(--dim);    border-color: var(--border);  background: transparent; }
+
+  .you-badge {
+    font-size: 0.65rem; color: var(--success);
+    border: 1px solid var(--success); padding: 1px 6px;
+    border-radius: 2px; margin-left: 6px;
+  }
+
+  .action-btns { display: flex; gap: 6px; }
+  .btn-sm {
+    padding: 4px 10px; font-family: 'Share Tech Mono', monospace;
+    font-size: 0.7rem; border-radius: 3px; cursor: pointer;
+    border: 1px solid; transition: background 0.15s, color 0.15s;
+    background: transparent;
+  }
+  .btn-edit   { color: var(--accent);  border-color: var(--accent); }
+  .btn-edit:hover   { background: var(--accent);  color: var(--bg); }
+  .btn-delete { color: var(--error);   border-color: var(--error); }
+  .btn-delete:hover { background: var(--error);   color: var(--bg); }
+  .btn-disabled { color: var(--dim); border-color: var(--border); cursor: not-allowed; opacity: 0.4; }
+
+  /* ── Create user form ── */
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+  .form-group { display: flex; flex-direction: column; gap: 4px; }
+  .form-group.full { grid-column: 1 / -1; }
+  .form-group label { font-size: 0.72rem; color: var(--dim); letter-spacing: 1px; }
+
+  input[type="text"],
+  input[type="password"],
+  select {
+    width: 100%;
+    background: var(--input);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.82rem;
+    padding: 8px 10px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  input:focus, select:focus { border-color: var(--accent); }
+  select option { background: var(--panel); }
+
+  .requirements {
+    margin-top: 6px;
+    font-size: 0.68rem;
+    color: var(--dim);
+    line-height: 1.8;
+  }
+  .req-item { display: block; transition: color 0.15s; }
+  .req-item.met   { color: var(--success); }
+  .req-item::before { content: '○  '; }
+  .req-item.met::before { content: '✓  '; }
+
+  .btn-create {
+    margin-top: 18px;
+    padding: 10px 24px;
+    background: var(--panel);
+    border: 1px solid var(--accent2);
+    border-radius: 3px;
+    color: var(--accent2);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.82rem;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+  }
+  .btn-create:hover { background: var(--accent2); color: var(--bg); }
+
+  /* ── Toast ── */
+  #toast {
+    position: fixed; bottom: 24px; right: 24px;
+    padding: 10px 20px; border-radius: 4px;
+    font-size: 0.8rem; opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+    z-index: 999;
+  }
+  #toast.show { opacity: 1; }
+  #toast.success { background: var(--success); color: var(--bg); }
+  #toast.error   { background: var(--error);   color: var(--bg); }
+
+  /* ── Modal ── */
+  .modal-bg {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7); z-index: 100;
+    align-items: center; justify-content: center;
+  }
+  .modal-bg.open { display: flex; }
+  .modal {
+    background: var(--panel);
+    border: 1px solid var(--accent);
+    border-radius: 6px;
+    width: 420px;
+    overflow: hidden;
+  }
+  .modal-header {
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border);
+    color: var(--accent);
+    font-size: 0.85rem;
+    letter-spacing: 1px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .modal-close {
+    background: none; border: none; color: var(--dim);
+    cursor: pointer; font-size: 1rem; padding: 0;
+  }
+  .modal-close:hover { color: var(--error); }
+  .modal-body { padding: 20px; }
+  .modal-actions { display: flex; gap: 8px; margin-top: 18px; }
+  .btn-modal-save {
+    flex: 1; padding: 10px; background: var(--panel);
+    border: 1px solid var(--accent); border-radius: 3px;
+    color: var(--accent); font-family: 'Share Tech Mono', monospace;
+    font-size: 0.82rem; cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+  }
+  .btn-modal-save:hover { background: var(--accent); color: var(--bg); }
+  .btn-modal-cancel {
+    flex: 1; padding: 10px; background: transparent;
+    border: 1px solid var(--border); border-radius: 3px;
+    color: var(--dim); font-family: 'Share Tech Mono', monospace;
+    font-size: 0.82rem; cursor: pointer;
+  }
+  .btn-modal-cancel:hover { border-color: var(--dim); color: var(--text); }
+
+  /* ── Role permissions table ── */
+  .perms-table { width: 100%; border-collapse: collapse; font-size: 0.75rem; margin-top: 4px; }
+  .perms-table th { color: var(--dim); padding: 4px 10px; text-align: left; font-weight: normal; font-size: 0.68rem; }
+  .perms-table td { padding: 5px 10px; }
+  .perm-yes { color: var(--success); }
+  .perm-no  { color: var(--dim); opacity: 0.5; }
+
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 12px 32px;
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.7rem;
+    color: var(--dim);
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">◈ ARTEMIS</div>
+  <div class="header-right">
+    <a href="/" class="nav-link">← Dashboard</a>
+    <a href="/logout" class="nav-link logout">⎋ Logout</a>
+  </div>
+</header>
+
+<main>
+  <div class="page-title">◈ USER MANAGEMENT</div>
+  <div class="page-sub">Administrator access only — manage accounts and role assignments</div>
+
+  <!-- ── Role reference ── -->
+  <div class="card">
+    <div class="card-header">◈ ROLE PERMISSIONS</div>
+    <div class="card-body">
+      <table class="perms-table">
+        <thead>
+          <tr>
+            <th>Role</th>
+            <th>Passive Scanning</th>
+            <th>Active Scanning</th>
+            <th>Create Assessments</th>
+            <th>User Management</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="role-badge role-admin">Administrator</span></td>
+            <td class="perm-yes">✓</td>
+            <td class="perm-yes">✓</td>
+            <td class="perm-yes">✓</td>
+            <td class="perm-yes">✓</td>
+          </tr>
+          <tr>
+            <td><span class="role-badge role-manager">Manager</span></td>
+            <td class="perm-yes">✓</td>
+            <td class="perm-yes">✓</td>
+            <td class="perm-yes">✓</td>
+            <td class="perm-no">✗</td>
+          </tr>
+          <tr>
+            <td><span class="role-badge role-junior">Junior Tester</span></td>
+            <td class="perm-yes">✓</td>
+            <td class="perm-no">✗</td>
+            <td class="perm-yes">✓</td>
+            <td class="perm-no">✗</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── Current users ── -->
+  <div class="card">
+    <div class="card-header">
+      <span>◈ CURRENT USERS</span>
+      <span style="color:var(--dim);font-size:0.72rem">{{ users|length }} account(s)</span>
+    </div>
+    <div class="card-body" style="padding:0">
+      <table>
+        <thead>
+          <tr>
+            <th>USERNAME</th>
+            <th>ROLE</th>
+            <th>CREATED</th>
+            <th>STATUS</th>
+            <th>ACTIONS</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for username, data in users.items() %}
+          <tr>
+            <td>
+              {{ username }}
+              {% if username == current_user %}
+              <span class="you-badge">YOU</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if data.role == 'Administrator' %}
+                <span class="role-badge role-admin">Administrator</span>
+              {% elif data.role == 'Manager' %}
+                <span class="role-badge role-manager">Manager</span>
+              {% else %}
+                <span class="role-badge role-junior">{{ data.role }}</span>
+              {% endif %}
+            </td>
+            <td style="color:var(--dim)">{{ data.created_at[:10] if data.created_at else '—' }}</td>
+            <td>
+              {% if data.must_change %}
+                <span style="color:var(--warning);font-size:0.72rem">⚠ Password change required</span>
+              {% else %}
+                <span style="color:var(--success);font-size:0.72rem">● Active</span>
+              {% endif %}
+            </td>
+            <td>
+              <div class="action-btns">
+                <button class="btn-sm btn-edit"
+                        onclick="openEditModal('{{ username }}', '{{ data.role }}')">
+                  Edit
+                </button>
+                {% if username != current_user %}
+                <button class="btn-sm btn-delete"
+                        onclick="deleteUser('{{ username }}')">
+                  Delete
+                </button>
+                {% else %}
+                <button class="btn-sm btn-disabled" disabled title="Cannot delete your own account">
+                  Delete
+                </button>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── Create user ── -->
+  <div class="card">
+    <div class="card-header">◈ CREATE NEW USER</div>
+    <div class="card-body">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>USERNAME</label>
+          <input type="text" id="new-username" placeholder="jsmith" autocomplete="off">
+        </div>
+        <div class="form-group">
+          <label>ROLE</label>
+          <select id="new-role">
+            {% for role in roles %}
+            <option value="{{ role }}">{{ role }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label>PASSWORD</label>
+          <input type="password" id="new-password" id="new-password"
+                 oninput="checkReqs(this.value)"
+                 placeholder="Min 12 chars, uppercase, special char"
+                 autocomplete="new-password">
+          <div class="requirements">
+            <span class="req-item" id="r-len">Minimum 12 characters</span>
+            <span class="req-item" id="r-up">At least one uppercase letter</span>
+            <span class="req-item" id="r-sp">At least one special character: ! @ # $ % ^ &amp; *</span>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>CONFIRM PASSWORD</label>
+          <input type="password" id="new-confirm" placeholder="Repeat password" autocomplete="new-password">
+        </div>
+      </div>
+      <button class="btn-create" onclick="createUser()">◈ CREATE ACCOUNT</button>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <span>ARTEMIS // User Management</span>
+  <span>CONFIDENTIAL — Authorized Use Only</span>
+</footer>
+
+<!-- ── Edit Modal ── -->
+<div class="modal-bg" id="edit-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <span>◈ EDIT USER — <span id="modal-username"></span></span>
+      <button class="modal-close" onclick="closeEditModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group" style="margin-bottom:14px">
+        <label>ROLE</label>
+        <select id="modal-role">
+          {% for role in roles %}
+          <option value="{{ role }}">{{ role }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label>NEW PASSWORD <span style="color:var(--dim)">(leave blank to keep current)</span></label>
+        <input type="password" id="modal-password"
+               oninput="checkModalReqs(this.value)"
+               placeholder="Optional — only fill to reset"
+               autocomplete="new-password">
+        <div class="requirements" id="modal-reqs" style="display:none">
+          <span class="req-item" id="mr-len">Minimum 12 characters</span>
+          <span class="req-item" id="mr-up">At least one uppercase letter</span>
+          <span class="req-item" id="mr-sp">At least one special character: ! @ # $ % ^ &amp; *</span>
+        </div>
+        <div style="font-size:0.68rem;color:var(--warning);margin-top:6px">
+          ⚠ Resetting password will require the user to change it on next login.
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-modal-save" onclick="saveUser()">▶ SAVE CHANGES</button>
+        <button class="btn-modal-cancel" onclick="closeEditModal()">CANCEL</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+let editingUser = null;
+
+// ── Password requirement checkers ──────────────────────────────────────
+function checkReqs(val) {
+  toggle('r-len', val.length >= 12);
+  toggle('r-up',  /[A-Z]/.test(val));
+  toggle('r-sp',  /[!@#$%^&*]/.test(val));
+}
+
+function checkModalReqs(val) {
+  const reqs = document.getElementById('modal-reqs');
+  reqs.style.display = val.length > 0 ? 'block' : 'none';
+  toggle('mr-len', val.length >= 12);
+  toggle('mr-up',  /[A-Z]/.test(val));
+  toggle('mr-sp',  /[!@#$%^&*]/.test(val));
+}
+
+function toggle(id, met) {
+  const el = document.getElementById(id);
+  if (el) el.classList.toggle('met', met);
+}
+
+// ── Toast ──────────────────────────────────────────────────────────────
+function toast(msg, type='success') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = `show ${type}`;
+  setTimeout(() => { el.className = ''; }, 3000);
+}
+
+// ── Create user ────────────────────────────────────────────────────────
+async function createUser() {
+  const username = document.getElementById('new-username').value.trim();
+  const role     = document.getElementById('new-role').value;
+  const password = document.getElementById('new-password').value;
+  const confirm  = document.getElementById('new-confirm').value;
+
+  if (!username) { toast('Username is required.', 'error'); return; }
+  if (password !== confirm) { toast('Passwords do not match.', 'error'); return; }
+  if (password.length < 12 || !/[A-Z]/.test(password) || !/[!@#$%^&*]/.test(password)) {
+    toast('Password does not meet requirements.', 'error'); return;
+  }
+
+  const res  = await fetch('/admin/users/create', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ username, role, password }),
+  });
+  const data = await res.json();
+
+  if (data.ok) {
+    toast(`✓ User "${username}" created.`);
+    setTimeout(() => location.reload(), 1200);
+  } else {
+    toast(data.error, 'error');
+  }
+}
+
+// ── Edit modal ─────────────────────────────────────────────────────────
+function openEditModal(username, role) {
+  editingUser = username;
+  document.getElementById('modal-username').textContent = username;
+  document.getElementById('modal-role').value = role;
+  document.getElementById('modal-password').value = '';
+  document.getElementById('modal-reqs').style.display = 'none';
+  document.getElementById('edit-modal').classList.add('open');
+}
+
+function closeEditModal() {
+  editingUser = null;
+  document.getElementById('edit-modal').classList.remove('open');
+}
+
+async function saveUser() {
+  const role     = document.getElementById('modal-role').value;
+  const password = document.getElementById('modal-password').value;
+
+  if (password && (password.length < 12 || !/[A-Z]/.test(password) || !/[!@#$%^&*]/.test(password))) {
+    toast('New password does not meet requirements.', 'error'); return;
+  }
+
+  const payload = { username: editingUser, role };
+  if (password) payload.password = password;
+
+  const res  = await fetch('/admin/users/update', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+
+  if (data.ok) {
+    toast(`✓ "${editingUser}" updated.`);
+    closeEditModal();
+    setTimeout(() => location.reload(), 1200);
+  } else {
+    toast(data.error, 'error');
+  }
+}
+
+// ── Delete user ────────────────────────────────────────────────────────
+async function deleteUser(username) {
+  if (!confirm(`Delete user "${username}"?\n\nThis cannot be undone.`)) return;
+
+  const res  = await fetch('/admin/users/delete', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ username }),
+  });
+  const data = await res.json();
+
+  if (data.ok) {
+    toast(`✓ "${username}" deleted.`);
+    setTimeout(() => location.reload(), 1200);
+  } else {
+    toast(data.error, 'error');
+  }
+}
+
+// Close modal on background click
+document.getElementById('edit-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeEditModal();
+});
+</script>
+</body>
+</html>
