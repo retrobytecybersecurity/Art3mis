@@ -19,12 +19,6 @@
     --text:      #e8eaf0;
     --dim:       #5a6a8a;
     --border:    #1e2a40;
-
-    --dog-brown: #a86a3a;
-    --dog-white: #ffffff;
-    --dog-nose:  #7b4b3a;
-    --dog-line:  #2f3e4e;
-    --dog-eye:   #2d2d2d;
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -46,290 +40,13 @@
     padding: 14px 28px 10px;
     border-bottom: 1px solid var(--accent);
   }
-
-  .header-brand {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-
-  .logo {
-    font-size: 1.6rem;
-    color: var(--accent);
-    letter-spacing: 2px;
-  }
-
-  .logo span {
-    color: var(--dim);
-    font-size: 0.9rem;
-    margin-left: 12px;
-  }
-
+  .logo { font-size: 1.6rem; color: var(--accent); letter-spacing: 2px; }
+  .logo span { color: var(--dim); font-size: 0.9rem; margin-left: 12px; }
   #status-badge {
     font-size: 0.8rem;
     color: var(--success);
     letter-spacing: 1px;
   }
-
-  /* ── Dog logo ── */
-  .dog-logo {
-    position: relative;
-    flex-shrink: 0;
-    filter: drop-shadow(0 0 10px rgba(0, 212, 255, 0.12));
-  }
-
-  .dog-logo.header {
-    width: 54px;
-    height: 54px;
-  }
-
-  .dog-logo.confirmed {
-    width: 120px;
-    height: 120px;
-    margin-bottom: 8px;
-  }
-
-  .dog-ring {
-    position: absolute;
-    inset: 0;
-    border-radius: 50%;
-    border: 2px solid rgba(0, 212, 255, 0.35);
-    background: rgba(15, 20, 32, 0.28);
-  }
-
-  .dog-logo.confirmed .dog-ring {
-    border-width: 3px;
-  }
-
-  .dog-ear {
-    position: absolute;
-    background: var(--dog-brown);
-    border: 2px solid var(--dog-line);
-    top: 4px;
-    z-index: 1;
-  }
-
-  .dog-logo.header .dog-ear {
-    width: 18px;
-    height: 22px;
-  }
-
-  .dog-logo.confirmed .dog-ear {
-    width: 40px;
-    height: 48px;
-    top: 10px;
-    border-width: 3px;
-  }
-
-  .dog-ear.left {
-    left: 6px;
-    transform: rotate(-20deg);
-    border-radius: 60% 40% 50% 50%;
-  }
-
-  .dog-ear.right {
-    right: 6px;
-    transform: rotate(20deg);
-    border-radius: 40% 60% 50% 50%;
-  }
-
-  .dog-logo.confirmed .dog-ear.left {
-    left: 10px;
-  }
-
-  .dog-logo.confirmed .dog-ear.right {
-    right: 10px;
-  }
-
-  .dog-head {
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-    border-radius: 50%;
-    border: 2px solid var(--dog-line);
-    background:
-      linear-gradient(
-        to right,
-        var(--dog-brown) 0%,
-        var(--dog-brown) 45%,
-        var(--dog-white) 45%,
-        var(--dog-white) 55%,
-        var(--dog-brown) 55%
-      );
-    z-index: 2;
-  }
-
-  .dog-logo.header .dog-head {
-    top: 10px;
-    width: 34px;
-    height: 34px;
-  }
-
-  .dog-logo.confirmed .dog-head {
-    top: 22px;
-    width: 74px;
-    height: 74px;
-    border-width: 3px;
-  }
-
-  .dog-eye {
-    position: absolute;
-    background: var(--dog-eye);
-    border-radius: 50%;
-    top: 11px;
-  }
-
-  .dog-logo.header .dog-eye {
-    width: 4px;
-    height: 5px;
-  }
-
-  .dog-logo.confirmed .dog-eye {
-    width: 7px;
-    height: 9px;
-    top: 26px;
-  }
-
-  .dog-eye.left { left: 8px; }
-  .dog-eye.right { right: 8px; }
-
-  .dog-logo.confirmed .dog-eye.left { left: 18px; }
-  .dog-logo.confirmed .dog-eye.right { right: 18px; }
-
-  .dog-eye::after {
-    content: "";
-    position: absolute;
-    background: white;
-    border-radius: 50%;
-    top: 1px;
-    left: 1px;
-  }
-
-  .dog-logo.header .dog-eye::after {
-    width: 1.5px;
-    height: 1.5px;
-  }
-
-  .dog-logo.confirmed .dog-eye::after {
-    width: 2px;
-    height: 2px;
-  }
-
-  .dog-snout {
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-    background: var(--dog-white);
-    border-radius: 50%;
-    border: 2px solid var(--dog-line);
-  }
-
-  .dog-logo.header .dog-snout {
-    top: 16px;
-    width: 22px;
-    height: 14px;
-  }
-
-  .dog-logo.confirmed .dog-snout {
-    top: 34px;
-    width: 48px;
-    height: 30px;
-    border-width: 3px;
-  }
-
-  .dog-nose {
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-    background: var(--dog-nose);
-    border-radius: 50%;
-    border: 2px solid var(--dog-line);
-    z-index: 3;
-  }
-
-  .dog-logo.header .dog-nose {
-    top: 17px;
-    width: 12px;
-    height: 8px;
-  }
-
-  .dog-logo.confirmed .dog-nose {
-    top: 36px;
-    width: 24px;
-    height: 16px;
-    border-width: 3px;
-  }
-
-  .dog-nose::before,
-  .dog-nose::after {
-    content: "";
-    position: absolute;
-    background: #5a3428;
-    border-radius: 50%;
-    top: 2px;
-  }
-
-  .dog-logo.header .dog-nose::before,
-  .dog-logo.header .dog-nose::after {
-    width: 2px;
-    height: 3px;
-  }
-
-  .dog-logo.confirmed .dog-nose::before,
-  .dog-logo.confirmed .dog-nose::after {
-    width: 4px;
-    height: 6px;
-    top: 4px;
-  }
-
-  .dog-nose::before { left: 2px; }
-  .dog-nose::after  { right: 2px; }
-
-  .dog-logo.confirmed .dog-nose::before { left: 5px; }
-  .dog-logo.confirmed .dog-nose::after  { right: 5px; }
-
-  .dog-mouth {
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 3;
-  }
-
-  .dog-logo.header .dog-mouth {
-    top: 25px;
-    width: 10px;
-    height: 4px;
-  }
-
-  .dog-logo.confirmed .dog-mouth {
-    top: 51px;
-    width: 20px;
-    height: 8px;
-  }
-
-  .dog-mouth::before,
-  .dog-mouth::after {
-    content: "";
-    position: absolute;
-    border-bottom: 1.5px solid var(--dog-line);
-    border-radius: 0 0 8px 8px;
-  }
-
-  .dog-logo.header .dog-mouth::before,
-  .dog-logo.header .dog-mouth::after {
-    width: 4px;
-    height: 3px;
-  }
-
-  .dog-logo.confirmed .dog-mouth::before,
-  .dog-logo.confirmed .dog-mouth::after {
-    width: 8px;
-    height: 6px;
-    border-bottom-width: 2px;
-  }
-
-  .dog-mouth::before { left: 0; }
-  .dog-mouth::after { right: 0; }
 
   /* ── Main layout ── */
   .main {
@@ -363,7 +80,6 @@
     margin-bottom: 10px;
     overflow: hidden;
   }
-
   .section-title {
     color: var(--accent);
     font-size: 0.85rem;
@@ -371,7 +87,6 @@
     letter-spacing: 1px;
     border-bottom: 1px solid var(--border);
   }
-
   .section-body { padding: 10px 12px; }
 
   label {
@@ -381,7 +96,6 @@
     margin-bottom: 3px;
     margin-top: 8px;
   }
-
   label:first-child { margin-top: 0; }
 
   .hint {
@@ -405,14 +119,12 @@
     resize: vertical;
     transition: border-color 0.2s;
   }
-
   input[type="text"]:focus, textarea:focus { border-color: var(--accent); }
 
   textarea { min-height: 80px; }
 
   /* ── Checkboxes ── */
   .phase-checks { padding: 6px 0 0; }
-
   .phase-check {
     display: flex;
     align-items: center;
@@ -422,13 +134,7 @@
     color: var(--text);
     cursor: pointer;
   }
-
-  .phase-check input[type="checkbox"] {
-    accent-color: var(--accent);
-    width: 14px;
-    height: 14px;
-    cursor: pointer;
-  }
+  .phase-check input[type="checkbox"] { accent-color: var(--accent); width: 14px; height: 14px; cursor: pointer; }
 
   /* ── Buttons ── */
   .btn {
@@ -443,7 +149,6 @@
     letter-spacing: 1px;
     transition: background 0.15s, color 0.15s;
   }
-
   .btn-submit  { background: var(--bg-panel); color: var(--accent2); border: 1px solid var(--accent2); width: 100%; margin-top: 10px; }
   .btn-submit:hover  { background: var(--accent2); color: var(--bg-dark); }
   .btn-run     { background: var(--bg-panel); color: var(--accent);  border: 1px solid var(--accent);  }
@@ -456,13 +161,89 @@
   .btn-exit:hover    { background: var(--error);   color: var(--bg-dark); }
   .btn:disabled { opacity: 0.35; cursor: not-allowed; }
 
-  /* ── Confirmed panel ── */
+  /* ── Phase rows & drawers ── */
+  .phase-row {
+    border-bottom: 1px solid var(--border);
+  }
+  .phase-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.12s;
+  }
+  .phase-header:hover { background: rgba(0,212,255,0.04); }
+
+  .phase-arrow {
+    font-size: 0.6rem;
+    color: var(--dim);
+    transition: transform 0.2s;
+    flex-shrink: 0;
+  }
+  .phase-arrow.open { transform: rotate(90deg); color: var(--accent); }
+
+  .tool-drawer {
+    display: none;
+    padding: 4px 14px 10px 32px;
+    background: rgba(0,0,0,0.15);
+    border-top: 1px solid var(--border);
+  }
+  .tool-drawer.open { display: block; }
+
+  .tool-group-label {
+    font-size: 0.62rem;
+    color: var(--accent);
+    letter-spacing: 1.5px;
+    margin: 6px 0 3px;
+    opacity: 0.7;
+  }
+
+  .tool-check {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.76rem;
+    color: var(--text);
+    padding: 2px 0;
+    cursor: pointer;
+  }
+  .tool-check input[type="checkbox"] {
+    accent-color: var(--accent2);
+    width: 12px; height: 12px;
+    cursor: pointer;
+  }
+  .tool-check input:not(:checked) + * { opacity: 0.45; }
+
+  /* ── Preset buttons ── */
+  .preset-btn {
+    flex: 1;
+    padding: 5px 4px;
+    background: var(--bg-input);
+    border: 1px solid var(--accent);
+    border-radius: 3px;
+    color: var(--accent);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: background 0.12s, color 0.12s;
+  }
+  .preset-btn:hover { background: var(--accent); color: var(--bg-dark); }
+
+  /* ── keep old phase-check style for tool drawer parent checkbox ── */
   .confirmed-logo {
     display: flex;
     flex-direction: column;
     align-items: center;
     padding: 20px 0 12px;
   }
+  .artemis-icon {
+    width: 120px; height: 120px;
+    position: relative;
+  }
+  .artemis-icon svg { width: 100%; height: 100%; }
 
   .engagement-badge {
     background: var(--bg-panel);
@@ -470,7 +251,6 @@
     margin: 0 0 10px;
     overflow: hidden;
   }
-
   .engagement-badge-title {
     color: var(--success);
     font-size: 0.85rem;
@@ -478,7 +258,6 @@
     border-bottom: 1px solid var(--border);
     letter-spacing: 1px;
   }
-
   .info-grid {
     padding: 10px 14px;
     display: grid;
@@ -486,7 +265,6 @@
     gap: 5px 8px;
     font-size: 0.78rem;
   }
-
   .info-label { color: var(--dim); }
   .info-value { color: var(--text); word-break: break-all; }
   .info-value.accent  { color: var(--accent); }
@@ -499,7 +277,6 @@
     overflow: hidden;
     margin-bottom: 10px;
   }
-
   .phase-queued-title {
     color: var(--accent);
     font-size: 0.85rem;
@@ -507,12 +284,10 @@
     border-bottom: 1px solid var(--border);
     letter-spacing: 1px;
   }
-
   .phase-item {
     padding: 5px 14px;
     font-size: 0.78rem;
   }
-
   .phase-item.on  { color: var(--success); }
   .phase-item.off { color: var(--dim); }
 
@@ -524,7 +299,6 @@
     overflow: hidden;
     padding: 16px;
   }
-
   .log-header {
     color: var(--accent);
     font-size: 0.85rem;
@@ -533,7 +307,6 @@
     padding-bottom: 6px;
     border-bottom: 1px solid var(--accent);
   }
-
   #log-box {
     flex: 1;
     background: var(--bg-panel);
@@ -545,7 +318,6 @@
     scrollbar-width: thin;
     scrollbar-color: var(--border) transparent;
   }
-
   .log-line       { white-space: pre-wrap; word-break: break-all; }
   .log-info       { color: var(--text); }
   .log-success    { color: var(--success); }
@@ -563,7 +335,6 @@
     align-items: center;
     flex-wrap: wrap;
   }
-
   footer .spacer { flex: 1; }
 
   /* ── Progress bar ── */
@@ -573,19 +344,16 @@
     background: var(--bg-input);
     overflow: hidden;
   }
-
   #progress-bar {
     height: 100%;
     width: 0%;
     background: var(--accent);
     transition: width 0.3s;
   }
-
   #progress-bar.indeterminate {
     width: 30%;
     animation: slide 1.4s infinite ease-in-out;
   }
-
   @keyframes slide {
     0%   { transform: translateX(-100%); }
     100% { transform: translateX(400%); }
@@ -593,7 +361,6 @@
 
   /* ── Report links ── */
   #report-links { display: none; gap: 10px; margin-top: 8px; }
-
   #report-links a {
     color: var(--accent);
     text-decoration: none;
@@ -602,7 +369,6 @@
     padding: 4px 10px;
     border-radius: 3px;
   }
-
   #report-links a:hover { background: var(--accent); color: var(--bg-dark); }
   #report-links.visible { display: flex; }
 
@@ -618,40 +384,29 @@
     font-size: 0.82rem;
     text-align: center;
   }
-
   #complete-banner.visible { display: block; }
 </style>
 </head>
 <body>
 
+<!-- ── HEADER ── -->
 <header>
-  <div class="header-brand">
-    <div class="dog-logo header" aria-hidden="true">
-      <div class="dog-ring"></div>
-      <div class="dog-ear left"></div>
-      <div class="dog-ear right"></div>
-      <div class="dog-head">
-        <div class="dog-eye left"></div>
-        <div class="dog-eye right"></div>
-        <div class="dog-snout"></div>
-        <div class="dog-nose"></div>
-        <div class="dog-mouth"></div>
-      </div>
-    </div>
-    <div>
-      <span class="logo">ARTEMIS</span>
-      <span style="color:var(--dim);font-size:0.85rem;margin-left:8px">// External Penetration Testing Suite</span>
-    </div>
+  <div>
+    <span class="logo">◈ ARTEMIS</span>
+    <span style="color:var(--dim);font-size:0.85rem;margin-left:8px">// External Penetration Testing Suite</span>
   </div>
   <div id="status-badge">● READY</div>
 </header>
 
 <div id="progress-bar-wrap"><div id="progress-bar"></div></div>
 
+<!-- ── MAIN ── -->
 <div class="main">
 
+  <!-- ── LEFT PANEL ── -->
   <div class="left-panel">
 
+    <!-- FORM (shown before submit) -->
     <div id="form-panel">
 
       <div class="section">
@@ -682,32 +437,114 @@
       </div>
 
       <div class="section">
-        <div class="section-title">◈ PHASES</div>
-        <div class="section-body phase-checks">
-          <label class="phase-check"><input type="checkbox" id="ph-recon" checked> Phase 1 — Reconnaissance / OSINT</label>
-          <label class="phase-check"><input type="checkbox" id="ph-scan"  checked> Phase 2 — Port & Service Scanning</label>
-          <label class="phase-check"><input type="checkbox" id="ph-vuln"  checked> Phase 3 — Vulnerability Scanning</label>
+        <div class="section-title">◈ PHASES &amp; TOOLS</div>
+        <div class="section-body" style="padding:0">
+
+          <!-- ── PASSIVE / ACTIVE PRESETS ── -->
+          <div style="display:flex;gap:6px;padding:10px 12px 8px;border-bottom:1px solid var(--border)">
+            <button class="preset-btn" onclick="applyPreset('passive')">◉ PASSIVE</button>
+            <button class="preset-btn" onclick="applyPreset('active')">◈ ACTIVE</button>
+            <button class="preset-btn" onclick="applyPreset('all')" style="color:var(--accent2);border-color:var(--accent2)">▣ ALL</button>
+            <button class="preset-btn" onclick="applyPreset('none')" style="color:var(--dim);border-color:var(--border)">○ NONE</button>
+          </div>
+
+          <!-- ── PHASE 1 ── -->
+          <div class="phase-row">
+            <div class="phase-header" onclick="togglePhase('p1')">
+              <label class="phase-check" onclick="event.stopPropagation()">
+                <input type="checkbox" id="ph-recon" checked onchange="syncPhaseCheck('p1')">
+                Phase 1 — Reconnaissance / OSINT
+              </label>
+              <span class="phase-arrow" id="arrow-p1">▶</span>
+            </div>
+            <div class="tool-drawer" id="drawer-p1">
+              <div class="tool-group-label">PASSIVE</div>
+              <label class="tool-check"><input type="checkbox" id="t-assetfinder" checked> assetfinder</label>
+              <label class="tool-check"><input type="checkbox" id="t-dnsenum"     checked> dnsenum</label>
+              <label class="tool-check"><input type="checkbox" id="t-theharvester" checked> theHarvester</label>
+              <label class="tool-check"><input type="checkbox" id="t-spoofy"       checked> spoofy</label>
+              <label class="tool-check"><input type="checkbox" id="t-o365spray"    checked> o365spray</label>
+              <label class="tool-check"><input type="checkbox" id="t-pymeta"       checked> pymeta</label>
+              <label class="tool-check"><input type="checkbox" id="t-bbot"         checked> bbot <span id="bbot-mode-label" style="color:var(--dim);font-size:0.65rem">(passive)</span></label>
+              <div class="tool-group-label" style="margin-top:6px">ACTIVE</div>
+              <label class="tool-check"><input type="checkbox" id="t-curl-sweep"   checked> curl header sweep</label>
+            </div>
+          </div>
+
+          <!-- ── PHASE 2 ── -->
+          <div class="phase-row">
+            <div class="phase-header" onclick="togglePhase('p2')">
+              <label class="phase-check" onclick="event.stopPropagation()">
+                <input type="checkbox" id="ph-scan" checked onchange="syncPhaseCheck('p2')">
+                Phase 2 — Port &amp; Service Scanning
+              </label>
+              <span class="phase-arrow" id="arrow-p2">▶</span>
+            </div>
+            <div class="tool-drawer" id="drawer-p2">
+              <div class="tool-group-label">ACTIVE</div>
+              <label class="tool-check"><input type="checkbox" id="t-nmap-tcp"   checked> nmap TCP</label>
+              <label class="tool-check"><input type="checkbox" id="t-nmap-udp"   checked> nmap UDP</label>
+              <label class="tool-check"><input type="checkbox" id="t-gowitness"  checked> gowitness</label>
+            </div>
+          </div>
+
+          <!-- ── PHASE 3 ── -->
+          <div class="phase-row" style="border-bottom:none">
+            <div class="phase-header" onclick="togglePhase('p3')">
+              <label class="phase-check" onclick="event.stopPropagation()">
+                <input type="checkbox" id="ph-vuln" checked onchange="syncPhaseCheck('p3')">
+                Phase 3 — Vulnerability Scanning
+              </label>
+              <span class="phase-arrow" id="arrow-p3">▶</span>
+            </div>
+            <div class="tool-drawer" id="drawer-p3">
+              <div class="tool-group-label">PASSIVE</div>
+              <label class="tool-check"><input type="checkbox" id="t-sslscan"    checked> sslscan</label>
+              <label class="tool-check"><input type="checkbox" id="t-shcheck"    checked> shcheck</label>
+              <div class="tool-group-label" style="margin-top:6px">ACTIVE</div>
+              <label class="tool-check"><input type="checkbox" id="t-nikto"      checked> nikto</label>
+              <label class="tool-check"><input type="checkbox" id="t-nuclei"     checked> nuclei</label>
+              <label class="tool-check"><input type="checkbox" id="t-ffuf"       checked> ffuf</label>
+              <label class="tool-check"><input type="checkbox" id="t-wpscan"     checked> wpscan</label>
+              <label class="tool-check"><input type="checkbox" id="t-metasploit" checked> metasploit</label>
+            </div>
+          </div>
+
         </div>
       </div>
 
       <button class="btn btn-submit" onclick="submitForm()">◈ SUBMIT &amp; CREATE FOLDER</button>
     </div>
 
+    <!-- CONFIRMED (shown after submit) -->
     <div id="confirmed-panel">
 
       <div class="confirmed-logo">
-        <div class="dog-logo confirmed" aria-hidden="true">
-          <div class="dog-ring"></div>
-          <div class="dog-ear left"></div>
-          <div class="dog-ear right"></div>
-          <div class="dog-head">
-            <div class="dog-eye left"></div>
-            <div class="dog-eye right"></div>
-            <div class="dog-snout"></div>
-            <div class="dog-nose"></div>
-            <div class="dog-mouth"></div>
-          </div>
-        </div>
+        <!-- Artemis dog logo SVG -->
+        <svg viewBox="0 0 160 160" xmlns="http://www.w3.org/2000/svg" width="140" height="140">
+          <!-- glow rings -->
+          <circle cx="80" cy="90" r="68" fill="none" stroke="#00d4ff" stroke-width="1" opacity="0.5"/>
+          <circle cx="80" cy="90" r="62" fill="none" stroke="#ff6b35" stroke-width="1" opacity="0.4"/>
+          <!-- body -->
+          <circle cx="80" cy="100" r="48" fill="#0f1420" stroke="#00d4ff" stroke-width="1.5"/>
+          <!-- left ear -->
+          <polygon points="30,80 10,30 58,68" fill="#ff6b35"/>
+          <!-- right ear -->
+          <polygon points="130,80 150,30 102,68" fill="#ff6b35"/>
+          <!-- snout -->
+          <ellipse cx="80" cy="122" rx="20" ry="16" fill="#141926" stroke="#00d4ff" stroke-width="1"/>
+          <!-- nose -->
+          <ellipse cx="80" cy="116" rx="8" ry="6" fill="#ff6b35"/>
+          <!-- left eye -->
+          <circle cx="62" cy="96" r="10" fill="#0a0d14" stroke="#00d4ff" stroke-width="1.5"/>
+          <circle cx="62" cy="96" r="5" fill="#00d4ff"/>
+          <!-- right eye -->
+          <circle cx="98" cy="96" r="10" fill="#0a0d14" stroke="#00d4ff" stroke-width="1.5"/>
+          <circle cx="98" cy="96" r="5" fill="#00d4ff"/>
+          <!-- collar tag -->
+          <rect x="73" y="140" width="14" height="10" rx="2" fill="#ff6b35"/>
+          <text x="80" y="149" text-anchor="middle" font-size="7" fill="#0a0d14" font-family="monospace" font-weight="bold">A</text>
+        </svg>
         <div style="color:var(--success);font-size:0.9rem;letter-spacing:2px;margin-top:6px">ENGAGEMENT LOCKED</div>
       </div>
 
@@ -731,13 +568,14 @@
       <div id="complete-banner">✅ SCAN COMPLETE — Generate report or start a new scan below.</div>
 
       <div id="report-links">
-        <a id="pdf-link"  href="#" download> Download PDF</a>
-        <a id="docx-link" href="#" download> Download DOCX</a>
+        <a id="pdf-link"  href="#" download>📄 Download PDF</a>
+        <a id="docx-link" href="#" download>📝 Download DOCX</a>
       </div>
 
     </div>
   </div>
 
+  <!-- ── RIGHT PANEL — LOG ── -->
   <div class="right-panel">
     <div class="log-header">◈ LIVE OUTPUT</div>
     <div id="log-box"></div>
@@ -745,9 +583,10 @@
 
 </div>
 
+<!-- ── FOOTER ── -->
 <footer>
   <button class="btn btn-run"    id="btn-run"    onclick="startScan()"      disabled>▶  RUN SCAN</button>
-  <button class="btn btn-report" id="btn-report" onclick="generateReport()" disabled>  GENERATE REPORT</button>
+  <button class="btn btn-report" id="btn-report" onclick="generateReport()" disabled>📄  GENERATE REPORT</button>
   <div class="spacer"></div>
   <button class="btn btn-reset"  id="btn-reset"  onclick="saveAndExit()"    style="display:none">↺  NEW SCAN</button>
   <button class="btn btn-exit"   onclick="saveAndExit()">✕  EXIT</button>
@@ -769,6 +608,36 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('date').value = today;
   appendLog('ARTEMIS Web ready. Fill in the form and click SUBMIT.', 'info');
   appendLog('Startup tool check running in background...', 'dim');
+
+  // ── Role enforcement ─────────────────────────────────────────────
+  const role = '{{ role }}';
+  if (role === 'Junior Tester') {
+    // Apply passive preset and lock active tools
+    applyPreset('passive');
+    // Disable active tool checkboxes so they cannot be re-enabled
+    const activeIds = ['t-curl-sweep','t-nmap-tcp','t-nmap-udp','t-gowitness',
+                       't-nikto','t-nuclei','t-ffuf','t-wpscan','t-metasploit'];
+    activeIds.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) { el.disabled = true; el.title = 'Active scanning restricted for Junior Tester role'; }
+    });
+    // Disable preset buttons that would enable active tools
+    document.querySelectorAll('.preset-btn').forEach(btn => {
+      if (btn.textContent.includes('ACTIVE') || btn.textContent.includes('ALL')) {
+        btn.disabled = true;
+        btn.style.opacity = '0.3';
+        btn.style.cursor = 'not-allowed';
+        btn.title = 'Active scanning restricted for Junior Tester role';
+      }
+    });
+    appendLog('ℹ Role: Junior Tester — passive scanning only.', 'warn');
+  }
+
+  // Show username/role in status badge
+  const badge = document.getElementById('status-badge');
+  if (badge && '{{ username }}') {
+    badge.textContent = '{{ username }} [{{ role }}] ● READY';
+  }
 });
 
 // ══════════════════════════════════════════════════════════════════════
@@ -809,6 +678,7 @@ async function submitForm() {
   const data = await res.json();
   if (!data.ok) { alert(data.error); return; }
 
+  // Populate confirmed panel
   document.getElementById('cf-client').textContent = client;
   document.getElementById('cf-date').textContent   = date;
   document.getElementById('cf-domain').textContent = domain || '—';
@@ -816,6 +686,7 @@ async function submitForm() {
   document.getElementById('cf-urls').textContent   = `${data.url_count} URL(s)`;
   document.getElementById('cf-folder').textContent = data.folder;
 
+  // Phase summary
   const phasesEl = document.getElementById('cf-phases');
   phasesEl.innerHTML = '';
   [
@@ -830,6 +701,7 @@ async function submitForm() {
     phasesEl.appendChild(div);
   });
 
+  // Swap panels
   document.getElementById('form-panel').style.display      = 'none';
   document.getElementById('confirmed-panel').style.display = 'block';
   document.getElementById('btn-run').disabled    = false;
@@ -842,21 +714,134 @@ async function submitForm() {
 }
 
 // ══════════════════════════════════════════════════════════════════════
+// PHASE DRAWER TOGGLE
+// ══════════════════════════════════════════════════════════════════════
+function togglePhase(id) {
+  const drawer = document.getElementById(`drawer-${id}`);
+  const arrow  = document.getElementById(`arrow-${id}`);
+  const open   = drawer.classList.toggle('open');
+  arrow.classList.toggle('open', open);
+}
+
+// If phase checkbox unchecked — uncheck all its tools and vice versa
+function syncPhaseCheck(id) {
+  const phaseMap = {
+    p1: ['t-assetfinder','t-dnsenum','t-theharvester','t-spoofy',
+         't-o365spray','t-pymeta','t-bbot','t-curl-sweep'],
+    p2: ['t-nmap-tcp','t-nmap-udp','t-gowitness'],
+    p3: ['t-sslscan','t-shcheck','t-nikto','t-nuclei',
+         't-ffuf','t-wpscan','t-metasploit'],
+  };
+  const phaseId  = { p1:'ph-recon', p2:'ph-scan', p3:'ph-vuln' };
+  const checked  = document.getElementById(phaseId[id]).checked;
+  phaseMap[id].forEach(tid => {
+    const el = document.getElementById(tid);
+    if (el) el.checked = checked;
+  });
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// PRESETS — passive / active / all / none
+// ══════════════════════════════════════════════════════════════════════
+const PASSIVE_TOOLS = ['t-assetfinder','t-dnsenum','t-theharvester',
+                       't-spoofy','t-o365spray','t-pymeta','t-bbot',
+                       't-sslscan','t-shcheck'];
+const ACTIVE_TOOLS  = ['t-curl-sweep','t-nmap-tcp','t-nmap-udp','t-gowitness',
+                       't-nikto','t-nuclei','t-ffuf','t-wpscan','t-metasploit'];
+const ALL_TOOLS     = [...PASSIVE_TOOLS, ...ACTIVE_TOOLS];
+const PHASE_CHECKS  = ['ph-recon','ph-scan','ph-vuln'];
+
+function applyPreset(mode) {
+  const allToolIds = ALL_TOOLS;
+  allToolIds.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (mode === 'all')     el.checked = true;
+    if (mode === 'none')    el.checked = false;
+    if (mode === 'passive') el.checked = PASSIVE_TOOLS.includes(id);
+    if (mode === 'active')  el.checked = ACTIVE_TOOLS.includes(id);
+  });
+
+  // Update bbot mode label
+  const bbotLabel = document.getElementById('bbot-mode-label');
+  if (bbotLabel) {
+    if (mode === 'active' || mode === 'all') {
+      bbotLabel.textContent = '(active — everything)';
+      bbotLabel.style.color = 'var(--accent2)';
+    } else {
+      bbotLabel.textContent = '(passive — safe only)';
+      bbotLabel.style.color = 'var(--dim)';
+    }
+  }
+
+  // Sync phase-level checkboxes
+  const phaseToolMap = {
+    'ph-recon': ['t-assetfinder','t-dnsenum','t-theharvester','t-spoofy',
+                 't-o365spray','t-pymeta','t-bbot','t-curl-sweep'],
+    'ph-scan':  ['t-nmap-tcp','t-nmap-udp','t-gowitness'],
+    'ph-vuln':  ['t-sslscan','t-shcheck','t-nikto','t-nuclei',
+                 't-ffuf','t-wpscan','t-metasploit'],
+  };
+  Object.entries(phaseToolMap).forEach(([phId, tools]) => {
+    const anyOn = tools.some(t => {
+      const el = document.getElementById(t);
+      return el && el.checked;
+    });
+    const ph = document.getElementById(phId);
+    if (ph) ph.checked = anyOn;
+  });
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// COLLECT TOOLS helper
+// ══════════════════════════════════════════════════════════════════════
+function collectTools() {
+  const get = id => { const el = document.getElementById(id); return el ? el.checked : false; };
+
+  // Determine bbot mode from preset state —
+  // if active tools are checked and passive are not, it's active mode
+  const bbotModeLabel = document.getElementById('bbot-mode-label');
+  const bbotMode = (bbotModeLabel && bbotModeLabel.textContent.includes('active'))
+    ? 'active' : 'passive';
+
+  return {
+    recon:        get('ph-recon'),
+    scan:         get('ph-scan'),
+    vuln:         get('ph-vuln'),
+    assetfinder:  get('t-assetfinder'),
+    dnsenum:      get('t-dnsenum'),
+    theharvester: get('t-theharvester'),
+    spoofy:       get('t-spoofy'),
+    o365spray:    get('t-o365spray'),
+    pymeta:       get('t-pymeta'),
+    bbot:         get('t-bbot'),
+    bbot_mode:    bbotMode,
+    curl_sweep:   get('t-curl-sweep'),
+    nmap_tcp:     get('t-nmap-tcp'),
+    nmap_udp:     get('t-nmap-udp'),
+    gowitness:    get('t-gowitness'),
+    sslscan:      get('t-sslscan'),
+    shcheck:      get('t-shcheck'),
+    nikto:        get('t-nikto'),
+    nuclei:       get('t-nuclei'),
+    ffuf:         get('t-ffuf'),
+    wpscan:       get('t-wpscan'),
+    metasploit:   get('t-metasploit'),
+  };
+}
+
+// ══════════════════════════════════════════════════════════════════════
 // START SCAN
 // ══════════════════════════════════════════════════════════════════════
 async function startScan() {
   if (scanning) return;
 
-  const phases = {
-    recon: document.getElementById('ph-recon').checked,
-    scan:  document.getElementById('ph-scan').checked,
-    vuln:  document.getElementById('ph-vuln').checked,
-  };
+  const tools = collectTools();
 
   const res  = await fetch('/api/start', {
     method:  'POST',
     headers: {'Content-Type': 'application/json'},
-    body:    JSON.stringify(phases),
+    body:    JSON.stringify(tools),
   });
   const data = await res.json();
   if (!data.ok) { alert(data.error); return; }
@@ -870,6 +855,7 @@ async function startScan() {
   setStatus('● SCANNING', 'var(--warning)');
   progressStart();
 
+  // Open SSE stream
   sseSource = new EventSource('/api/stream');
   sseSource.onmessage = (e) => {
     const parts = e.data.split('|');
@@ -882,7 +868,7 @@ async function startScan() {
       onScanComplete();
       return;
     }
-
+    // Append to log
     const box  = document.getElementById('log-box');
     const line = document.createElement('div');
     line.className = `log-line log-${tag}`;
@@ -890,7 +876,6 @@ async function startScan() {
     box.appendChild(line);
     box.scrollTop = box.scrollHeight;
   };
-
   sseSource.onerror = () => {
     sseSource.close();
     if (scanning) {
@@ -932,19 +917,16 @@ async function generateReport() {
 }
 
 // ══════════════════════════════════════════════════════════════════════
-// SAVE & EXIT
+// SAVE & EXIT  — saves assessment to dashboard history, redirects home
 // ══════════════════════════════════════════════════════════════════════
 async function saveAndExit() {
   if (scanning) {
     if (!confirm('A scan is still running. Exit anyway? Progress will be lost.')) return;
   }
 
-  const phases = {
-    recon: document.getElementById('ph-recon').checked,
-    scan:  document.getElementById('ph-scan').checked,
-    vuln:  document.getElementById('ph-vuln').checked,
-  };
+  const phases = collectTools();
 
+  // Save to history if we have an active engagement
   if (submitted) {
     try {
       await fetch('/api/save-assessment', {
@@ -953,6 +935,7 @@ async function saveAndExit() {
         body:    JSON.stringify({ phases }),
       });
     } catch (e) {
+      // Best effort — redirect regardless
     }
   }
 
@@ -966,7 +949,6 @@ function progressStart() {
   const bar = document.getElementById('progress-bar');
   bar.classList.add('indeterminate');
 }
-
 function progressStop() {
   const bar = document.getElementById('progress-bar');
   bar.classList.remove('indeterminate');
