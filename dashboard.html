@@ -194,7 +194,9 @@
   <div class="assessment-grid">
     {% if history %}
       {% for entry in history %}
-      <div class="acard" id="card-{{ loop.index0 }}">
+      <div class="acard" id="card-{{ loop.index0 }}"
+           onclick="window.location='/assessment/{{ entry.folder.split('/')[-1] }}'"
+           style="cursor:pointer">
         <div class="card-rank">{{ loop.index }}</div>
         <div class="card-main">
           <div class="card-client">{{ entry.client }}</div>
