@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARTEMIS // Assessment Summary</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+  :root {
+    --bg:      #f0f4f8;
+    --surface: #ffffff;
+    --accent:  #5a9acc;
+    --accent2: #e8944a;
+    --success: #4a9a6a;
+    --warning: #c48a3a;
+    --error:   #b05060;
+    --text:    #2a3a4a;
+    --dim:     #6a8aaa;
+    --border:  #dce8f2;
+    --shadow:  0 2px 12px rgba(42,58,74,0.07);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; min-height: 100vh; display: flex; flex-direction: column; }
+
+  header {
+    background: var(--surface); border-bottom: 0.5px solid var(--border);
+    padding: 13px 28px; display: flex; align-items: center;
+    justify-content: space-between; box-shadow: var(--shadow);
+  }
+  .logo { font-size: 1.05rem; font-weight: 600; color: #3a5a7a; letter-spacing: .06em; }
+  .nav-btn {
+    font-size: 12px; padding: 6px 14px; border-radius: 8px;
+    border: 0.5px solid var(--border); background: var(--surface);
+    color: var(--dim); cursor: pointer; text-decoration: none;
+    transition: all 0.15s; display: inline-block;
+  }
+  .nav-btn:hover { background: #e8f0f8; color: var(--text); }
+
+  main { flex: 1; max-width: 1000px; width: 100%; margin: 0 auto; padding: 32px 28px; }
+
+  .page-label { font-size: 11px; color: var(--dim); letter-spacing: .1em; text-transform: uppercase; margin-bottom: 3px; }
+  .page-title { font-size: 1.4rem; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+  .page-sub   { font-size: 0.8rem; color: var(--dim); margin-bottom: 24px; }
+
+  /* Export bar */
+  .export-bar {
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    background: var(--surface); border: 0.5px solid var(--border);
+    border-radius: 14px; padding: 14px 18px; margin-bottom: 24px;
+    box-shadow: var(--shadow);
+  }
+  .export-label { font-size: 0.75rem; font-weight: 600; color: var(--dim); letter-spacing: .08em; text-transform: uppercase; margin-right: 6px; }
+  .export-btn {
+    padding: 7px 16px; border-radius: 8px; font-family: 'Inter', sans-serif;
+    font-size: 0.8rem; font-weight: 600; cursor: pointer; text-decoration: none;
+    border: 0.5px solid; transition: all 0.15s; display: inline-block;
+  }
+  .exp-docx { color: #2a5a8a; border-color: #a8c8e8; background: #e8f4ff; }
+  .exp-docx:hover { background: #d0e8ff; }
+  .exp-xlsx { color: #2a6a4a; border-color: #a8d8b8; background: #e8f8f0; }
+  .exp-xlsx:hover { background: #d0f0e0; }
+  .exp-txt  { color: #5a5a7a; border-color: #c8c8e8; background: #f0f0fc; }
+  .exp-txt:hover  { background: #e0e0f8; }
+  .exp-zip  { color: #7a4a1a; border-color: #e8c898; background: #fef4e8; }
+  .exp-zip:hover  { background: #fde8d0; }
+
+  /* Cards */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .card { background: var(--surface); border: 0.5px solid var(--border); border-radius: 14px; overflow: hidden; box-shadow: var(--shadow); }
+  .card.full { grid-column: 1 / -1; }
+  .card-hdr {
+    padding: 11px 18px; background: #f8fafc; border-bottom: 0.5px solid var(--border);
+    font-size: 0.72rem; font-weight: 600; color: #4a6a8a;
+    letter-spacing: .09em; text-transform: uppercase;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .card-body { padding: 16px 18px; }
+
+  /* Meta grid */
+  .meta-grid { display: grid; grid-template-columns: 120px 1fr; gap: 7px 12px; font-size: 0.82rem; }
+  .meta-label { color: var(--dim); font-weight: 500; }
+  .meta-value { color: var(--text); }
+  .meta-value.accent  { color: var(--accent);  font-weight: 500; }
+  .meta-value.accent2 { color: var(--accent2); font-weight: 500; }
+  .meta-value.success { color: var(--success); font-weight: 500; }
+
+  /* Stats row */
+  .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
+  .stat-card {
+    background: var(--surface); border: 0.5px solid var(--border);
+    border-radius: 12px; padding: 14px 16px; text-align: center;
+    box-shadow: var(--shadow);
+  }
+  .stat-num   { font-size: 1.8rem; font-weight: 700; color: var(--accent); line-height: 1; margin-bottom: 4px; }
+  .stat-label { font-size: 0.7rem; color: var(--dim); font-weight: 500; text-transform: uppercase; letter-spacing: .07em; }
+
+  /* Lists */
+  .item-list { list-style: none; }
+  .item-list li {
+    padding: 6px 0; border-bottom: 0.5px solid #eef3f8;
+    font-size: 0.82rem; font-family: 'Courier New', monospace; color: var(--text);
+  }
+  .item-list li:last-child { border-bottom: none; }
+  .item-list li::before { content: '→  '; color: var(--accent); }
+
+  .empty-note { font-size: 0.8rem; color: var(--dim); font-style: italic; }
+
+  /* Port table */
+  .port-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+  .port-table th { text-align: left; color: var(--dim); font-size: 0.7rem; font-weight: 600; padding: 5px 10px; border-bottom: 0.5px solid var(--border); text-transform: uppercase; letter-spacing: .06em; }
+  .port-table td { padding: 6px 10px; border-bottom: 0.5px solid #eef3f8; font-family: 'Courier New', monospace; font-size: 0.79rem; }
+  .port-table tr:last-child td { border-bottom: none; }
+
+  /* Phase badges */
+  .phases-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .pbadge { font-size: 0.72rem; padding: 3px 10px; border-radius: 6px; border: 0.5px solid; font-weight: 500; }
+  .pbadge.on  { background: #e8f8f0; border-color: #a8d8b8; color: #2a6a4a; }
+  .pbadge.off { background: #f5f5f5; border-color: #d0d0d0; color: #aaa; }
+
+  footer {
+    background: var(--surface); border-top: 0.5px solid var(--border);
+    padding: 11px 28px; display: flex; justify-content: space-between;
+    font-size: 0.7rem; color: var(--dim);
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">◈ ART3MIS</div>
+  <div style="display:flex;gap:8px">
+    <a href="/" class="nav-btn">← Dashboard</a>
+    <a href="/logout" class="nav-btn" style="color:var(--error);border-color:#f0b0b8;background:#fff0f2">⎋ Logout</a>
+  </div>
+</header>
+
+<main>
+  <div class="page-label">Assessment</div>
+  <div class="page-title">{{ data.client }}</div>
+  <div class="page-sub">{{ data.date }}{% if data.domain and data.domain != '—' %} · {{ data.domain }}{% endif %}{% if data.duration %} · Duration: {{ data.duration }}{% endif %}</div>
+
+  <!-- Export bar -->
+  <div class="export-bar">
+    <span class="export-label">Export</span>
+    <a class="export-btn exp-docx" href="/assessment/{{ data.folder.split('/')[-1] }}/export/docx">📄 Word</a>
+    <a class="export-btn exp-xlsx" href="/assessment/{{ data.folder.split('/')[-1] }}/export/xlsx">📊 Excel</a>
+    <a class="export-btn exp-txt"  href="/assessment/{{ data.folder.split('/')[-1] }}/export/txt">📝 Text</a>
+    <a class="export-btn exp-zip"  href="/assessment/{{ data.folder.split('/')[-1] }}/export/zip">🗜 Full Project (ZIP)</a>
+  </div>
+
+  <!-- Stats row -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-num">{{ data.scope|length }}</div>
+      <div class="stat-label">IPs / Hosts</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num">{{ data.subdomains|length }}</div>
+      <div class="stat-label">Subdomains</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num" style="color:var(--warning)">{{ data.vuln_count }}</div>
+      <div class="stat-label">Findings</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num" style="color:var(--accent2)">{{ data.open_ports|length }}</div>
+      <div class="stat-label">Hosts w/ Open Ports</div>
+    </div>
+  </div>
+
+  <!-- Meta + Phases -->
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-hdr">Engagement Details</div>
+      <div class="card-body">
+        <div class="meta-grid">
+          <span class="meta-label">Client</span>   <span class="meta-value accent">{{ data.client }}</span>
+          <span class="meta-label">Date</span>      <span class="meta-value">{{ data.date }}</span>
+          <span class="meta-label">Domain</span>    <span class="meta-value accent2">{{ data.domain }}</span>
+          <span class="meta-label">Started</span>   <span class="meta-value">{{ data.started or '—' }}</span>
+          <span class="meta-label">Completed</span> <span class="meta-value">{{ data.completed or '—' }}</span>
+          <span class="meta-label">Duration</span>  <span class="meta-value success">{{ data.duration or '—' }}</span>
+          <span class="meta-label">Log Lines</span> <span class="meta-value">{{ data.log_lines }}</span>
+          <span class="meta-label">Folder</span>    <span class="meta-value" style="font-size:0.68rem;color:var(--dim)">{{ data.folder }}</span>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-hdr">Phases Run</div>
+      <div class="card-body">
+        <div class="phases-row" style="margin-bottom:12px">
+          <span class="pbadge {{ 'on' if data.phases.get('recon') else 'off' }}">Phase 1 — Recon</span>
+          <span class="pbadge {{ 'on' if data.phases.get('scan')  else 'off' }}">Phase 2 — Ports</span>
+          <span class="pbadge {{ 'on' if data.phases.get('vuln')  else 'off' }}">Phase 3 — Vulns</span>
+        </div>
+        <div style="font-size:0.75rem;color:var(--dim);margin-top:8px">
+          {% if data.phases.get('recon') %}✓ assetfinder, dnsenum, theHarvester, spoofy, o365spray, pymeta, bbot<br>{% endif %}
+          {% if data.phases.get('scan')  %}✓ nmap TCP/UDP, gowitness<br>{% endif %}
+          {% if data.phases.get('vuln')  %}✓ sslscan, shcheck, nikto, nuclei, ffuf, wpscan, metasploit{% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scope + URLs -->
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-hdr">
+        <span>Scope — IPs / Hosts</span>
+        <span style="color:var(--dim);font-weight:400;font-size:0.7rem">{{ data.scope|length }} host(s)</span>
+      </div>
+      <div class="card-body">
+        {% if data.scope %}
+        <ul class="item-list">
+          {% for s in data.scope %}<li>{{ s }}</li>{% endfor %}
+        </ul>
+        {% else %}
+        <p class="empty-note">No scope defined.</p>
+        {% endif %}
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-hdr">
+        <span>URLs Scanned</span>
+        <span style="color:var(--dim);font-weight:400;font-size:0.7rem">{{ data.urls|length }} URL(s)</span>
+      </div>
+      <div class="card-body">
+        {% if data.urls %}
+        <ul class="item-list">
+          {% for u in data.urls %}<li>{{ u }}</li>{% endfor %}
+        </ul>
+        {% else %}
+        <p class="empty-note">No URLs scanned.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Open ports -->
+  <div class="card full" style="margin-bottom:16px">
+    <div class="card-hdr">
+      <span>Open Ports</span>
+      <span style="color:var(--dim);font-weight:400;font-size:0.7rem">{{ data.open_ports|length }} host(s)</span>
+    </div>
+    <div class="card-body" style="padding:0">
+      {% if data.open_ports %}
+      <table class="port-table">
+        <thead><tr><th>Host</th><th>Open Ports / Services</th></tr></thead>
+        <tbody>
+          {% for host, ports in data.open_ports.items() %}
+          <tr>
+            <td>{{ host }}</td>
+            <td>{{ ports | join(', ') }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div style="padding:16px 18px"><p class="empty-note">No port data found — port scanning may not have run.</p></div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Subdomains + Emails -->
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-hdr">
+        <span>Subdomains Discovered</span>
+        <span style="color:var(--dim);font-weight:400;font-size:0.7rem">{{ data.subdomains|length }}</span>
+      </div>
+      <div class="card-body" style="max-height:260px;overflow-y:auto">
+        {% if data.subdomains %}
+        <ul class="item-list">
+          {% for s in data.subdomains|sort %}<li>{{ s }}</li>{% endfor %}
+        </ul>
+        {% else %}
+        <p class="empty-note">None found.</p>
+        {% endif %}
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-hdr">
+        <span>Emails Found</span>
+        <span style="color:var(--dim);font-weight:400;font-size:0.7rem">{{ data.emails|unique|list|length }}</span>
+      </div>
+      <div class="card-body" style="max-height:260px;overflow-y:auto">
+        {% if data.emails %}
+        <ul class="item-list">
+          {% for e in data.emails|unique|sort %}<li>{{ e }}</li>{% endfor %}
+        </ul>
+        {% else %}
+        <p class="empty-note">None found.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Missing headers -->
+  {% if data.missing_headers %}
+  <div class="card full" style="margin-top:16px">
+    <div class="card-hdr">Missing Security Headers</div>
+    <div class="card-body">
+      {% for host, headers in data.missing_headers.items() %}
+      <div style="margin-bottom:10px">
+        <div style="font-size:0.8rem;font-weight:600;color:var(--text);margin-bottom:4px">{{ host }}</div>
+        <ul class="item-list">
+          {% for h in headers %}<li style="color:var(--warning)">{{ h }}</li>{% endfor %}
+        </ul>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+</main>
+
+<footer>
+  <span>Artemis // Assessment Summary</span>
+  <span>Confidential — Authorized Use Only</span>
+</footer>
+
+</body>
+</html>
