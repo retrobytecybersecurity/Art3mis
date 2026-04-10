@@ -301,6 +301,7 @@
             <label class="tool-check"><input type="checkbox" id="t-o365spray" checked> o365spray</label>
             <label class="tool-check"><input type="checkbox" id="t-pymeta" checked> pymeta</label>
             <label class="tool-check"><input type="checkbox" id="t-bbot" checked> bbot <span id="bbot-mode-label" style="color:var(--dim);font-size:0.68rem">(passive)</span></label>
+            <label class="tool-check"><input type="checkbox" id="t-amass" checked> amass <span id="amass-mode-label" style="color:var(--dim);font-size:0.68rem">(passive)</span></label>
             <div class="tool-group-label" style="margin-top:8px">Active</div>
             <label class="tool-check"><input type="checkbox" id="t-curl-sweep" checked> curl header sweep</label>
           </div>
@@ -317,7 +318,8 @@
           </div>
           <div class="tool-drawer" id="drawer-p2">
             <div class="tool-group-label">Active</div>
-            <label class="tool-check"><input type="checkbox" id="t-nmap-tcp" checked> nmap TCP</label>
+            <label class="tool-check"><input type="checkbox" id="t-masscan" checked> masscan <span style="color:var(--dim);font-size:0.68rem">(port discovery)</span></label>
+            <label class="tool-check"><input type="checkbox" id="t-nmap-tcp" checked> nmap TCP <span style="color:var(--dim);font-size:0.68rem">(service scan)</span></label>
             <label class="tool-check"><input type="checkbox" id="t-nmap-udp" checked> nmap UDP</label>
             <label class="tool-check"><input type="checkbox" id="t-gowitness" checked> gowitness</label>
           </div>
@@ -429,12 +431,17 @@ document.addEventListener('DOMContentLoaded', () => {
   const role = '{{ role }}';
   if (role === 'Junior Tester') {
     applyPreset('passive');
-    const activeIds = ['t-curl-sweep','t-nmap-tcp','t-nmap-udp','t-gowitness',
+    const activeIds = ['t-curl-sweep','t-masscan','t-nmap-tcp','t-nmap-udp','t-gowitness',
                        't-nikto','t-nuclei','t-ffuf','t-wpscan','t-metasploit'];
     activeIds.forEach(id => {
       const el = document.getElementById(id);
       if (el) { el.disabled = true; el.title = 'Active scanning restricted for Junior Tester role'; }
     });
+    // Lock bbot and amass to passive labels
+    const bbotLbl  = document.getElementById('bbot-mode-label');
+    const amassLbl = document.getElementById('amass-mode-label');
+    if (bbotLbl)  { bbotLbl.textContent  = '(passive — safe only)';  bbotLbl.style.color  = 'var(--dim)'; }
+    if (amassLbl) { amassLbl.textContent = '(passive — OSINT only)'; amassLbl.style.color = 'var(--dim)'; }
     document.querySelectorAll('.preset-btn').forEach(btn => {
       if (btn.textContent.includes('Active') || btn.textContent.includes('All')) {
         btn.disabled = true; btn.style.opacity = '0.3'; btn.style.cursor = 'not-allowed';
@@ -508,8 +515,8 @@ function togglePhase(id) {
 
 function syncPhaseCheck(id) {
   const phaseMap = {
-    p1: ['t-assetfinder','t-dnsenum','t-theharvester','t-spoofy','t-o365spray','t-pymeta','t-bbot','t-curl-sweep'],
-    p2: ['t-nmap-tcp','t-nmap-udp','t-gowitness'],
+    p1: ['t-assetfinder','t-dnsenum','t-theharvester','t-spoofy','t-o365spray','t-pymeta','t-bbot','t-amass','t-curl-sweep'],
+    p2: ['t-masscan','t-nmap-tcp','t-nmap-udp','t-gowitness'],
     p3: ['t-sslscan','t-shcheck','t-nikto','t-nuclei','t-ffuf','t-wpscan','t-metasploit'],
   };
   const phaseId = { p1:'ph-recon', p2:'ph-scan', p3:'ph-vuln' };
@@ -517,8 +524,8 @@ function syncPhaseCheck(id) {
   phaseMap[id].forEach(tid => { const el = document.getElementById(tid); if (el) el.checked = checked; });
 }
 
-const PASSIVE_TOOLS = ['t-assetfinder','t-dnsenum','t-theharvester','t-spoofy','t-o365spray','t-pymeta','t-bbot','t-sslscan','t-shcheck'];
-const ACTIVE_TOOLS  = ['t-curl-sweep','t-nmap-tcp','t-nmap-udp','t-gowitness','t-nikto','t-nuclei','t-ffuf','t-wpscan','t-metasploit'];
+const PASSIVE_TOOLS = ['t-assetfinder','t-dnsenum','t-theharvester','t-spoofy','t-o365spray','t-pymeta','t-bbot','t-amass','t-sslscan','t-shcheck'];
+const ACTIVE_TOOLS  = ['t-curl-sweep','t-masscan','t-nmap-tcp','t-nmap-udp','t-gowitness','t-nikto','t-nuclei','t-ffuf','t-wpscan','t-metasploit'];
 const ALL_TOOLS     = [...PASSIVE_TOOLS, ...ACTIVE_TOOLS];
 
 function applyPreset(mode) {
@@ -530,14 +537,19 @@ function applyPreset(mode) {
     if (mode==='passive') el.checked = PASSIVE_TOOLS.includes(id);
     if (mode==='active')  el.checked = ACTIVE_TOOLS.includes(id);
   });
-  const bbotLabel = document.getElementById('bbot-mode-label');
-  if (bbotLabel) {
-    if (mode==='active'||mode==='all') { bbotLabel.textContent='(active — everything)'; bbotLabel.style.color='var(--accent2)'; }
-    else                               { bbotLabel.textContent='(passive — safe only)'; bbotLabel.style.color='var(--dim)'; }
+  // Update bbot and amass mode labels
+  const bbotLabel  = document.getElementById('bbot-mode-label');
+  const amassLabel = document.getElementById('amass-mode-label');
+  if (mode==='active'||mode==='all') {
+    if (bbotLabel)  { bbotLabel.textContent='(active — everything)';  bbotLabel.style.color='var(--accent2)'; }
+    if (amassLabel) { amassLabel.textContent='(active — brute force)'; amassLabel.style.color='var(--accent2)'; }
+  } else {
+    if (bbotLabel)  { bbotLabel.textContent='(passive — safe only)';  bbotLabel.style.color='var(--dim)'; }
+    if (amassLabel) { amassLabel.textContent='(passive — OSINT only)'; amassLabel.style.color='var(--dim)'; }
   }
   const ptm = {
-    'ph-recon': ['t-assetfinder','t-dnsenum','t-theharvester','t-spoofy','t-o365spray','t-pymeta','t-bbot','t-curl-sweep'],
-    'ph-scan':  ['t-nmap-tcp','t-nmap-udp','t-gowitness'],
+    'ph-recon': ['t-assetfinder','t-dnsenum','t-theharvester','t-spoofy','t-o365spray','t-pymeta','t-bbot','t-amass','t-curl-sweep'],
+    'ph-scan':  ['t-masscan','t-nmap-tcp','t-nmap-udp','t-gowitness'],
     'ph-vuln':  ['t-sslscan','t-shcheck','t-nikto','t-nuclei','t-ffuf','t-wpscan','t-metasploit'],
   };
   Object.entries(ptm).forEach(([phId,tools]) => {
@@ -548,15 +560,19 @@ function applyPreset(mode) {
 
 function collectTools() {
   const get = id => { const el=document.getElementById(id); return el?el.checked:false; };
-  const bbotLabel = document.getElementById('bbot-mode-label');
-  const bbotMode  = (bbotLabel && bbotLabel.textContent.includes('active')) ? 'active' : 'passive';
+  const bbotLabel  = document.getElementById('bbot-mode-label');
+  const amassLabel = document.getElementById('amass-mode-label');
+  const bbotMode   = (bbotLabel  && bbotLabel.textContent.includes('active'))  ? 'active' : 'passive';
+  const amassMode  = (amassLabel && amassLabel.textContent.includes('active')) ? 'active' : 'passive';
   return {
     recon:get('ph-recon'), scan:get('ph-scan'), vuln:get('ph-vuln'),
     assetfinder:get('t-assetfinder'), dnsenum:get('t-dnsenum'),
     theharvester:get('t-theharvester'), spoofy:get('t-spoofy'),
     o365spray:get('t-o365spray'), pymeta:get('t-pymeta'),
     bbot:get('t-bbot'), bbot_mode:bbotMode,
-    curl_sweep:get('t-curl-sweep'), nmap_tcp:get('t-nmap-tcp'),
+    amass:get('t-amass'), amass_mode:amassMode,
+    curl_sweep:get('t-curl-sweep'), masscan:get('t-masscan'),
+    nmap_tcp:get('t-nmap-tcp'),
     nmap_udp:get('t-nmap-udp'), gowitness:get('t-gowitness'),
     sslscan:get('t-sslscan'), shcheck:get('t-shcheck'),
     nikto:get('t-nikto'), nuclei:get('t-nuclei'),
