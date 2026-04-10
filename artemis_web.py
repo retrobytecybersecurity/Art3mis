@@ -100,10 +100,12 @@ scan_state = {
     "results":       {},
     "client_folder": None,
     "tool_paths":    {},
+    "started":       "",
+    "completed":     "",
 }
 
 # ══════════════════════════════════════════════════════════════════════════
-# HISTORY PERSISTENCE  (last 5 assessments)
+# HISTORY PERSISTENCE  (last 5 assessments per user)
 # ══════════════════════════════════════════════════════════════════════════
 
 def load_history() -> list:
@@ -115,9 +117,17 @@ def load_history() -> list:
     return []
 
 
+def load_history_for_user(username: str) -> list:
+    """Return only the assessments belonging to this user."""
+    return [h for h in load_history() if h.get("username") == username]
+
+
 def save_assessment(client: str, date: str, domain: str,
-                    folder: str, phases: dict):
-    """Append this assessment to history, keep only the last 5."""
+                    folder: str, phases: dict,
+                    username: str = "",
+                    started: str = "",
+                    completed: str = ""):
+    """Append assessment to history, keep only the last 5 per user."""
     history = load_history()
     entry = {
         "client":    client,
@@ -125,12 +135,22 @@ def save_assessment(client: str, date: str, domain: str,
         "domain":    domain or "—",
         "folder":    folder,
         "phases":    phases,
-        "completed": datetime.now().strftime("%Y-%m-%d %H:%M"),
+        "username":  username,
+        "started":   started,
+        "completed": completed or datetime.now().strftime("%Y-%m-%d %H:%M"),
     }
-    # Prepend newest, trim to 5
-    history = [entry] + [h for h in history if h.get("folder") != folder]
-    history = history[:5]
-    HISTORY_FILE.write_text(json.dumps(history, indent=2))
+    # Remove any existing entry for this folder, prepend new, keep 5 per user
+    history = [h for h in history if h.get("folder") != folder]
+    history = [entry] + history
+    # Keep max 5 per user across the full list
+    seen = {}
+    filtered = []
+    for h in history:
+        u = h.get("username", "")
+        seen[u] = seen.get(u, 0) + 1
+        if seen[u] <= 5:
+            filtered.append(h)
+    HISTORY_FILE.write_text(json.dumps(filtered, indent=2))
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -809,6 +829,7 @@ def run_scan(scope_list, url_list, domain, phases, tools, folder, tool_paths):
         })
 
     scan_state["results"].update(results)
+    scan_state["completed"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     log("", "info")
     log("╔══════════════════════════════════════╗", "phase")
@@ -1165,10 +1186,11 @@ def admin_delete_user():
 @app.route("/")
 @login_required
 def dashboard():
-    history = load_history()
+    username = session.get("username", "")
+    history  = load_history_for_user(username)
     return render_template("dashboard.html",
                            history=history,
-                           username=session.get("username", ""),
+                           username=username,
                            role=session.get("role", ""))
 
 
@@ -1302,7 +1324,9 @@ def start_scan():
     while not scan_state["log_queue"].empty():
         scan_state["log_queue"].get_nowait()
 
-    scan_state["running"] = True
+    scan_state["running"]   = True
+    scan_state["started"]   = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    scan_state["completed"] = ""
     t = threading.Thread(
         target=run_scan,
         args=(scope_list, url_list, domain, phases, tools, folder, tool_paths),
@@ -1397,16 +1421,21 @@ def save_assessment_route():
     phases = data.get("phases", {"recon": True, "scan": True, "vuln": True})
 
     save_assessment(
-        client  = results.get("client", "Unknown"),
-        date    = results.get("date",   ""),
-        domain  = results.get("domain", ""),
-        folder  = str(folder) if folder else "",
-        phases  = phases,
+        client    = results.get("client", "Unknown"),
+        date      = results.get("date",   ""),
+        domain    = results.get("domain", ""),
+        folder    = str(folder) if folder else "",
+        phases    = phases,
+        username  = session.get("username", ""),
+        started   = scan_state.get("started",   ""),
+        completed = scan_state.get("completed", datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
     )
 
     # Reset state
     scan_state["client_folder"] = None
     scan_state["results"]       = {}
+    scan_state["started"]       = ""
+    scan_state["completed"]     = ""
     while not scan_state["log_queue"].empty():
         scan_state["log_queue"].get_nowait()
 
@@ -1420,9 +1449,416 @@ def reset():
         return jsonify({"ok": False, "error": "Scan still running."}), 409
     scan_state["client_folder"] = None
     scan_state["results"]       = {}
+    scan_state["started"]       = ""
+    scan_state["completed"]     = ""
     while not scan_state["log_queue"].empty():
         scan_state["log_queue"].get_nowait()
     return jsonify({"ok": True})
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# ASSESSMENT SUMMARY
+# ══════════════════════════════════════════════════════════════════════════
+
+def _read_assessment_data(folder: Path, entry: dict) -> dict:
+    """Read scan output files and build a summary data structure."""
+    data = {
+        "client":    entry.get("client", ""),
+        "date":      entry.get("date", ""),
+        "domain":    entry.get("domain", "—"),
+        "folder":    str(folder),
+        "started":   entry.get("started", ""),
+        "completed": entry.get("completed", ""),
+        "phases":    entry.get("phases", {}),
+        "scope":     [],
+        "urls":      [],
+        "subdomains":[],
+        "open_ports":{},
+        "emails":    [],
+        "vuln_count":0,
+        "missing_headers":{},
+        "log_lines": 0,
+        "duration":  "",
+    }
+
+    # Read target files
+    scope_f = folder / "scope.txt"
+    if scope_f.exists():
+        data["scope"] = [l.strip() for l in scope_f.read_text().splitlines() if l.strip()]
+
+    urls_f = folder / "urls.txt"
+    if urls_f.exists():
+        data["urls"] = [l.strip() for l in urls_f.read_text().splitlines() if l.strip()]
+
+    # Log line count and duration
+    log_f = folder / "artemis.log"
+    if log_f.exists():
+        lines = log_f.read_text().splitlines()
+        data["log_lines"] = len(lines)
+        # Extract first and last timestamps from log
+        if lines:
+            try:
+                first = lines[0].split("]")[0].lstrip("[")
+                last  = lines[-1].split("]")[0].lstrip("[")
+                data["log_start"] = first
+                data["log_end"]   = last
+            except Exception:
+                pass
+
+    # Calculate duration from stored timestamps
+    if data["started"] and data["completed"]:
+        try:
+            fmt = "%Y-%m-%d %H:%M:%S"
+            s   = datetime.strptime(data["started"],   fmt)
+            e   = datetime.strptime(data["completed"], fmt)
+            secs = int((e - s).total_seconds())
+            h, r = divmod(secs, 3600)
+            m, s = divmod(r, 60)
+            if h:   data["duration"] = f"{h}h {m}m {s}s"
+            elif m: data["duration"] = f"{m}m {s}s"
+            else:   data["duration"] = f"{s}s"
+        except Exception:
+            pass
+
+    # Subdomains from assetfinder / theharvester
+    subs = set()
+    for fname in (folder / "1_recon").glob("assetfinder_*.txt") if (folder / "1_recon").exists() else []:
+        subs.update(l.strip() for l in fname.read_text().splitlines() if l.strip())
+    for fname in (folder / "1_recon").glob("theharvester_*.txt") if (folder / "1_recon").exists() else []:
+        for l in fname.read_text().splitlines():
+            l = l.strip()
+            if "." in l and " " not in l and "@" not in l:
+                subs.add(l)
+        emails = re.findall(r"[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}",
+                            fname.read_text())
+        data["emails"].extend(emails)
+    data["subdomains"] = list(subs)
+
+    # Open ports from nmap
+    p2 = folder / "2_scan"
+    if p2.exists():
+        for f in p2.glob("nmap_tcp_*.txt"):
+            host = f.stem.replace("nmap_tcp_", "")
+            ports = re.findall(r"(\d+)/tcp\s+open\s+(\S+)", f.read_text())
+            if ports:
+                data["open_ports"][host] = [f"{p}/{svc}" for p, svc in ports]
+
+    # Vuln count from nuclei + nikto
+    p3 = folder / "3_vuln"
+    vuln_count = 0
+    if p3.exists():
+        for f in p3.glob("nuclei_*.txt"):
+            vuln_count += sum(1 for l in f.read_text().splitlines() if l.strip())
+        for f in p3.glob("nikto_*.txt"):
+            vuln_count += len(re.findall(r"\+ ", f.read_text()))
+        # Missing headers
+        for f in p3.glob("shcheck_*.txt"):
+            host = f.stem.replace("shcheck_", "")
+            missing = re.findall(r"Missing security header:\s*(.+)", f.read_text())
+            if missing:
+                data["missing_headers"][host] = missing
+    data["vuln_count"] = vuln_count
+
+    return data
+
+
+@app.route("/assessment/<path:folder_name>")
+@login_required
+def assessment_summary(folder_name):
+    username = session.get("username", "")
+    # Find the entry in this user's history
+    history = load_history_for_user(username)
+    entry   = next((h for h in history if Path(h["folder"]).name == folder_name
+                    or h["folder"].endswith(folder_name)), None)
+
+    # Administrators can view any assessment
+    if not entry and session.get("role") == "Administrator":
+        entry = next((h for h in load_history()
+                      if Path(h["folder"]).name == folder_name
+                      or h["folder"].endswith(folder_name)), None)
+
+    if not entry:
+        return "Assessment not found or access denied.", 404
+
+    folder = Path(entry["folder"])
+    if not folder.exists():
+        return "Assessment folder not found on disk.", 404
+
+    data = _read_assessment_data(folder, entry)
+    return render_template("assessment_summary.html", data=data,
+                           role=session.get("role", ""),
+                           username=username)
+
+
+# ── Export routes ─────────────────────────────────────────────────────────
+
+@app.route("/assessment/<path:folder_name>/export/zip")
+@login_required
+def export_zip(folder_name):
+    import zipfile, io
+    username = session.get("username", "")
+    history  = load_history_for_user(username)
+    if session.get("role") == "Administrator":
+        history = load_history()
+    entry = next((h for h in history if Path(h["folder"]).name == folder_name
+                  or h["folder"].endswith(folder_name)), None)
+    if not entry:
+        return "Assessment not found.", 404
+
+    folder = Path(entry["folder"])
+    if not folder.exists():
+        return "Folder not found on disk.", 404
+
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        for file in folder.rglob("*"):
+            if file.is_file():
+                zf.write(file, file.relative_to(folder.parent))
+    buf.seek(0)
+    safe_name = re.sub(r"[^\w\-]", "_", entry.get("client", folder_name))
+    return send_file(buf, as_attachment=True,
+                     download_name=f"Artemis_{safe_name}_{entry.get('date','')}.zip",
+                     mimetype="application/zip")
+
+
+@app.route("/assessment/<path:folder_name>/export/txt")
+@login_required
+def export_txt(folder_name):
+    import io
+    username = session.get("username", "")
+    history  = load_history_for_user(username)
+    if session.get("role") == "Administrator":
+        history = load_history()
+    entry = next((h for h in history if Path(h["folder"]).name == folder_name
+                  or h["folder"].endswith(folder_name)), None)
+    if not entry:
+        return "Assessment not found.", 404
+    folder = Path(entry["folder"])
+    if not folder.exists():
+        return "Folder not found on disk.", 404
+
+    data = _read_assessment_data(folder, entry)
+    lines = [
+        "=" * 60,
+        f"ARTEMIS ASSESSMENT REPORT",
+        "=" * 60,
+        f"Client:    {data['client']}",
+        f"Date:      {data['date']}",
+        f"Domain:    {data['domain']}",
+        f"Started:   {data['started']}",
+        f"Completed: {data['completed']}",
+        f"Duration:  {data['duration'] or '—'}",
+        "",
+        "SCOPE",
+        "-" * 40,
+    ] + (data["scope"] or ["—"]) + [
+        "",
+        "URLs",
+        "-" * 40,
+    ] + (data["urls"] or ["—"]) + [
+        "",
+        "SUBDOMAINS DISCOVERED",
+        "-" * 40,
+    ] + (data["subdomains"] or ["None found"]) + [
+        "",
+        "OPEN PORTS",
+        "-" * 40,
+    ]
+    for host, ports in data["open_ports"].items():
+        lines.append(f"{host}: {', '.join(ports)}")
+    if not data["open_ports"]:
+        lines.append("None found")
+    lines += [
+        "",
+        "EMAILS FOUND",
+        "-" * 40,
+    ] + (list(set(data["emails"])) or ["None found"]) + [
+        "",
+        f"VULNERABILITIES / FINDINGS: {data['vuln_count']}",
+        "",
+        "MISSING SECURITY HEADERS",
+        "-" * 40,
+    ]
+    for host, headers in data["missing_headers"].items():
+        lines.append(f"{host}:")
+        for h in headers:
+            lines.append(f"  - {h}")
+    if not data["missing_headers"]:
+        lines.append("None found")
+    lines += ["", "=" * 60, "Generated by Artemis // Retrobyte Cybersecurity LLC", "=" * 60]
+
+    content = "\n".join(lines)
+    buf = io.BytesIO(content.encode("utf-8"))
+    safe = re.sub(r"[^\w\-]", "_", data["client"])
+    return send_file(buf, as_attachment=True,
+                     download_name=f"Artemis_{safe}_{data['date']}.txt",
+                     mimetype="text/plain")
+
+
+@app.route("/assessment/<path:folder_name>/export/docx")
+@login_required
+def export_docx(folder_name):
+    from docx import Document
+    from docx.shared import Pt, RGBColor
+    import io
+    username = session.get("username", "")
+    history  = load_history_for_user(username)
+    if session.get("role") == "Administrator":
+        history = load_history()
+    entry = next((h for h in history if Path(h["folder"]).name == folder_name
+                  or h["folder"].endswith(folder_name)), None)
+    if not entry:
+        return "Assessment not found.", 404
+    folder = Path(entry["folder"])
+    if not folder.exists():
+        return "Folder not found on disk.", 404
+
+    data = _read_assessment_data(folder, entry)
+    doc  = Document()
+
+    # Title
+    title = doc.add_heading("Artemis Assessment Report", 0)
+    title.runs[0].font.color.rgb = RGBColor(0x3A, 0x5A, 0x7A)
+
+    # Meta table
+    meta = doc.add_table(rows=6, cols=2)
+    meta.style = "Table Grid"
+    fields = [
+        ("Client",    data["client"]),
+        ("Date",      data["date"]),
+        ("Domain",    data["domain"]),
+        ("Started",   data["started"]),
+        ("Completed", data["completed"]),
+        ("Duration",  data["duration"] or "—"),
+    ]
+    for i, (label, value) in enumerate(fields):
+        meta.cell(i, 0).text = label
+        meta.cell(i, 1).text = value
+
+    def add_section(title, items):
+        doc.add_heading(title, level=1)
+        if items:
+            for item in items:
+                doc.add_paragraph(str(item), style="List Bullet")
+        else:
+            doc.add_paragraph("None found.")
+
+    doc.add_paragraph()
+    add_section("Scope (IPs / Hosts)", data["scope"])
+    add_section("URLs Scanned", data["urls"])
+    add_section("Subdomains Discovered", data["subdomains"])
+
+    doc.add_heading("Open Ports", level=1)
+    if data["open_ports"]:
+        for host, ports in data["open_ports"].items():
+            doc.add_paragraph(f"{host}: {', '.join(ports)}", style="List Bullet")
+    else:
+        doc.add_paragraph("None found.")
+
+    add_section("Emails Found", list(set(data["emails"])))
+
+    doc.add_heading("Missing Security Headers", level=1)
+    if data["missing_headers"]:
+        for host, headers in data["missing_headers"].items():
+            doc.add_paragraph(host, style="List Bullet")
+            for h in headers:
+                doc.add_paragraph(f"  • {h}")
+    else:
+        doc.add_paragraph("None found.")
+
+    doc.add_heading(f"Total Findings / Vulnerabilities: {data['vuln_count']}", level=1)
+
+    buf = io.BytesIO()
+    doc.save(buf)
+    buf.seek(0)
+    safe = re.sub(r"[^\w\-]", "_", data["client"])
+    return send_file(buf, as_attachment=True,
+                     download_name=f"Artemis_{safe}_{data['date']}.docx",
+                     mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+
+
+@app.route("/assessment/<path:folder_name>/export/xlsx")
+@login_required
+def export_xlsx(folder_name):
+    try:
+        import openpyxl
+        from openpyxl.styles import Font, PatternFill, Alignment
+    except ImportError:
+        subprocess.run(["pip3", "install", "openpyxl", "--break-system-packages"],
+                       capture_output=True)
+        import openpyxl
+        from openpyxl.styles import Font, PatternFill, Alignment
+    import io
+
+    username = session.get("username", "")
+    history  = load_history_for_user(username)
+    if session.get("role") == "Administrator":
+        history = load_history()
+    entry = next((h for h in history if Path(h["folder"]).name == folder_name
+                  or h["folder"].endswith(folder_name)), None)
+    if not entry:
+        return "Assessment not found.", 404
+    folder = Path(entry["folder"])
+    if not folder.exists():
+        return "Folder not found on disk.", 404
+
+    data = _read_assessment_data(folder, entry)
+    wb   = openpyxl.Workbook()
+
+    hdr_font  = Font(bold=True, color="FFFFFF")
+    hdr_fill  = PatternFill("solid", fgColor="3A5A7A")
+    hdr_align = Alignment(horizontal="center")
+
+    def make_sheet(title, headers, rows):
+        ws = wb.create_sheet(title=title)
+        for ci, h in enumerate(headers, 1):
+            c = ws.cell(1, ci, h)
+            c.font  = hdr_font
+            c.fill  = hdr_fill
+            c.alignment = hdr_align
+            ws.column_dimensions[c.column_letter].width = 28
+        for ri, row in enumerate(rows, 2):
+            for ci, val in enumerate(row, 1):
+                ws.cell(ri, ci, val)
+        return ws
+
+    # Summary sheet
+    ws = wb.active
+    ws.title = "Summary"
+    for ci, h in enumerate(["Field", "Value"], 1):
+        c = ws.cell(1, ci, h)
+        c.font = hdr_font; c.fill = hdr_fill
+        ws.column_dimensions[c.column_letter].width = 30
+    summary_rows = [
+        ("Client",    data["client"]),
+        ("Date",      data["date"]),
+        ("Domain",    data["domain"]),
+        ("Started",   data["started"]),
+        ("Completed", data["completed"]),
+        ("Duration",  data["duration"] or "—"),
+        ("Total Findings", str(data["vuln_count"])),
+        ("Subdomains Found", str(len(data["subdomains"]))),
+        ("Open Port Hosts",  str(len(data["open_ports"]))),
+    ]
+    for ri, (f, v) in enumerate(summary_rows, 2):
+        ws.cell(ri, 1, f); ws.cell(ri, 2, v)
+
+    make_sheet("Scope",      ["Host / IP"],  [[s] for s in data["scope"]])
+    make_sheet("URLs",       ["URL"],        [[u] for u in data["urls"]])
+    make_sheet("Subdomains", ["Subdomain"],  [[s] for s in data["subdomains"]])
+    make_sheet("Open Ports", ["Host", "Port / Service"],
+               [[h, p] for h, ports in data["open_ports"].items() for p in ports])
+    make_sheet("Emails",     ["Email"],      [[e] for e in set(data["emails"])])
+    make_sheet("Missing Headers", ["Host", "Missing Header"],
+               [[h, hdr] for h, hdrs in data["missing_headers"].items() for hdr in hdrs])
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    safe = re.sub(r"[^\w\-]", "_", data["client"])
+    return send_file(buf, as_attachment=True,
+                     download_name=f"Artemis_{safe}_{data['date']}.xlsx",
+                     mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
 
 # ══════════════════════════════════════════════════════════════════════════
