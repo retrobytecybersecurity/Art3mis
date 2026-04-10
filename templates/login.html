@@ -8,20 +8,16 @@
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
   :root {
-    --bg:             #eef3f8;
-    --bg-accent:      #e4edf5;
-    --panel:          rgba(255,255,255,0.78);
-    --input:          #f8fbfd;
-    --accent:         #6fa8c9;
-    --accent-strong:  #4b89ad;
-    --text:           #1f2a37;
-    --dim:            #6b7a8c;
-    --border:         #d7e2ec;
-    --error:          #c84c63;
-    --warning:        #b07d2a;
-    --warning-bg:     rgba(176,125,42,0.08);
-    --warning-border: rgba(176,125,42,0.3);
-    --shadow:         0 20px 50px rgba(31,42,55,0.08);
+    --bg:      #0a0d14;
+    --surface: #0f1420;
+    --surface2:#141926;
+    --accent:  #1a4a7a;
+    --accent2: #1e5a94;
+    --text:    #e8eaf0;
+    --dim:     #4a6a8a;
+    --border:  #1e2d45;
+    --error:   #c84c63;
+    --warning: #b07d2a;
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -32,167 +28,146 @@
     align-items: center;
     justify-content: center;
     font-family: 'Inter', sans-serif;
-    color: var(--text);
-    background:
-      radial-gradient(circle at top left, rgba(111,168,201,0.18), transparent 30%),
-      radial-gradient(circle at bottom right, rgba(75,137,173,0.12), transparent 28%),
-      linear-gradient(160deg, var(--bg) 0%, var(--bg-accent) 100%);
+    background: var(--bg);
     padding: 24px;
   }
 
-  .login-wrap { width: 100%; max-width: 430px; }
+  .login-wrap { width: 100%; max-width: 400px; text-align: center; }
 
-  .logo-block { text-align: center; margin-bottom: 28px; }
-  .logo-title { font-size: 1.9rem; font-weight: 700; letter-spacing: 0.18em; color: var(--text); }
-  .logo-sub   { font-size: 0.78rem; color: var(--dim); margin-top: 6px; letter-spacing: 0.22em; text-transform: uppercase; }
-
-  /* Dog logo */
-  .dog-logo {
-    position: relative; width: 140px; height: 140px;
+  /* ── Logo ── */
+  .logo-block { margin-bottom: 28px; }
+  .logo-block img {
+    width: 200px;
+    height: 200px;
+    object-fit: contain;
+    display: block;
     margin: 0 auto 16px;
-    filter: drop-shadow(0 14px 24px rgba(75,137,173,0.10));
   }
-  .dog-ring {
-    position: absolute; inset: 0; border-radius: 50%;
-    border: 3px solid rgba(111,168,201,0.35);
-    background: rgba(255,255,255,0.22);
+  .brand-name {
+    font-size: 1.8rem;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    color: var(--text);
   }
-  .dog-ear {
-    position: absolute; width: 48px; height: 58px;
-    background: var(--dog-brown); border: 3px solid var(--dog-line);
-    top: 10px; z-index: 1;
+  .brand-sub {
+    font-size: 0.72rem;
+    color: var(--dim);
+    margin-top: 5px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
   }
-  .dog-ear.left  { left: 12px;  transform: rotate(-20deg); border-radius: 60% 40% 50% 50%; }
-  .dog-ear.right { right: 12px; transform: rotate(20deg);  border-radius: 40% 60% 50% 50%; }
-  .dog-head {
-    position: absolute; left: 50%; top: 25px; transform: translateX(-50%);
-    width: 90px; height: 90px; border-radius: 50%;
-    border: 3px solid var(--dog-line);
-    background: linear-gradient(to right,
-      var(--dog-brown) 0%, var(--dog-brown) 45%,
-      var(--dog-white) 45%, var(--dog-white) 55%,
-      var(--dog-brown) 55%);
-    z-index: 2;
-  }
-  .dog-eye {
-    position: absolute; width: 8px; height: 10px;
-    background: var(--dog-eye); border-radius: 50%; top: 32px;
-  }
-  .dog-eye.left  { left: 22px; }
-  .dog-eye.right { right: 22px; }
-  .dog-eye::after {
-    content: ""; position: absolute; width: 3px; height: 3px;
-    background: white; border-radius: 50%; top: 2px; left: 2px;
-  }
-  .dog-snout {
-    position: absolute; left: 50%; top: 45px; transform: translateX(-50%);
-    width: 60px; height: 40px; background: white;
-    border-radius: 50%; border: 3px solid var(--dog-line);
-  }
-  .dog-nose {
-    position: absolute; left: 50%; top: 48px; transform: translateX(-50%);
-    width: 32px; height: 22px; background: var(--dog-nose);
-    border-radius: 50%; border: 3px solid var(--dog-line); z-index: 3;
-  }
-  .dog-nose::before, .dog-nose::after {
-    content: ""; position: absolute; width: 5px; height: 8px;
-    background: #5a3428; border-radius: 50%; top: 6px;
-  }
-  .dog-nose::before { left: 7px; }
-  .dog-nose::after  { right: 7px; }
-  .dog-mouth {
-    position: absolute; left: 50%; top: 70px; transform: translateX(-50%);
-    width: 24px; height: 10px; z-index: 3;
-  }
-  .dog-mouth::before, .dog-mouth::after {
-    content: ""; position: absolute; width: 10px; height: 8px;
-    border-bottom: 2px solid var(--dog-line); border-radius: 0 0 10px 10px;
-  }
-  .dog-mouth::before { left: 0; }
-  .dog-mouth::after  { right: 0; }
 
-  /* Card */
+  /* ── Card ── */
   .card {
-    background: var(--panel);
-    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
-    border: 1px solid rgba(255,255,255,0.75);
-    border-radius: 20px; overflow: hidden;
-    box-shadow: var(--shadow);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+  .accent-line {
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #1a4a7a, #2a6aaa, #1a4a7a, transparent);
   }
   .card-header {
-    padding: 16px 22px;
-    background: rgba(111,168,201,0.08);
+    padding: 13px 22px;
+    background: var(--surface2);
     border-bottom: 1px solid var(--border);
-    color: var(--accent-strong);
-    font-size: 0.78rem; font-weight: 600;
-    letter-spacing: 0.14em; text-transform: uppercase;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--dim);
+    text-align: left;
   }
-  .card-body { padding: 26px 22px 22px; }
+  .card-body { padding: 24px 22px; }
 
-  label {
-    display: block; font-size: 0.76rem; font-weight: 600;
-    color: var(--dim); margin-bottom: 8px; margin-top: 18px;
-    letter-spacing: 0.08em; text-transform: uppercase;
+  /* ── Form ── */
+  .field { margin-bottom: 16px; text-align: left; }
+  .field label {
+    display: block;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--dim);
+    margin-bottom: 6px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
   }
-  label:first-of-type { margin-top: 0; }
-
-  input[type="text"], input[type="password"] {
-    width: 100%; background: var(--input);
-    border: 1px solid var(--border); border-radius: 12px;
-    color: var(--text); font-family: 'Inter', sans-serif;
-    font-size: 0.95rem; padding: 13px 14px; outline: none;
-    transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
-  }
-  input::placeholder { color: #98a6b5; }
-  input:focus {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 4px rgba(111,168,201,0.16);
+  .field input {
+    width: 100%;
     background: #ffffff;
+    border: 1px solid #c8d8e8;
+    border-radius: 10px;
+    color: #0f1826;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.9rem;
+    padding: 11px 14px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .field input::placeholder { color: #8aaabb; }
+  .field input:focus {
+    border-color: #4a7aaa;
+    box-shadow: 0 0 0 3px rgba(74,122,170,0.15);
   }
 
-  /* Notices */
+  /* ── Notices ── */
   .notice-expired {
-    background: var(--warning-bg);
-    border: 1px solid var(--warning-border);
-    border-radius: 12px; color: var(--warning);
-    font-size: 0.84rem; padding: 10px 14px;
-    margin-bottom: 18px; line-height: 1.5;
+    background: rgba(176,125,42,0.1);
+    border: 1px solid rgba(176,125,42,0.3);
+    border-radius: 8px;
+    color: #d4a44a;
+    font-size: 0.8rem;
+    padding: 10px 14px;
+    margin-bottom: 16px;
+    text-align: left;
+    line-height: 1.5;
   }
   .notice-expired::before { content: '⚠  '; }
 
   .error-msg {
-    background: rgba(200,76,99,0.08);
-    border: 1px solid rgba(200,76,99,0.28);
-    border-radius: 12px; color: var(--error);
-    font-size: 0.84rem; padding: 10px 12px;
-    margin-top: 14px; text-align: center;
+    background: rgba(200,76,99,0.1);
+    border: 1px solid rgba(200,76,99,0.3);
+    border-radius: 8px;
+    color: #e87a8a;
+    font-size: 0.82rem;
+    padding: 10px 12px;
+    margin-top: 14px;
+    text-align: center;
   }
 
+  /* ── Button ── */
   .btn-login {
-    width: 100%; margin-top: 24px; padding: 13px 16px;
-    border: none; border-radius: 12px;
-    background: linear-gradient(135deg, var(--accent), var(--accent-strong));
-    color: white; font-family: 'Inter', sans-serif;
-    font-size: 0.95rem; font-weight: 600;
-    letter-spacing: 0.08em; text-transform: uppercase;
+    width: 100%;
+    margin-top: 8px;
+    padding: 13px;
+    border: none;
+    border-radius: 10px;
+    background: var(--accent);
+    color: #e8f4ff;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
     cursor: pointer;
-    transition: transform 0.15s ease, box-shadow 0.2s ease, filter 0.2s ease;
-    box-shadow: 0 10px 24px rgba(75,137,173,0.22);
+    transition: background 0.15s;
   }
-  .btn-login:hover  { transform: translateY(-1px); filter: brightness(1.02); }
-  .btn-login:active { transform: translateY(0); }
+  .btn-login:hover  { background: var(--accent2); }
+  .btn-login:active { filter: brightness(0.95); }
 
+  /* ── Footer ── */
   .footer-note {
-    text-align: center; color: var(--dim);
-    font-size: 0.73rem; margin-top: 18px;
-    letter-spacing: 0.12em; text-transform: uppercase;
+    margin-top: 20px;
+    font-size: 0.68rem;
+    color: #1e2d45;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
   }
 
   @media (max-width: 480px) {
-    .login-wrap { max-width: 100%; }
-    .logo-title  { font-size: 1.65rem; }
-    .card-body, .card-header { padding-left: 18px; padding-right: 18px; }
-    .dog-logo    { width: 124px; height: 124px; }
+    .brand-name { font-size: 1.5rem; }
+    .logo-block img { width: 160px; height: 160px; }
+    .card-body { padding: 20px 16px; }
   }
 </style>
 </head>
@@ -200,23 +175,13 @@
 <div class="login-wrap">
 
   <div class="logo-block">
-    <div class="dog-logo" aria-hidden="true">
-      <div class="dog-ring"></div>
-      <div class="dog-ear left"></div>
-      <div class="dog-ear right"></div>
-      <div class="dog-head">
-        <div class="dog-eye left"></div>
-        <div class="dog-eye right"></div>
-        <div class="dog-snout"></div>
-        <div class="dog-nose"></div>
-        <div class="dog-mouth"></div>
-      </div>
-    </div>
-    <div class="logo-title">ART3MIS</div>
-    <div class="logo-sub">External Pentest Suite</div>
+    <img src="/static/artemis_login_logo.png" alt="Artemis Logo">
+    <div class="brand-name">ART3MIS</div>
+    <div class="brand-sub">External Pentest Suite</div>
   </div>
 
   <div class="card">
+    <div class="accent-line"></div>
     <div class="card-header">Authorized Access Only</div>
     <div class="card-body">
       <form method="POST" action="/login">
@@ -227,15 +192,19 @@
         </div>
         {% endif %}
 
-        <label for="username">Username</label>
-        <input id="username" type="text" name="username"
-               autocomplete="username" autofocus
-               placeholder="Enter your username">
+        <div class="field">
+          <label for="username">Username</label>
+          <input id="username" type="text" name="username"
+                 autocomplete="username" autofocus
+                 placeholder="Enter your username">
+        </div>
 
-        <label for="password">Password</label>
-        <input id="password" type="password" name="password"
-               autocomplete="current-password"
-               placeholder="Enter your password">
+        <div class="field">
+          <label for="password">Password</label>
+          <input id="password" type="password" name="password"
+                 autocomplete="current-password"
+                 placeholder="Enter your password">
+        </div>
 
         <button type="submit" class="btn-login">Sign In</button>
 
