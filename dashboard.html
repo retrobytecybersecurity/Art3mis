@@ -215,8 +215,7 @@
         <button class="btn-del"
                 data-folder="{{ entry.folder }}"
                 data-client="{{ entry.client }}"
-                data-idx="{{ loop.index0 }}"
-                onclick="deleteAssessment(this)"
+                onclick="event.stopPropagation(); openDeleteModal(this)"
                 title="Remove from dashboard (files kept on disk)">✕</button>
       </div>
       {% endfor %}
@@ -234,43 +233,90 @@
   <span>Confidential — Authorized Use Only</span>
 </footer>
 
-<script>
-async function deleteAssessment(btn) {
-  const folder     = btn.getAttribute('data-folder');
-  const clientName = btn.getAttribute('data-client');
-  const idx        = parseInt(btn.getAttribute('data-idx'));
+<!-- ── Delete confirmation modal ── -->
+<div id="delete-modal-bg" style="
+  display:none; position:fixed; inset:0;
+  background:rgba(42,58,74,0.45);
+  z-index:200; align-items:center; justify-content:center;">
+  <div style="
+    background:#fff; border:0.5px solid #dce8f2;
+    border-radius:16px; width:380px; overflow:hidden;
+    box-shadow:0 8px 32px rgba(42,58,74,0.14);">
+    <div style="
+      padding:14px 20px; background:#f8fafc;
+      border-bottom:0.5px solid #dce8f2;
+      font-size:0.85rem; font-weight:600; color:#3a5a7a;">
+      Remove Assessment
+    </div>
+    <div style="padding:22px 20px;">
+      <p style="font-size:0.88rem;color:#2a3a4a;margin-bottom:6px">
+        Are you sure you want to remove
+        <strong id="modal-client-name"></strong>
+        from the dashboard?
+      </p>
+      <p style="font-size:0.76rem;color:#6a8aaa;">
+        Files on disk are not deleted.
+      </p>
+    </div>
+    <div style="
+      display:flex; gap:8px; padding:0 20px 20px;">
+      <button onclick="confirmDelete()" style="
+        flex:1; padding:10px; border:none; border-radius:10px;
+        background:#b05060; color:#fff;
+        font-family:'Inter',sans-serif; font-size:0.85rem;
+        font-weight:600; cursor:pointer;">
+        Yes, Remove
+      </button>
+      <button onclick="closeDeleteModal()" style="
+        flex:1; padding:10px; border:0.5px solid #dce8f2;
+        border-radius:10px; background:#fff; color:#6a8aaa;
+        font-family:'Inter',sans-serif; font-size:0.85rem; cursor:pointer;">
+        Cancel
+      </button>
+    </div>
+  </div>
+</div>
 
-  if (!confirm(`Remove "${clientName}" from the dashboard?\n\nFiles on disk are NOT deleted.`)) return;
+<script>
+let pendingFolder = null;
+
+function openDeleteModal(btn) {
+  pendingFolder = btn.getAttribute('data-folder');
+  const clientName = btn.getAttribute('data-client');
+  document.getElementById('modal-client-name').textContent = `"${clientName}"`;
+  const bg = document.getElementById('delete-modal-bg');
+  bg.style.display = 'flex';
+}
+
+function closeDeleteModal() {
+  pendingFolder = null;
+  document.getElementById('delete-modal-bg').style.display = 'none';
+}
+
+async function confirmDelete() {
+  if (!pendingFolder) return;
+  const folder = pendingFolder;
+  closeDeleteModal();
 
   const res  = await fetch('/api/delete-assessment', {
     method: 'POST', headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({ folder }),
   });
   const data = await res.json();
-  if (!data.ok) { alert('Error: ' + data.error); return; }
 
-  const card = document.getElementById(`card-${idx}`);
-  if (card) {
-    card.style.transition = 'opacity 0.25s, transform 0.25s';
-    card.style.opacity    = '0';
-    card.style.transform  = 'translateX(20px)';
-    setTimeout(() => {
-      card.remove();
-      document.querySelectorAll('.acard').forEach((c, i) => {
-        c.id = `card-${i}`;
-        const r = c.querySelector('.card-rank'); if (r) r.textContent = i + 1;
-        const b = c.querySelector('.btn-del');   if (b) b.setAttribute('data-idx', i);
-      });
-      const rem = document.querySelectorAll('.acard').length;
-      const badge = document.querySelector('.count-pill');
-      if (badge) badge.textContent = `${rem} / 5`;
-      if (rem === 0) {
-        document.querySelector('.assessment-grid').innerHTML =
-          '<div class="empty-state"><p>No assessments recorded yet.<br>Complete a scan and click <strong>Exit</strong> to save it here.</p></div>';
-      }
-    }, 280);
+  if (!data.ok) {
+    alert('Error: ' + data.error);
+    return;
   }
+
+  // Reload the page — cleanest way to reflect the updated history
+  window.location.reload();
 }
+
+// Close modal if background is clicked
+document.getElementById('delete-modal-bg').addEventListener('click', function(e) {
+  if (e.target === this) closeDeleteModal();
+});
 </script>
 </body>
 </html>
