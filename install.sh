@@ -1,181 +1,258 @@
-#!/usr/bin/env bash
-# ╔══════════════════════════════════════════════════════════╗
-# ║         ARTEMIS — Dependency Installer                   ║
-# ║         Run: sudo bash install.sh                        ║
-# ╚══════════════════════════════════════════════════════════╝
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARTEMIS // Login</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
-set -e
+  :root {
+    --bg:             #eef3f8;
+    --bg-accent:      #e4edf5;
+    --panel:          rgba(255,255,255,0.78);
+    --input:          #f8fbfd;
+    --accent:         #6fa8c9;
+    --accent-strong:  #4b89ad;
+    --text:           #1f2a37;
+    --dim:            #6b7a8c;
+    --border:         #d7e2ec;
+    --error:          #c84c63;
+    --warning:        #b07d2a;
+    --warning-bg:     rgba(176,125,42,0.08);
+    --warning-border: rgba(176,125,42,0.3);
+    --shadow:         0 20px 50px rgba(31,42,55,0.08);
+    --dog-brown:      #a86a3a;
+    --dog-white:      #ffffff;
+    --dog-nose:       #7b4b3a;
+    --dog-line:       #2f3e4e;
+    --dog-eye:        #2d2d2d;
+  }
 
-if [ "$EUID" -ne 0 ]; then
-    echo "[!] Please run as root: sudo bash install.sh"
-    exit 1
-fi
+  * { box-sizing: border-box; margin: 0; padding: 0; }
 
-echo ""
-echo "◈ ARTEMIS — Installing dependencies..."
-echo "────────────────────────────────────────"
+  body {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Inter', sans-serif;
+    color: var(--text);
+    background:
+      radial-gradient(circle at top left, rgba(111,168,201,0.18), transparent 30%),
+      radial-gradient(circle at bottom right, rgba(75,137,173,0.12), transparent 28%),
+      linear-gradient(160deg, var(--bg) 0%, var(--bg-accent) 100%);
+    padding: 24px;
+  }
 
-# ── System / apt packages ─────────────────────────────────────────────────
-echo "[*] Installing apt packages..."
-apt-get update -qq
-apt-get install -y \
-    python3-tk \
-    python3-pip \
-    nmap \
-    masscan \
-    nikto \
-    sslscan \
-    dnsenum \
-    curl \
-    golang \
-    seclists \
-    theharvester \
-    wpscan \
-    ruby \
-    ruby-dev \
-    git
+  .login-wrap { width: 100%; max-width: 430px; }
 
-echo "[✓] apt packages installed"
+  .logo-block { text-align: center; margin-bottom: 28px; }
+  .logo-title { font-size: 1.9rem; font-weight: 700; letter-spacing: 0.18em; color: var(--text); }
+  .logo-sub   { font-size: 0.78rem; color: var(--dim); margin-top: 6px; letter-spacing: 0.22em; text-transform: uppercase; }
 
-# ── wpscan fallback (gem install if apt version is broken) ────────────────
-if ! wpscan --version &>/dev/null; then
-    echo "[*] apt wpscan broken — installing via gem..."
-    gem install wpscan 2>/dev/null || true
-fi
-echo "[✓] wpscan ready"
+  /* Dog logo */
+  .dog-logo {
+    position: relative; width: 140px; height: 140px;
+    margin: 0 auto 16px;
+    filter: drop-shadow(0 14px 24px rgba(75,137,173,0.10));
+  }
+  .dog-ring {
+    position: absolute; inset: 0; border-radius: 50%;
+    border: 3px solid rgba(111,168,201,0.35);
+    background: rgba(255,255,255,0.22);
+  }
+  .dog-ear {
+    position: absolute; width: 48px; height: 58px;
+    background: var(--dog-brown); border: 3px solid var(--dog-line);
+    top: 10px; z-index: 1;
+  }
+  .dog-ear.left  { left: 12px;  transform: rotate(-20deg); border-radius: 60% 40% 50% 50%; }
+  .dog-ear.right { right: 12px; transform: rotate(20deg);  border-radius: 40% 60% 50% 50%; }
+  .dog-head {
+    position: absolute; left: 50%; top: 25px; transform: translateX(-50%);
+    width: 90px; height: 90px; border-radius: 50%;
+    border: 3px solid var(--dog-line);
+    background: linear-gradient(to right,
+      var(--dog-brown) 0%, var(--dog-brown) 45%,
+      var(--dog-white) 45%, var(--dog-white) 55%,
+      var(--dog-brown) 55%);
+    z-index: 2;
+  }
+  .dog-eye {
+    position: absolute; width: 8px; height: 10px;
+    background: var(--dog-eye); border-radius: 50%; top: 32px;
+  }
+  .dog-eye.left  { left: 22px; }
+  .dog-eye.right { right: 22px; }
+  .dog-eye::after {
+    content: ""; position: absolute; width: 3px; height: 3px;
+    background: white; border-radius: 50%; top: 2px; left: 2px;
+  }
+  .dog-snout {
+    position: absolute; left: 50%; top: 45px; transform: translateX(-50%);
+    width: 60px; height: 40px; background: white;
+    border-radius: 50%; border: 3px solid var(--dog-line);
+  }
+  .dog-nose {
+    position: absolute; left: 50%; top: 48px; transform: translateX(-50%);
+    width: 32px; height: 22px; background: var(--dog-nose);
+    border-radius: 50%; border: 3px solid var(--dog-line); z-index: 3;
+  }
+  .dog-nose::before, .dog-nose::after {
+    content: ""; position: absolute; width: 5px; height: 8px;
+    background: #5a3428; border-radius: 50%; top: 6px;
+  }
+  .dog-nose::before { left: 7px; }
+  .dog-nose::after  { right: 7px; }
+  .dog-mouth {
+    position: absolute; left: 50%; top: 70px; transform: translateX(-50%);
+    width: 24px; height: 10px; z-index: 3;
+  }
+  .dog-mouth::before, .dog-mouth::after {
+    content: ""; position: absolute; width: 10px; height: 8px;
+    border-bottom: 2px solid var(--dog-line); border-radius: 0 0 10px 10px;
+  }
+  .dog-mouth::before { left: 0; }
+  .dog-mouth::after  { right: 0; }
 
-# ── Python packages ───────────────────────────────────────────────────────
-echo "[*] Installing Python packages..."
-pip3 install -r requirements.txt --break-system-packages
-pip3 install openpyxl --break-system-packages
-echo "[✓] Python packages installed"
+  /* Card */
+  .card {
+    background: var(--panel);
+    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255,255,255,0.75);
+    border-radius: 20px; overflow: hidden;
+    box-shadow: var(--shadow);
+  }
+  .card-header {
+    padding: 16px 22px;
+    background: rgba(111,168,201,0.08);
+    border-bottom: 1px solid var(--border);
+    color: var(--accent-strong);
+    font-size: 0.78rem; font-weight: 600;
+    letter-spacing: 0.14em; text-transform: uppercase;
+  }
+  .card-body { padding: 26px 22px 22px; }
 
-# ── Go tools ──────────────────────────────────────────────────────────────
-echo "[*] Installing Go tools..."
-export GOPATH=/root/go
-export PATH=$PATH:/root/go/bin
+  label {
+    display: block; font-size: 0.76rem; font-weight: 600;
+    color: var(--dim); margin-bottom: 8px; margin-top: 18px;
+    letter-spacing: 0.08em; text-transform: uppercase;
+  }
+  label:first-of-type { margin-top: 0; }
 
-go install github.com/projectdiscovery/nuclei/v3/cmd/nuclei@latest
-go install github.com/ffuf/ffuf/v2@latest
-go install github.com/tomnomnom/assetfinder@latest
-go install github.com/sensepost/gowitness@latest
-go install github.com/homeport/termshot/cmd/termshot@latest
-go install github.com/owasp-amass/amass/v4/...@master
+  input[type="text"], input[type="password"] {
+    width: 100%; background: var(--input);
+    border: 1px solid var(--border); border-radius: 12px;
+    color: var(--text); font-family: 'Inter', sans-serif;
+    font-size: 0.95rem; padding: 13px 14px; outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+  }
+  input::placeholder { color: #98a6b5; }
+  input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 4px rgba(111,168,201,0.16);
+    background: #ffffff;
+  }
 
-# Add go/bin to PATH permanently
-if ! grep -q "/root/go/bin" /root/.bashrc; then
-    echo 'export PATH=$PATH:/root/go/bin' >> /root/.bashrc
-fi
-echo "[✓] Go tools installed"
+  /* Notices */
+  .notice-expired {
+    background: var(--warning-bg);
+    border: 1px solid var(--warning-border);
+    border-radius: 12px; color: var(--warning);
+    font-size: 0.84rem; padding: 10px 14px;
+    margin-bottom: 18px; line-height: 1.5;
+  }
+  .notice-expired::before { content: '⚠  '; }
 
-# ── bbot ──────────────────────────────────────────────────────────────────
-echo "[*] Installing bbot..."
-pip3 install bbot --break-system-packages 2>/dev/null || true
-echo "[✓] bbot installed"
+  .error-msg {
+    background: rgba(200,76,99,0.08);
+    border: 1px solid rgba(200,76,99,0.28);
+    border-radius: 12px; color: var(--error);
+    font-size: 0.84rem; padding: 10px 12px;
+    margin-top: 14px; text-align: center;
+  }
 
-# ── shcheck.py ────────────────────────────────────────────────────────────
-if [ ! -f /opt/shcheck/shcheck.py ]; then
-    echo "[*] Installing shcheck.py..."
-    git clone https://github.com/santoru/shcheck /opt/shcheck
-    pip3 install -r /opt/shcheck/requirements.txt --break-system-packages 2>/dev/null || true
-    echo "[✓] shcheck.py installed to /opt/shcheck"
-else
-    echo "[✓] shcheck.py already present"
-fi
+  .btn-login {
+    width: 100%; margin-top: 24px; padding: 13px 16px;
+    border: none; border-radius: 12px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+    color: white; font-family: 'Inter', sans-serif;
+    font-size: 0.95rem; font-weight: 600;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.2s ease, filter 0.2s ease;
+    box-shadow: 0 10px 24px rgba(75,137,173,0.22);
+  }
+  .btn-login:hover  { transform: translateY(-1px); filter: brightness(1.02); }
+  .btn-login:active { transform: translateY(0); }
 
-# ── spoofy ────────────────────────────────────────────────────────────────
-if [ ! -f /opt/spoofy/spoofy.py ]; then
-    echo "[*] Installing spoofy..."
-    git clone https://github.com/MattKeeley/Spoofy /opt/spoofy
-    pip3 install -r /opt/spoofy/requirements.txt --break-system-packages 2>/dev/null || true
-    echo "[✓] spoofy installed to /opt/spoofy"
-else
-    echo "[✓] spoofy already present"
-fi
+  .footer-note {
+    text-align: center; color: var(--dim);
+    font-size: 0.73rem; margin-top: 18px;
+    letter-spacing: 0.12em; text-transform: uppercase;
+  }
 
-# ── o365spray ─────────────────────────────────────────────────────────────
-if [ ! -f /opt/o365spray/o365spray.py ]; then
-    echo "[*] Installing o365spray..."
-    git clone https://github.com/0xZDH/o365spray /opt/o365spray
-    pip3 install -r /opt/o365spray/requirements.txt --break-system-packages 2>/dev/null || true
-    echo "[✓] o365spray installed to /opt/o365spray"
-else
-    echo "[✓] o365spray already present"
-fi
+  @media (max-width: 480px) {
+    .login-wrap { max-width: 100%; }
+    .logo-title  { font-size: 1.65rem; }
+    .card-body, .card-header { padding-left: 18px; padding-right: 18px; }
+    .dog-logo    { width: 124px; height: 124px; }
+  }
+</style>
+</head>
+<body>
+<div class="login-wrap">
 
-# ── nuclei templates ──────────────────────────────────────────────────────
-echo "[*] Updating nuclei templates..."
-/root/go/bin/nuclei -update-templates 2>/dev/null || true
-echo "[✓] nuclei templates updated"
+  <div class="logo-block">
+    <div class="dog-logo" aria-hidden="true">
+      <div class="dog-ring"></div>
+      <div class="dog-ear left"></div>
+      <div class="dog-ear right"></div>
+      <div class="dog-head">
+        <div class="dog-eye left"></div>
+        <div class="dog-eye right"></div>
+        <div class="dog-snout"></div>
+        <div class="dog-nose"></div>
+        <div class="dog-mouth"></div>
+      </div>
+    </div>
+    <div class="logo-title">ART3MIS</div>
+    <div class="logo-sub">External Pentest Suite</div>
+  </div>
 
-# ── Results directory ─────────────────────────────────────────────────────
-echo "[*] Creating directories..."
-mkdir -p /opt/artemis/results
-mkdir -p /opt/artemis/templates
-echo "[✓] Directories ready"
+  <div class="card">
+    <div class="card-header">Authorized Access Only</div>
+    <div class="card-body">
+      <form method="POST" action="/login">
 
-# ── Deploy to /opt/artemis ────────────────────────────────────────────────
-echo "[*] Deploying Artemis to /opt/artemis..."
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+        {% if expired %}
+        <div class="notice-expired">
+          Your session expired after 3 hours. Please log in again.
+        </div>
+        {% endif %}
 
-cp "$SCRIPT_DIR/artemis_web.py"       /opt/artemis/
-cp "$SCRIPT_DIR/report_generator.py"  /opt/artemis/
+        <label for="username">Username</label>
+        <input id="username" type="text" name="username"
+               autocomplete="username" autofocus
+               placeholder="Enter your username">
 
-# Deploy all templates
-for tmpl in index.html login.html dashboard.html change_password.html admin_users.html assessment_summary.html; do
-    if [ -f "$SCRIPT_DIR/templates/$tmpl" ]; then
-        cp "$SCRIPT_DIR/templates/$tmpl" /opt/artemis/templates/
-        echo "    ✓ $tmpl"
-    else
-        echo "    ✗ WARNING: $tmpl not found in templates/"
-    fi
-done
+        <label for="password">Password</label>
+        <input id="password" type="password" name="password"
+               autocomplete="current-password"
+               placeholder="Enter your password">
 
-echo "[✓] Files deployed"
+        <button type="submit" class="btn-login">Sign In</button>
 
-# ── systemd service ───────────────────────────────────────────────────────
-echo "[*] Installing systemd service..."
-cp "$SCRIPT_DIR/artemis.service" /etc/systemd/system/artemis.service
-systemctl daemon-reload
-systemctl enable artemis
-systemctl restart artemis
-echo "[✓] Artemis service installed and started"
-echo "    Status: systemctl status artemis"
+        {% if error %}
+        <div class="error-msg">{{ error }}</div>
+        {% endif %}
 
-# ── Nginx config ──────────────────────────────────────────────────────────
-if [ -f "$SCRIPT_DIR/nginx_artemis.conf" ]; then
-    cp "$SCRIPT_DIR/nginx_artemis.conf" /etc/nginx/sites-available/artemis
-    ln -sf /etc/nginx/sites-available/artemis /etc/nginx/sites-enabled/artemis
-    # Remove default site if present
-    rm -f /etc/nginx/sites-enabled/default
-    nginx -t && systemctl reload nginx
-    echo "[✓] Nginx configured"
-else
-    echo "[!] nginx_artemis.conf not found — configure Nginx manually"
-fi
+      </form>
+    </div>
+  </div>
 
-# ── Done ──────────────────────────────────────────────────────────────────
-echo ""
-echo "────────────────────────────────────────"
-echo "◈ Artemis installation complete."
-echo ""
-echo "  Tool summary:"
-echo "    apt  : nmap, masscan, nikto, sslscan, dnsenum, curl, theharvester, wpscan"
-echo "    go   : nuclei, ffuf, assetfinder, gowitness, termshot, amass"
-echo "    pip  : flask, reportlab, python-docx, pymeta3, bbot, openpyxl"
-echo "    git  : shcheck    → /opt/shcheck"
-echo "           spoofy     → /opt/spoofy"
-echo "           o365spray  → /opt/o365spray"
-echo ""
-echo "  NOTE: Metasploit Framework must be installed manually."
-echo "    curl https://raw.githubusercontent.com/rapid7/metasploit-omnibus/master/config/templates/metasploit-framework-wrappers/msfupdate.erb > msfinstall"
-echo "    chmod 755 msfinstall && sudo ./msfinstall"
-echo ""
-echo "  On first login:"
-echo "    Check the service log for the auto-generated admin password:"
-echo "    journalctl -u artemis -n 50 --no-pager | grep -A6 'FIRST-RUN'"
-echo ""
-echo "  Service commands:"
-echo "    systemctl status  artemis"
-echo "    systemctl restart artemis"
-echo "    journalctl -fu    artemis"
+  <div class="footer-note">Retrobyte Cybersecurity LLC // Confidential System</div>
+</div>
+</body>
+</html>
