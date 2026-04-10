@@ -67,6 +67,7 @@ GO_TOOLS = {
     "assetfinder": "github.com/tomnomnom/assetfinder@latest",
     "gowitness":   "github.com/sensepost/gowitness@latest",
     "termshot":    "github.com/homeport/termshot/cmd/termshot@latest",
+    "amass":       "github.com/owasp-amass/amass/v4/...@master",
 }
 
 PIP_TOOLS = {
@@ -356,6 +357,8 @@ def _run_functional_tests(log_fn):
     test("msfconsole",   ["msfconsole",  "--version"],  "metasploit")
     test("bbot",         ["bbot",         "--help"],     "bbot")
     test("wpscan",       ["wpscan",       "--version"],  "wpscan")
+    test("amass",        ["amass",        "-version"],   "amass")
+    test("masscan",      ["masscan",      "--version"],  "masscan")
 
     log_fn("🧪 Functional tests complete.", "info")
 
@@ -559,13 +562,22 @@ def run_scan(scope_list, url_list, domain, phases, tools, folder, tool_paths):
                 "trace,sql,db,git,dump,mdb,sqlite,hg,svn,zip,tar,rar,7z,tgz,"
                 "rst,pem,key,crt,pfx,json,html"
             )
-            pymeta_out = p1 / f"pymeta_{safe_d}.txt"
-            run_tool(["pymeta", "-d", domain, "-t", pymeta_exts, "-o", str(pymeta_out)],
-                     pymeta_out, f"pymeta [{domain}]",
+            # pymeta -o expects a directory, not a file
+            pymeta_dir = p1 / f"pymeta_{safe_d}"
+            pymeta_dir.mkdir(exist_ok=True)
+            pymeta_stdout = p1 / f"pymeta_{safe_d}.txt"
+            run_tool(["pymeta", "-d", domain, "--file-type", pymeta_exts, "-o", str(pymeta_dir)],
+                     pymeta_stdout, f"pymeta [{domain}]",
                      screenshot_name=f"phase1_pymeta_{safe_d}")
-            if pymeta_out.exists():
-                results["pymeta"] = [l.strip() for l in pymeta_out.read_text().splitlines()
-                                     if l.strip() and not l.startswith("#")]
+            # Collect findings from all files pymeta wrote to the output dir
+            pymeta_findings = []
+            for f in list(pymeta_dir.glob("*")) + [pymeta_stdout]:
+                if f.exists() and f.is_file():
+                    pymeta_findings.extend([
+                        l.strip() for l in f.read_text(errors="ignore").splitlines()
+                        if l.strip() and not l.startswith("#")
+                    ])
+            results["pymeta"] = list(set(pymeta_findings))
         elif domain and not tools.get("pymeta", True):
             log("  — pymeta skipped", "dim")
         else:
@@ -618,6 +630,58 @@ def run_scan(scope_list, url_list, domain, phases, tools, folder, tool_paths):
             log("  — bbot skipped", "dim")
         else:
             log("⚠ No domain — skipping bbot", "warn")
+
+        # ── Amass — passive or active depending on preset ─────────────
+        if domain and tools.get("amass", True):
+            if shutil.which("amass"):
+                safe_d     = re.sub(r"[^\w\-]", "_", domain)
+                amass_out  = p1 / f"amass_{safe_d}.txt"
+                amass_mode = tools.get("amass_mode", "passive")
+
+                if amass_mode == "active":
+                    log(f"⟶ amass ACTIVE (brute force + zone transfer) [{domain}]", "info")
+                    wordlist = "/usr/share/seclists/Discovery/DNS/sublist3r-top1mil-20000.txt"
+                    if not Path(wordlist).exists():
+                        wordlist = "/usr/share/seclists/Discovery/DNS/bitquark-subdomains-top100000.txt"
+                    if not Path(wordlist).exists():
+                        wordlist = ""
+                    amass_cmd = [
+                        "amass", "enum", "-active",
+                        "-d", domain,
+                        "-o", str(amass_out),
+                        "-timeout", "30",
+                    ]
+                    if wordlist:
+                        amass_cmd += ["-brute", "-w", wordlist]
+                else:
+                    log(f"⟶ amass PASSIVE (OSINT sources only) [{domain}]", "info")
+                    amass_cmd = [
+                        "amass", "enum", "-passive",
+                        "-d", domain,
+                        "-o", str(amass_out),
+                        "-timeout", "20",
+                    ]
+
+                run_tool(amass_cmd,
+                         amass_out,
+                         f"amass [{amass_mode}] [{domain}]",
+                         screenshot_name=f"phase1_amass_{safe_d}")
+
+                # Parse amass output — one subdomain per line
+                if amass_out.exists():
+                    amass_subs = [l.strip() for l in amass_out.read_text().splitlines()
+                                  if l.strip() and "." in l]
+                    results["subdomains"] = list(set(
+                        results.get("subdomains", []) + amass_subs))
+                    log(f"  ↳ amass found {len(amass_subs)} subdomains", "dim")
+            else:
+                log("⚠ amass not found — install: go install github.com/owasp-amass/amass/v4/...@master", "warn")
+        elif domain and not tools.get("amass", True):
+            log("  — amass skipped", "dim")
+        else:
+            log("⚠ No domain — skipping amass", "warn")
+
+    if phases.get("scan"):
         phase("PHASE 2 — Port & Service Scanning")
         p2 = folder / "2_scan"; p2.mkdir(exist_ok=True)
         open_ports     = {}
@@ -625,15 +689,59 @@ def run_scan(scope_list, url_list, domain, phases, tools, folder, tool_paths):
 
         for target in scope_list:
             safe_t = re.sub(r"[^\w\-]", "_", target)
-            log(f"  nmap target: {target}", "dim")
+            log(f"  Scanning target: {target}", "dim")
 
+            # ── Step 1: Masscan — fast full-port discovery ─────────────
+            masscan_ports = []
+            if tools.get("nmap_tcp", True) and tools.get("masscan", True) and shutil.which("masscan"):
+                log(f"⟶ masscan — full port sweep [{target}]", "info")
+                masscan_out = p2 / f"masscan_{safe_t}.txt"
+                try:
+                    r = subprocess.run(
+                        ["masscan", target, "-p", "0-65535",
+                         "--rate", "1000",
+                         "--wait", "3",
+                         "-oL", str(masscan_out)],
+                        capture_output=True, text=True, timeout=600
+                    )
+                    if masscan_out.exists():
+                        # masscan -oL format: "open tcp 80 1.2.3.4 ..."
+                        masscan_ports = list(set(re.findall(
+                            r"^open\s+tcp\s+(\d+)", masscan_out.read_text(),
+                            re.MULTILINE)))
+                        masscan_ports.sort(key=int)
+                        log(f"  ↳ masscan found {len(masscan_ports)} open TCP port(s)", "dim")
+                except subprocess.TimeoutExpired:
+                    log(f"✗ masscan timed out for {target}", "error")
+                except FileNotFoundError:
+                    log("⚠ masscan not found — falling back to nmap -p-", "warn")
+                except Exception as ex:
+                    log(f"✗ masscan error: {ex}", "error")
+            elif tools.get("nmap_tcp", True) and not tools.get("masscan", True):
+                log(f"  — masscan skipped — nmap will scan all ports directly", "dim")
+            elif tools.get("nmap_tcp", True) and not shutil.which("masscan"):
+                log("⚠ masscan not installed — nmap will scan all ports directly", "warn")
+
+            # ── Step 2: Nmap TCP — service detection on discovered ports ─
             if tools.get("nmap_tcp", True):
-                run_tool(["nmap", "-sS", "-sV", "-sC", "-p-", "--open",
-                          "-T4", "--min-rate", "1000",
-                          "-oN", str(p2 / f"nmap_tcp_{target}.txt"), target],
+                # If masscan found ports, scan only those; otherwise fall back to -p-
+                if masscan_ports:
+                    port_arg = ",".join(masscan_ports)
+                    log(f"⟶ nmap TCP — service scan on {len(masscan_ports)} port(s) [{target}]", "info")
+                    nmap_cmd = ["nmap", "-sV", "-sC", "--open",
+                                "-T4", "-p", port_arg,
+                                "-oN", str(p2 / f"nmap_tcp_{target}.txt"), target]
+                else:
+                    log(f"⟶ nmap TCP — full port scan [{target}]", "info")
+                    nmap_cmd = ["nmap", "-sS", "-sV", "-sC", "-p-", "--open",
+                                "-T4", "--min-rate", "1000",
+                                "-oN", str(p2 / f"nmap_tcp_{target}.txt"), target]
+
+                run_tool(nmap_cmd,
                          p2 / f"nmap_tcp_{target}.txt",
                          f"nmap TCP [{target}]",
                          screenshot_name=f"phase2_nmap_tcp_{safe_t}")
+
                 txt_file = p2 / f"nmap_tcp_{target}.txt"
                 ports = []
                 if txt_file.exists():
@@ -712,7 +820,7 @@ def run_scan(scope_list, url_list, domain, phases, tools, folder, tool_paths):
 
             if tools.get("shcheck", True):
                 if shcheck_path:
-                    run_tool(["python3", shcheck_path, url, "-v"],
+                    run_tool(["python3", shcheck_path, url],
                              p3 / f"shcheck_{safe_t}.txt",
                              f"shcheck [{url}]",
                              screenshot_name=f"phase3_shcheck_{safe_t}")
@@ -764,7 +872,7 @@ def run_scan(scope_list, url_list, domain, phases, tools, folder, tool_paths):
                 log("  — wpscan skipped", "dim")
 
             if tools.get("nuclei", True):
-                run_tool(["nuclei", "-u", url,
+                run_tool(["nuclei", "-target", url,
                           "-severity", "low,medium,high,critical",
                           "-o", str(p3 / f"nuclei_{safe_t}.txt"), "-silent"],
                          p3 / f"nuclei_raw_{safe_t}.txt",
@@ -1291,7 +1399,10 @@ def start_scan():
         "pymeta":       data.get("pymeta",        True),
         "bbot":         data.get("bbot",          True),
         "bbot_mode":    data.get("bbot_mode",     "passive"),
+        "amass":        data.get("amass",         True),
+        "amass_mode":   data.get("amass_mode",    "passive"),
         "curl_sweep":   data.get("curl_sweep",    True),
+        "masscan":      data.get("masscan",       True),
         "nmap_tcp":     data.get("nmap_tcp",      True),
         "nmap_udp":     data.get("nmap_udp",      True),
         "gowitness":    data.get("gowitness",     True),
@@ -1308,12 +1419,13 @@ def start_scan():
     role = session.get("role", "")
     if role == "Junior Tester":
         # Force passive mode — disable all active tools
-        ACTIVE_TOOLS = ["curl_sweep", "nmap_tcp", "nmap_udp", "gowitness",
+        ACTIVE_TOOLS = ["curl_sweep", "masscan", "nmap_tcp", "nmap_udp", "gowitness",
                         "nikto", "nuclei", "ffuf", "wpscan", "metasploit"]
         for t in ACTIVE_TOOLS:
             tools[t] = False
-        tools["bbot_mode"] = "passive"
-        phases["scan"] = False   # entire port scan phase disabled for JT
+        tools["bbot_mode"]   = "passive"
+        tools["amass_mode"]  = "passive"   # amass allowed but passive only
+        phases["scan"] = False             # entire port scan phase disabled for JT
 
     results    = scan_state["results"]
     scope_list = results.get("scope_list", [])
