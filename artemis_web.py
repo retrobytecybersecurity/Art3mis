@@ -220,95 +220,199 @@ def find_shcheck() -> str | None:
 
 
 def check_and_install_tools(log_fn):
-    log_fn("🔍 Checking required tools...", "info")
+    log_fn("🔍 Checking and installing required tools...", "info")
 
-    for go_bin in ["/root/go/bin", "/usr/local/go/bin"]:
+    # ── 1. Ensure Go bin dirs are in PATH first ───────────────────────
+    for go_bin in ["/root/go/bin", "/usr/local/go/bin",
+                   str(Path.home() / "go" / "bin")]:
         if Path(go_bin).is_dir():
             _add_to_path(go_bin, log_fn)
 
+    # ── 2. Ensure pip/local bin dirs are in PATH ──────────────────────
+    for pip_bin in ["/usr/local/bin", "/usr/bin",
+                    str(Path.home() / ".local" / "bin")]:
+        if Path(pip_bin).is_dir():
+            _add_to_path(pip_bin, log_fn)
+
+    # ── 3. APT packages ───────────────────────────────────────────────
+    log_fn("  [apt] Checking system packages...", "info")
+    apt_needed = [pkg for tool, pkg in APT_PACKAGES.items()
+                  if shutil.which(tool) is None]
+    if apt_needed:
+        log_fn(f"  [apt] Installing: {', '.join(apt_needed)}", "warn")
+        subprocess.run(["apt-get", "update", "-qq"], capture_output=True)
+        subprocess.run(["apt-get", "install", "-y"] + apt_needed,
+                       capture_output=True)
     for tool, pkg in APT_PACKAGES.items():
-        if shutil.which(tool) is None:
-            log_fn(f"  Installing {tool} via apt...", "warn")
-            subprocess.run(["apt-get", "install", "-y", pkg], capture_output=True)
-        found = shutil.which(tool)
+        found = shutil.which(tool) or _find_tool_on_disk(tool)
         if found:
             _add_to_path(str(Path(found).parent), log_fn)
             log_fn(f"  ✓ {tool}", "success")
         else:
-            disc = _find_tool_on_disk(tool)
-            if disc:
-                _add_to_path(disc, log_fn)
-                log_fn(f"  ✓ {tool} (resolved)", "success")
-            else:
-                log_fn(f"  ✗ {tool} — not found", "error")
+            log_fn(f"  ✗ {tool} — apt install failed, check manually", "error")
 
+    # ── 4. Go tools ───────────────────────────────────────────────────
+    log_fn("  [go] Checking Go tools...", "info")
     go_path = shutil.which("go")
     for tool, module in GO_TOOLS.items():
-        if shutil.which(tool) is None:
+        found = shutil.which(tool) or _find_tool_on_disk(tool)
+        if not found:
             if go_path:
-                log_fn(f"  Installing {tool} via go install...", "warn")
-                subprocess.run(["go", "install", module],
-                               capture_output=True,
-                               env={**os.environ, "GOPATH": "/root/go"})
+                log_fn(f"  [go] Installing {tool}...", "warn")
+                r = subprocess.run(
+                    ["go", "install", module],
+                    capture_output=True, text=True,
+                    env={**os.environ,
+                         "GOPATH": "/root/go",
+                         "PATH":   os.environ.get("PATH", "") + ":/root/go/bin"})
+                if r.returncode != 0:
+                    log_fn(f"  ✗ {tool} — go install failed: {r.stderr[:100]}", "error")
+                    continue
             else:
-                log_fn(f"  ✗ {tool} — Go not found", "error")
-        found = shutil.which(tool)
+                log_fn(f"  ✗ {tool} — Go not installed, skipping", "error")
+                continue
+        found = shutil.which(tool) or _find_tool_on_disk(tool)
         if found:
             _add_to_path(str(Path(found).parent), log_fn)
             log_fn(f"  ✓ {tool}", "success")
         else:
-            disc = _find_tool_on_disk(tool)
-            if disc:
-                _add_to_path(disc, log_fn)
-                log_fn(f"  ✓ {tool} (resolved)", "success")
-            else:
-                log_fn(f"  ✗ {tool} — not found after install", "error")
+            log_fn(f"  ✗ {tool} — not found after go install", "error")
 
-    found = shutil.which("msfconsole")
-    if found:
-        _add_to_path(str(Path(found).parent), log_fn)
+    # ── 5. Pip tools ──────────────────────────────────────────────────
+    log_fn("  [pip] Checking Python tools...", "info")
+
+    # pymeta installs as 'pymeta' but sometimes needs explicit check
+    # bbot installs its own binary — search multiple locations
+    pip_tool_map = {
+        "pymeta": {"pkg": "pymeta3",  "bins": ["pymeta", "pymeta3"]},
+        "bbot":   {"pkg": "bbot",     "bins": ["bbot"]},
+    }
+
+    for tool, info in pip_tool_map.items():
+        # Check all possible binary names
+        found = None
+        for bin_name in info["bins"]:
+            found = shutil.which(bin_name)
+            if found:
+                break
+            # Also check common pip install locations explicitly
+            for pip_dir in ["/usr/local/bin", "/usr/bin",
+                            str(Path.home() / ".local" / "bin"),
+                            "/root/.local/bin"]:
+                candidate = Path(pip_dir) / bin_name
+                if candidate.exists():
+                    found = str(candidate)
+                    _add_to_path(pip_dir, log_fn)
+                    break
+            if found:
+                break
+
+        if not found:
+            log_fn(f"  [pip] Installing {tool} ({info['pkg']})...", "warn")
+            subprocess.run(
+                ["pip3", "install", info["pkg"], "--break-system-packages",
+                 "--quiet"],
+                capture_output=True)
+            # Re-check after install
+            for bin_name in info["bins"]:
+                for pip_dir in ["/usr/local/bin", "/usr/bin",
+                                str(Path.home() / ".local" / "bin"),
+                                "/root/.local/bin"]:
+                    candidate = Path(pip_dir) / bin_name
+                    if candidate.exists():
+                        found = str(candidate)
+                        _add_to_path(pip_dir, log_fn)
+                        break
+                if found:
+                    break
+
+        if found:
+            log_fn(f"  ✓ {tool} ({found})", "success")
+        else:
+            log_fn(f"  ✗ {tool} — pip install failed or binary not found", "error")
+
+    # ── 6. Git-cloned tools — auto-clone if missing ───────────────────
+    log_fn("  [git] Checking git tools...", "info")
+
+    git_tools = {
+        "shcheck": {
+            "paths":  SHCHECK_SEARCH_PATHS,
+            "repo":   "https://github.com/santoru/shcheck",
+            "dest":   "/opt/shcheck",
+            "script": "shcheck.py",
+            "req":    "/opt/shcheck/requirements.txt",
+        },
+        "spoofy": {
+            "paths":  SPOOFY_SEARCH_PATHS,
+            "repo":   "https://github.com/MattKeeley/Spoofy",
+            "dest":   "/opt/spoofy",
+            "script": "spoofy.py",
+            "req":    "/opt/spoofy/requirements.txt",
+        },
+        "o365spray": {
+            "paths":  O365SCAN_SEARCH_PATHS,
+            "repo":   "https://github.com/0xZDH/o365spray",
+            "dest":   "/opt/o365spray",
+            "script": "o365spray.py",
+            "req":    "/opt/o365spray/requirements.txt",
+        },
+    }
+
+    results = {}
+    for name, info in git_tools.items():
+        found = _find_script(info["paths"], info["script"])
+        if not found:
+            dest = Path(info["dest"])
+            if not dest.exists():
+                log_fn(f"  [git] Cloning {name}...", "warn")
+                r = subprocess.run(
+                    ["git", "clone", info["repo"], str(dest)],
+                    capture_output=True, text=True)
+                if r.returncode != 0:
+                    log_fn(f"  ✗ {name} — git clone failed: {r.stderr[:100]}", "error")
+                    results[name] = None
+                    continue
+                # Install requirements if present
+                req = Path(info["req"])
+                if req.exists():
+                    subprocess.run(
+                        ["pip3", "install", "-r", str(req),
+                         "--break-system-packages", "--quiet"],
+                        capture_output=True)
+            found = _find_script(info["paths"], info["script"])
+
+        if found:
+            log_fn(f"  ✓ {name} ({found})", "success")
+        else:
+            log_fn(f"  ✗ {name} — not found after clone attempt", "error")
+        results[name] = found
+
+    # ── 7. Metasploit — manual install only, just check ───────────────
+    msf = shutil.which("msfconsole") or _find_tool_on_disk("msfconsole")
+    if msf:
+        _add_to_path(str(Path(msf).parent), log_fn)
         log_fn("  ✓ msfconsole", "success")
     else:
-        disc = _find_tool_on_disk("msfconsole")
-        if disc:
-            _add_to_path(disc, log_fn)
-            log_fn("  ✓ msfconsole (resolved)", "success")
-        else:
-            log_fn("  ✗ msfconsole — install manually", "error")
+        log_fn("  ✗ msfconsole — install manually from rapid7", "warn")
 
+    # ── 8. Update nuclei templates ────────────────────────────────────
     if shutil.which("nuclei"):
         log_fn("  Updating nuclei templates...", "info")
-        subprocess.run(["nuclei", "-update-templates"], capture_output=True)
+        subprocess.run(["nuclei", "-update-templates"],
+                       capture_output=True, timeout=120)
         log_fn("  ✓ nuclei templates updated", "success")
-
-    for tool, pkg in PIP_TOOLS.items():
-        found = shutil.which(tool)
-        if not found:
-            log_fn(f"  Installing {tool} via pip...", "warn")
-            subprocess.run(["pip3", "install", pkg, "--break-system-packages"],
-                           capture_output=True)
-            found = shutil.which(tool)
-        if found:
-            _add_to_path(str(Path(found).parent), log_fn)
-            log_fn(f"  ✓ {tool}", "success")
-        else:
-            log_fn(f"  ✗ {tool} — pip install failed", "error")
-
-    shcheck  = find_shcheck()
-    spoofy   = _find_script(SPOOFY_SEARCH_PATHS,   "spoofy.py")
-    o365scan = _find_script(O365SCAN_SEARCH_PATHS, "o365spray.py")
-
-    log_fn(f"  {'✓' if shcheck  else '✗'} shcheck.py  {'found' if shcheck  else 'not found'}", "success" if shcheck  else "warn")
-    log_fn(f"  {'✓' if spoofy   else '✗'} spoofy.py   {'found' if spoofy   else 'not found'}", "success" if spoofy   else "warn")
-    log_fn(f"  {'✓' if o365scan else '✗'} o365spray   {'found' if o365scan else 'not found'}", "success" if o365scan else "warn")
 
     log_fn("✅ Tool check complete.", "success")
 
-    # ── Functional tests ──────────────────────────────────────────────
+    # ── 9. Functional tests ───────────────────────────────────────────
     log_fn("🧪 Running functional tests...", "info")
     _run_functional_tests(log_fn)
 
-    return {"shcheck": shcheck, "spoofy": spoofy, "o365scan": o365scan}
+    return {
+        "shcheck":  results.get("shcheck"),
+        "spoofy":   results.get("spoofy"),
+        "o365scan": results.get("o365spray"),
+    }
 
 
 def _run_functional_tests(log_fn):
