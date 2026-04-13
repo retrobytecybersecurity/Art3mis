@@ -43,6 +43,8 @@ app = Flask(__name__)
 RESULTS_BASE   = Path("/opt/artemis/results")
 HISTORY_FILE   = Path("/opt/artemis/history.json")
 USERS_FILE     = Path("/opt/artemis/users.json")
+REQUESTS_FILE  = Path("/opt/artemis/requests.json")
+WIKI_FILE      = Path("/opt/artemis/wiki.json")
 RESULTS_BASE.mkdir(parents=True, exist_ok=True)
 
 app.secret_key        = os.environ.get("ARTEMIS_SECRET", "artemis-secret-key-change-me")
@@ -1055,13 +1057,14 @@ def run_scan(scope_list, url_list, domain, phases, tools, folder, tool_paths):
 # USER MANAGEMENT
 # ══════════════════════════════════════════════════════════════════════════
 
-ROLES = ["Administrator", "Manager", "Junior Tester"]
+ROLES = ["Administrator", "Manager", "Junior Tester", "Representative"]
 
 # Role permissions
 ROLE_PERMS = {
-    "Administrator": {"scan": True,  "active": True,  "passive": True,  "admin": True},
-    "Manager":       {"scan": True,  "active": True,  "passive": True,  "admin": False},
-    "Junior Tester": {"scan": True,  "active": False, "passive": True,  "admin": False},
+    "Administrator":  {"scan": True,  "active": True,  "passive": True,  "admin": True,  "rep": False},
+    "Manager":        {"scan": True,  "active": True,  "passive": True,  "admin": False, "rep": False},
+    "Junior Tester":  {"scan": True,  "active": False, "passive": True,  "admin": False, "rep": False},
+    "Representative": {"scan": False, "active": False, "passive": False, "admin": False, "rep": True},
 }
 
 
@@ -1103,6 +1106,1096 @@ def save_users(users: dict):
 
 def get_user(username: str) -> dict | None:
     return load_users().get(username)
+
+
+# ── Account request storage ───────────────────────────────────────────────
+
+def load_requests() -> list:
+    if REQUESTS_FILE.exists():
+        try:
+            return json.loads(REQUESTS_FILE.read_text())
+        except Exception:
+            pass
+    return []
+
+
+def save_requests(requests: list):
+    REQUESTS_FILE.write_text(json.dumps(requests, indent=2))
+
+
+# ── Wiki storage ──────────────────────────────────────────────────────────
+
+WIKI_DEFAULTS = {
+    "assetfinder": {
+        "title": "assetfinder",
+        "phase": "Phase 1 — Recon / OSINT",
+        "github": "https://github.com/tomnomnom/assetfinder",
+        "content": """# assetfinder
+
+## What it does
+assetfinder is a passive subdomain discovery tool written in Go by Tom Hudson (tomnomnom). It queries multiple public data sources to find subdomains associated with a target domain without sending any packets to the target itself.
+
+## GitHub
+[https://github.com/tomnomnom/assetfinder](https://github.com/tomnomnom/assetfinder)
+
+## Command Artemis runs
+```
+assetfinder --subs-only <domain>
+```
+
+## Flag breakdown
+| Flag | Description |
+|------|-------------|
+| `--subs-only` | Only return subdomains, not the root domain itself |
+
+## Data sources queried
+- crt.sh (certificate transparency logs)
+- Facebook Graph API
+- VirusTotal
+- Wayback Machine
+- certspotter
+- hackertarget
+- threatcrowd
+
+## How to read the output
+Each line is a discovered subdomain, one per line:
+```
+mail.example.com
+dev.example.com
+api.example.com
+```
+Any subdomain listed is a valid DNS entry that was found in at least one public data source. Add these to your scope for further enumeration.
+
+## Notes
+- Entirely passive — zero contact with the target
+- Fast, typically completes in under 60 seconds
+- May return wildcard results like `*.example.com` — these indicate a wildcard DNS record
+"""
+    },
+    "dnsenum": {
+        "title": "dnsenum",
+        "phase": "Phase 1 — Recon / OSINT",
+        "github": "https://github.com/fwaeytens/dnsenum",
+        "content": """# dnsenum
+
+## What it does
+dnsenum is a DNS enumeration tool that performs comprehensive DNS reconnaissance against a target domain. It queries DNS records, attempts zone transfers, and brute-forces subdomains using a wordlist.
+
+## GitHub
+[https://github.com/fwaeytens/dnsenum](https://github.com/fwaeytens/dnsenum)
+
+## Command Artemis runs
+```
+dnsenum --noreverse --nocolor <domain>
+```
+
+## Flag breakdown
+| Flag | Description |
+|------|-------------|
+| `--noreverse` | Skip reverse lookup on discovered IPs — keeps output clean and faster |
+| `--nocolor` | Disable ANSI color codes so output is cleanly parseable |
+
+## How to read the output
+dnsenum outputs in sections:
+
+**Host addresses** — A records for the root domain
+```
+example.com.    300    IN    A    93.184.216.34
+```
+
+**Name servers** — NS records, useful for zone transfer attempts
+```
+ns1.example.com.
+ns2.example.com.
+```
+
+**Mail servers** — MX records
+```
+10 mail.example.com.
+```
+
+**Zone transfer** — if successful, dumps all DNS records for the domain. A successful zone transfer is a critical finding.
+
+**Brute-forced subdomains** — results from the wordlist scan
+
+## Notes
+- Zone transfer attempts (AXFR) are active — they contact the target's nameservers directly
+- A successful zone transfer reveals the entire DNS structure of the domain
+"""
+    },
+    "theharvester": {
+        "title": "theHarvester",
+        "phase": "Phase 1 — Recon / OSINT",
+        "github": "https://github.com/laramies/theHarvester",
+        "content": """# theHarvester
+
+## What it does
+theHarvester is an OSINT tool that aggregates email addresses, subdomains, IPs, and employee names from public sources. It queries multiple search engines and threat intelligence platforms simultaneously.
+
+## GitHub
+[https://github.com/laramies/theHarvester](https://github.com/laramies/theHarvester)
+
+## Command Artemis runs
+```
+theHarvester -d <domain> -b anubis,crtsh,dnsdumpster,fullhunt,hackertarget,otx,rapiddns,urlscan,virustotal
+```
+
+## Flag breakdown
+| Flag | Description |
+|------|-------------|
+| `-d` | Target domain |
+| `-b` | Comma-separated list of data sources to query |
+
+## Data sources used
+| Source | What it finds |
+|--------|--------------|
+| `anubis` | Subdomains via Anubis-DB |
+| `crtsh` | Certificate transparency logs |
+| `dnsdumpster` | DNS records and subdomains |
+| `fullhunt` | Attack surface data |
+| `hackertarget` | DNS and network data |
+| `otx` | AlienVault Open Threat Exchange |
+| `rapiddns` | Passive DNS |
+| `urlscan` | URLs and subdomains from urlscan.io |
+| `virustotal` | Subdomains and URLs |
+
+## How to read the output
+Results are grouped by type:
+
+**Emails found** — valid email addresses associated with the domain. These are targets for phishing assessment or password spray if in scope.
+
+**Hosts found** — subdomains with their resolved IPs. Cross-reference with your scope.
+
+**IPs found** — IP addresses directly associated with the domain.
+
+## Notes
+- Entirely passive — no direct contact with target
+- Email addresses can be used to build a username list for o365spray or Kerbrute
+"""
+    },
+    "spoofy": {
+        "title": "spoofy",
+        "phase": "Phase 1 — Recon / OSINT",
+        "github": "https://github.com/MattKeeley/Spoofy",
+        "content": """# spoofy
+
+## What it does
+spoofy checks whether a domain can be spoofed via email. It inspects SPF, DMARC, and DKIM records to determine if an attacker could send email appearing to come from the target domain.
+
+## GitHub
+[https://github.com/MattKeeley/Spoofy](https://github.com/MattKeeley/Spoofy)
+
+## Command Artemis runs
+```
+python3 /opt/spoofy/spoofy.py -d <domain> -o stdout
+```
+
+## Flag breakdown
+| Flag | Description |
+|------|-------------|
+| `-d` | Target domain to check |
+| `-o stdout` | Output results to stdout rather than a file |
+
+## How to read the output
+spoofy outputs a verdict for each domain:
+
+| Result | Meaning |
+|--------|---------|
+| `SPOOFABLE` | The domain can be spoofed — SPF or DMARC is missing or misconfigured |
+| `NOT SPOOFABLE` | SPF and DMARC are properly configured |
+| `PROBABLE` | Spoofing may be possible depending on mail server configuration |
+
+**SPF checks** — looks for a `TXT` record like `v=spf1 include:... ~all` or `-all`. A `~all` (softfail) is weaker than `-all` (hardfail).
+
+**DMARC checks** — looks for `_dmarc.example.com TXT v=DMARC1; p=reject`. A policy of `p=none` means no enforcement — effectively spoofable.
+
+## Notes
+- A SPOOFABLE result is a significant finding worth including in your report
+- Combine with theHarvester email results to demonstrate the impact
+"""
+    },
+    "o365spray": {
+        "title": "o365spray",
+        "phase": "Phase 1 — Recon / OSINT",
+        "github": "https://github.com/0xZDH/o365spray",
+        "content": """# o365spray
+
+## What it does
+o365spray is a username enumeration and password spraying tool targeting Microsoft Office 365 and Azure AD. In Artemis it is used in passive enumeration mode only — confirming whether a domain uses Office 365 and optionally enumerating valid usernames.
+
+## GitHub
+[https://github.com/0xZDH/o365spray](https://github.com/0xZDH/o365spray)
+
+## Command Artemis runs
+```
+python3 /opt/o365spray/o365spray.py --validate --domain <domain>
+```
+
+## Flag breakdown
+| Flag | Description |
+|------|-------------|
+| `--validate` | Check if the domain uses Microsoft O365/Azure AD — no credentials tested |
+| `--domain` | Target domain |
+
+## How to read the output
+```
+[*] Validating domain: example.com
+[+] example.com: VALID
+```
+
+`VALID` means the domain is hosted on Microsoft O365/Azure AD. This confirms:
+- Microsoft authentication endpoints are in use
+- The domain's email and identity are managed by Microsoft
+- Username enumeration or password spraying may be in scope (with authorization)
+
+`INVALID` means the domain does not appear to use O365.
+
+## Notes
+- The `--validate` flag only checks DNS and Microsoft API endpoints — no credentials are tested
+- This is considered passive reconnaissance
+- If O365 is confirmed and user enumeration is in scope, o365spray supports `--enum -U userlist.txt`
+"""
+    },
+    "pymeta": {
+        "title": "pymeta",
+        "phase": "Phase 1 — Recon / OSINT",
+        "github": "https://github.com/m8sec/pymeta",
+        "content": """# pymeta
+
+## What it does
+pymeta searches Google and Bing for files associated with a target domain, downloads them, and extracts metadata. Metadata in documents often contains usernames, software versions, internal paths, and email addresses that were never intended to be public.
+
+## GitHub
+[https://github.com/m8sec/pymeta](https://github.com/m8sec/pymeta)
+
+## Command Artemis runs
+```
+pymeta -d <domain> --file-type txt,pdf,xls,xlsx,csv,doc,docx,ppt,config,log,bat,env,ini,yaml,py,php,bak,old,tmp -o <output_directory>
+```
+
+## Flag breakdown
+| Flag | Description |
+|------|-------------|
+| `-d` | Target domain to search for |
+| `--file-type` | Comma-separated list of file extensions to search for |
+| `-o` | Output directory for downloaded files and results |
+
+## File types targeted
+| Type | Why it matters |
+|------|---------------|
+| `pdf`, `doc`, `docx` | Often contain author names, internal paths, software versions |
+| `xls`, `xlsx` | May contain usernames, email lists, internal data |
+| `env`, `config`, `ini` | May expose credentials or internal configuration |
+| `bak`, `old`, `tmp` | Backup files sometimes left publicly accessible |
+| `py`, `php` | Source code may contain hardcoded credentials |
+
+## How to read the output
+pymeta outputs a summary of metadata found per file:
+```
+[*] Extracting metadata: report.pdf
+    Author:   John Smith
+    Creator:  Microsoft Word 2016
+    Producer: Adobe PDF
+```
+
+Key fields to note:
+- **Author / Last Modified By** — real usernames, often matching Active Directory usernames
+- **Creator** — software and version information useful for vulnerability research
+- **Internal paths** — Windows paths revealing internal directory structure
+
+## Notes
+- Results are stored in the output directory as individual files
+- Username findings should be cross-referenced with theHarvester email results
+"""
+    },
+    "bbot": {
+        "title": "bbot",
+        "phase": "Phase 1 — Recon / OSINT",
+        "github": "https://github.com/blacklanternsecurity/bbot",
+        "content": """# bbot
+
+## What it does
+bbot (Bighuge BLS OSINT Tool) is a comprehensive OSINT framework that chains together dozens of modules to perform automated attack surface mapping. It can operate in passive mode (safe, no target contact) or active mode (aggressive, full enumeration).
+
+## GitHub
+[https://github.com/blacklanternsecurity/bbot](https://github.com/blacklanternsecurity/bbot)
+
+## Command Artemis runs
+
+**Passive mode:**
+```
+bbot -t <domain> -f safe,passive -o <output_directory>
+```
+
+**Active mode:**
+```
+bbot -t <domain> -p everything -o <output_directory>
+```
+
+## Flag breakdown
+| Flag | Description |
+|------|-------------|
+| `-t` | Target domain |
+| `-f safe,passive` | Only run modules flagged as safe and passive — no target contact |
+| `-p everything` | Run the `everything` preset — all available modules |
+| `-o` | Output directory |
+
+## Passive vs Active
+| Mode | Contact with target | Modules run |
+|------|-------------------|-------------|
+| Passive | None | DNS lookups via public resolvers, certificate transparency, OSINT APIs |
+| Active | Yes | DNS brute force, web crawling, port scanning, subdomain takeover checks |
+
+## How to read the output
+bbot outputs structured events:
+```
+[DNS_NAME] dev.example.com
+[IP_ADDRESS] 93.184.216.34
+[EMAIL_ADDRESS] admin@example.com
+[FINDING] Possible subdomain takeover: dev.example.com
+```
+
+Event types:
+| Type | Description |
+|------|-------------|
+| `DNS_NAME` | Discovered subdomain |
+| `IP_ADDRESS` | Associated IP |
+| `EMAIL_ADDRESS` | Discovered email |
+| `FINDING` | Security finding worth investigating |
+| `VULNERABILITY` | Confirmed vulnerability |
+
+## Notes
+- Active mode can generate significant noise — only use with authorization
+- bbot's output directory contains structured JSON for further processing
+"""
+    },
+    "amass": {
+        "title": "amass",
+        "phase": "Phase 1 — Recon / OSINT",
+        "github": "https://github.com/owasp-amass/amass",
+        "content": """# amass
+
+## What it does
+amass is the OWASP Attack Surface Management tool for in-depth DNS enumeration and network mapping. It combines passive OSINT gathering with active brute forcing and DNS zone transfer attempts to build a comprehensive map of an organization's external attack surface.
+
+## GitHub
+[https://github.com/owasp-amass/amass](https://github.com/owasp-amass/amass)
+
+## Command Artemis runs
+
+**Passive mode:**
+```
+amass enum -passive -d <domain> -o <output_file> -timeout 20
+```
+
+**Active mode:**
+```
+amass enum -active -d <domain> -brute -w <wordlist> -o <output_file> -timeout 30
+```
+
+## Flag breakdown
+| Flag | Description |
+|------|-------------|
+| `enum` | Subdomain enumeration subcommand |
+| `-passive` | Passive mode — OSINT sources only, no target contact |
+| `-active` | Active mode — direct DNS queries, zone transfers, brute force |
+| `-d` | Target domain |
+| `-brute` | Enable DNS brute forcing using the provided wordlist |
+| `-w` | Path to wordlist for brute force (uses SecLists DNS wordlist) |
+| `-o` | Output file |
+| `-timeout` | Maximum runtime in minutes |
+
+## Passive vs Active
+| Mode | What it does |
+|------|-------------|
+| Passive | Queries certificate transparency, DNS aggregators, WHOIS, BGP data, search engines |
+| Active | All passive sources plus direct nameserver queries, AXFR zone transfer attempts, DNS brute forcing |
+
+## How to read the output
+Output is one subdomain per line:
+```
+www.example.com
+mail.example.com
+dev-internal.example.com
+api-v2.example.com
+```
+
+Subdomains with unexpected names (dev-internal, staging, vpn, admin) are highest priority — these may expose internal services.
+
+## Notes
+- Active mode with a large wordlist can run 30-60 minutes
+- Zone transfer attempts (AXFR) in active mode are a significant test — a successful transfer is a critical finding
+- Results are merged with assetfinder output in Artemis to build the master subdomain list
+"""
+    },
+    "curl_sweep": {
+        "title": "curl header sweep",
+        "phase": "Phase 1 — Recon / OSINT",
+        "github": "https://curl.se",
+        "content": """# curl header sweep
+
+## What it does
+Artemis runs curl against each URL in scope to capture HTTP response headers. Security headers (or their absence) reveal configuration weaknesses and server information that can guide the vulnerability scanning phase.
+
+## Command Artemis runs
+```
+curl -sk -I --max-time 10 <url>
+```
+
+## Flag breakdown
+| Flag | Description |
+|------|-------------|
+| `-s` | Silent mode — suppresses progress output |
+| `-k` | Allow insecure connections (self-signed certs) |
+| `-I` | HEAD request only — fetches headers without downloading the body |
+| `--max-time 10` | Timeout after 10 seconds |
+
+## How to read the output
+```
+HTTP/2 200
+server: nginx/1.18.0
+x-powered-by: PHP/7.4.3
+content-type: text/html; charset=UTF-8
+strict-transport-security: max-age=31536000
+```
+
+**Key headers to note:**
+
+| Header | Present | Missing |
+|--------|---------|---------|
+| `Strict-Transport-Security` | HTTPS enforced | HSTS not configured |
+| `X-Frame-Options` | Clickjacking protected | Vulnerable to framing |
+| `X-Content-Type-Options` | MIME sniffing prevented | MIME sniffing possible |
+| `Content-Security-Policy` | XSS mitigated | No CSP in place |
+| `Server` | Reveals software version | — |
+| `X-Powered-By` | Reveals backend technology | — |
+
+**Server and X-Powered-By** — revealing the exact version of nginx, Apache, or PHP narrows down which CVEs apply. These should ideally be suppressed.
+
+## Notes
+- shcheck (Phase 3) performs a more detailed security header analysis
+- This sweep gives a quick overview before deep scanning begins
+"""
+    },
+    "masscan": {
+        "title": "masscan",
+        "phase": "Phase 2 — Port Scanning",
+        "github": "https://github.com/robertdavidgraham/masscan",
+        "content": """# masscan
+
+## What it does
+masscan is the fastest port scanner available — capable of scanning the entire internet in under 6 minutes. In Artemis it performs the initial port discovery pass across all 65,535 TCP ports, then hands the confirmed open ports to nmap for detailed service fingerprinting.
+
+## GitHub
+[https://github.com/robertdavidgraham/masscan](https://github.com/robertdavidgraham/masscan)
+
+## Command Artemis runs
+```
+masscan <target> -p 0-65535 --rate 1000 --wait 3 -oL <output_file>
+```
+
+## Flag breakdown
+| Flag | Description |
+|------|-------------|
+| `-p 0-65535` | Scan all 65,535 TCP ports |
+| `--rate 1000` | Send 1,000 packets per second — conservative rate for external testing |
+| `--wait 3` | Wait 3 seconds after scan completes for late responses |
+| `-oL` | Output in list format, one result per line |
+
+## How to read the output
+masscan list format:
+```
+open tcp 80 93.184.216.34 1714567890
+open tcp 443 93.184.216.34 1714567890
+open tcp 8443 93.184.216.34 1714567890
+```
+
+Fields: `status protocol port ip timestamp`
+
+Only `open tcp` lines matter — Artemis parses these to build the port list for nmap.
+
+## Pipeline
+```
+masscan (discovers open ports) → nmap (fingerprints those exact ports)
+```
+This two-stage approach is significantly faster than nmap `-p-` on large scopes because nmap only does the slow service detection work on ports already confirmed open.
+
+## Notes
+- Rate of 1000 pps is safe for external assessments — increase carefully on internal engagements
+- Some cloud providers (AWS, Azure) rate-limit or block masscan — if no results come back, fall back to nmap directly
+- masscan does not do service detection — it only confirms a port is open
+"""
+    },
+    "nmap_tcp": {
+        "title": "nmap TCP",
+        "phase": "Phase 2 — Port Scanning",
+        "github": "https://nmap.org",
+        "content": """# nmap TCP
+
+## What it does
+nmap is the industry standard network scanner. In Artemis it runs after masscan has identified open ports, performing deep service version detection and running default NSE scripts against confirmed open ports only.
+
+## GitHub / Docs
+[https://nmap.org](https://nmap.org)
+
+## Command Artemis runs
+
+**When masscan found open ports:**
+```
+nmap -sV -sC --open -T4 -p <discovered_ports> <target>
+```
+
+**Fallback (masscan not available):**
+```
+nmap -sS -sV -sC -p- --open -T4 --min-rate 1000 <target>
+```
+
+## Flag breakdown
+| Flag | Description |
+|------|-------------|
+| `-sV` | Version detection — probe open ports to determine service and version |
+| `-sC` | Run default NSE scripts — equivalent to `--script=default` |
+| `-sS` | SYN scan (stealth scan) — does not complete TCP handshake |
+| `--open` | Only show open ports |
+| `-T4` | Timing template 4 (aggressive) — faster on reliable networks |
+| `-p` | Port specification — either discovered ports or `-p-` for all |
+| `--min-rate 1000` | Send at least 1000 packets per second in fallback mode |
+
+## Default NSE scripts run (`-sC`)
+- `http-title` — grabs HTTP page title
+- `http-server-header` — server banner
+- `ssl-cert` — certificate details
+- `ssh-hostkey` — SSH host key fingerprint
+- `ftp-anon` — checks for anonymous FTP
+- And many more depending on detected services
+
+## How to read the output
+```
+PORT     STATE SERVICE    VERSION
+22/tcp   open  ssh        OpenSSH 8.2p1 Ubuntu
+80/tcp   open  http       nginx 1.18.0
+443/tcp  open  ssl/https  nginx 1.18.0
+8443/tcp open  ssl/http   Apache Tomcat 9.0
+```
+
+**Key things to note:**
+- Exact software versions — look up CVEs for outdated versions
+- Unexpected open ports — any port not needed for business purpose is an attack surface
+- SSH on port 22 — note the version, check for known vulnerabilities
+- Non-standard web ports (8080, 8443, 9090) — often admin interfaces or dev servers
+
+## Notes
+- Service version information directly feeds vulnerability research in Phase 3
+- Outdated versions flagged here should be tested with nuclei templates
+"""
+    },
+    "nmap_udp": {
+        "title": "nmap UDP",
+        "phase": "Phase 2 — Port Scanning",
+        "github": "https://nmap.org",
+        "content": """# nmap UDP
+
+## What it does
+UDP scanning discovers services running on UDP — a commonly overlooked protocol. Many critical services run on UDP including DNS, SNMP, DHCP, NTP, and TFTP. These services are often less hardened than their TCP counterparts.
+
+## GitHub / Docs
+[https://nmap.org](https://nmap.org)
+
+## Command Artemis runs
+```
+nmap -sU --top-ports 200 -T4 <target>
+```
+
+## Flag breakdown
+| Flag | Description |
+|------|-------------|
+| `-sU` | UDP scan mode |
+| `--top-ports 200` | Scan only the 200 most commonly used UDP ports |
+| `-T4` | Aggressive timing |
+
+## How to read the output
+```
+PORT    STATE         SERVICE
+53/udp  open          domain
+161/udp open          snmp
+123/udp open|filtered ntp
+```
+
+**States:**
+| State | Meaning |
+|-------|---------|
+| `open` | Service is responding |
+| `open\|filtered` | No response received — port may be open or firewalled |
+| `closed` | ICMP port unreachable received |
+
+## High-value UDP ports
+| Port | Service | Why it matters |
+|------|---------|---------------|
+| 53 | DNS | May allow zone transfers or recursive queries |
+| 161 | SNMP | Community strings may expose configuration data |
+| 69 | TFTP | Often unauthenticated file access |
+| 123 | NTP | Can be used for DDoS amplification |
+| 500 | IKE/IPSec | VPN endpoint identification |
+
+## Notes
+- UDP scanning is slow and unreliable — `open|filtered` is the most common state
+- SNMP on UDP 161 is a high-priority finding — try community string `public` manually
+- UDP scanning requires root/administrator privileges
+"""
+    },
+    "gowitness": {
+        "title": "gowitness",
+        "phase": "Phase 2 — Port Scanning",
+        "github": "https://github.com/sensepost/gowitness",
+        "content": """# gowitness
+
+## What it does
+gowitness is a web screenshot tool that uses a headless Chrome browser to capture screenshots of every web-accessible port discovered during scanning. This gives you a visual inventory of every web service running on the target without manually visiting each URL.
+
+## GitHub
+[https://github.com/sensepost/gowitness](https://github.com/sensepost/gowitness)
+
+## Command Artemis runs
+```
+gowitness file -f <urls_file> -P <screenshots_directory> --threads 5
+```
+
+## Flag breakdown
+| Flag | Description |
+|------|-------------|
+| `file` | Read URLs from a file rather than a single target |
+| `-f` | Path to file containing one URL per line |
+| `-P` | Directory to save screenshots |
+| `--threads 5` | Run 5 concurrent screenshot workers |
+
+## How to use the output
+Screenshots are saved as PNG files named after the URL. Open the screenshots directory and review each one:
+
+**What to look for:**
+- Login pages — admin panels, application logins, VPN portals
+- Default pages — "It works!", default Apache/nginx pages indicate unfinished setup
+- Error pages — may reveal software versions or internal paths
+- Forgotten applications — development environments, staging servers, old admin tools
+- Interesting content — anything that doesn't belong on an external-facing server
+
+## Notes
+- Artemis copies screenshots to the `Assessment_Evidence/` folder for inclusion in reports
+- Any login page found should be added to the URL list for Phase 3 scanning
+- Default credential testing on discovered login pages is a manual step
+"""
+    },
+    "sslscan": {
+        "title": "sslscan",
+        "phase": "Phase 3 — Vulnerability Scanning",
+        "github": "https://github.com/rbsec/sslscan",
+        "content": """# sslscan
+
+## What it does
+sslscan tests the SSL/TLS configuration of a web server, identifying weak cipher suites, deprecated protocol versions, certificate issues, and known vulnerabilities like POODLE, BEAST, and Heartbleed.
+
+## GitHub
+[https://github.com/rbsec/sslscan](https://github.com/rbsec/sslscan)
+
+## Command Artemis runs
+```
+sslscan --show-certificate <host>
+```
+
+## Flag breakdown
+| Flag | Description |
+|------|-------------|
+| `--show-certificate` | Display the full certificate details in the output |
+
+## How to read the output
+
+**Protocol support:**
+```
+SSLv2   disabled
+SSLv3   disabled
+TLSv1.0 enabled
+TLSv1.1 enabled
+TLSv1.2 enabled
+TLSv1.3 enabled
+```
+TLSv1.0 and TLSv1.1 are deprecated and should not be enabled. This is a medium severity finding.
+
+**Cipher suites:**
+```
+Preferred TLSv1.3 128 bits TLS_AES_128_GCM_SHA256
+Accepted  TLSv1.2 128 bits ECDHE-RSA-AES128-GCM-SHA256
+Accepted  TLSv1.2  56 bits EXP-RC4-MD5               << EXPORT CIPHER
+```
+Export ciphers (56-bit) and NULL ciphers are critical findings. RC4 is deprecated.
+
+**Certificate:**
+```
+Subject: CN=example.com
+Issuer:  CN=Let's Encrypt Authority X3
+Expires: 2025-06-01
+```
+Check: expiry date, whether the CN matches the domain, and whether the issuer is trusted.
+
+## Key findings to report
+| Issue | Severity |
+|-------|----------|
+| SSLv2 / SSLv3 enabled | Critical |
+| TLS 1.0 / 1.1 enabled | Medium |
+| Export or NULL ciphers | Critical |
+| Self-signed certificate | Medium |
+| Expired certificate | High |
+| Weak key (< 2048 bit RSA) | High |
+"""
+    },
+    "shcheck": {
+        "title": "shcheck",
+        "phase": "Phase 3 — Vulnerability Scanning",
+        "github": "https://github.com/santoru/shcheck",
+        "content": """# shcheck
+
+## What it does
+shcheck (Security Header Check) analyzes HTTP response headers to identify missing or misconfigured security headers. Missing security headers are a common finding in web application assessments.
+
+## GitHub
+[https://github.com/santoru/shcheck](https://github.com/santoru/shcheck)
+
+## Command Artemis runs
+```
+python3 /opt/shcheck/shcheck.py <url>
+```
+
+## How to read the output
+```
+[*] Checking security headers for: https://example.com
+[!] Missing security header: Strict-Transport-Security
+[!] Missing security header: X-Frame-Options
+[+] Header X-Content-Type-Options is present
+[!] Missing security header: Content-Security-Policy
+```
+
+## Security headers checked
+| Header | Purpose | Missing = Risk |
+|--------|---------|---------------|
+| `Strict-Transport-Security` | Forces HTTPS | SSL stripping possible |
+| `X-Frame-Options` | Prevents clickjacking | Clickjacking attacks |
+| `X-Content-Type-Options` | Prevents MIME sniffing | Content injection |
+| `Content-Security-Policy` | Restricts resource loading | XSS attacks |
+| `Referrer-Policy` | Controls referrer information | Information leakage |
+| `Permissions-Policy` | Controls browser features | Feature abuse |
+| `X-XSS-Protection` | Legacy XSS protection | XSS (older browsers) |
+
+## Severity guidance
+| Finding | Severity |
+|---------|----------|
+| Missing CSP | Medium |
+| Missing HSTS | Medium |
+| Missing X-Frame-Options | Low-Medium |
+| Missing X-Content-Type-Options | Low |
+
+## Notes
+- Missing security headers alone are generally low-medium severity
+- Their absence is more significant when combined with other findings (e.g., missing CSP + XSS vulnerability = high)
+"""
+    },
+    "nikto": {
+        "title": "nikto",
+        "phase": "Phase 3 — Vulnerability Scanning",
+        "github": "https://github.com/sullo/nikto",
+        "content": """# nikto
+
+## What it does
+nikto is a web server scanner that tests for thousands of potentially dangerous files, outdated software versions, and server configuration issues. It is intentionally noisy and will be detected by most IDS/WAF systems.
+
+## GitHub
+[https://github.com/sullo/nikto](https://github.com/sullo/nikto)
+
+## Command Artemis runs
+```
+nikto -h <url>
+```
+
+## Flag breakdown
+| Flag | Description |
+|------|-------------|
+| `-h` | Target host or URL |
+
+## How to read the output
+```
++ Server: Apache/2.4.29 (Ubuntu)
++ Retrieved x-powered-by header: PHP/7.2.24
++ /admin/: Admin login page/section found
++ OSVDB-3268: /icons/: Directory indexing found
++ /phpinfo.php: PHP info file found
++ Cookie PHPSESSID created without HttpOnly flag
+```
+
+Each finding starts with `+`. Key finding types:
+
+| Finding type | Description |
+|-------------|-------------|
+| Outdated software | Version is known vulnerable — check CVEs |
+| Interesting files | `/admin`, `/backup`, `phpinfo.php` — investigate manually |
+| Directory indexing | Files are browseable — check for sensitive content |
+| Cookie flags | Missing HttpOnly or Secure flags on session cookies |
+| Default files | Test files, documentation left on the server |
+
+## Notes
+- nikto generates significant log entries — the target will likely detect this scan
+- False positives are common — manually verify every finding before reporting
+- nikto is a breadth scanner, not depth — it finds leads for manual testing
+"""
+    },
+    "nuclei": {
+        "title": "nuclei",
+        "phase": "Phase 3 — Vulnerability Scanning",
+        "github": "https://github.com/projectdiscovery/nuclei",
+        "content": """# nuclei
+
+## What it does
+nuclei is a template-based vulnerability scanner from ProjectDiscovery. It runs community-maintained templates that test for specific CVEs, misconfigurations, exposed panels, default credentials, and more. Templates are updated regularly to cover newly disclosed vulnerabilities.
+
+## GitHub
+[https://github.com/projectdiscovery/nuclei](https://github.com/projectdiscovery/nuclei)
+
+## Command Artemis runs
+```
+nuclei -target <url> -severity low,medium,high,critical -o <output_file> -silent
+```
+
+## Flag breakdown
+| Flag | Description |
+|------|-------------|
+| `-target` | Single URL target |
+| `-severity` | Only run templates matching these severity levels |
+| `-o` | Write results to output file |
+| `-silent` | Suppress banner and progress output — results only |
+
+## Severity levels
+| Level | Examples |
+|-------|---------|
+| `critical` | RCE, SQLi, authentication bypass, hardcoded credentials |
+| `high` | SSRF, XXE, insecure deserialization, exposed admin panels |
+| `medium` | Reflected XSS, open redirect, outdated software with known exploits |
+| `low` | Missing headers, information disclosure, outdated libraries |
+
+## How to read the output
+```
+[CVE-2021-44228] [http] [critical] https://example.com [log4j-rce]
+[exposed-panel] [http] [medium] https://example.com/admin [Admin Panel Exposed]
+[default-login] [http] [high] https://example.com/manager [Apache Tomcat Default Login]
+```
+
+Format: `[template-id] [protocol] [severity] [url] [template-name]`
+
+## Notes
+- Nuclei templates are updated frequently — Artemis runs `-update-templates` on startup
+- Critical findings should be manually verified before reporting
+- Some templates may cause false positives on WAF-protected targets
+- The template library covers thousands of CVEs and misconfigurations
+"""
+    },
+    "ffuf": {
+        "title": "ffuf",
+        "phase": "Phase 3 — Vulnerability Scanning",
+        "github": "https://github.com/ffuf/ffuf",
+        "content": """# ffuf
+
+## What it does
+ffuf (Fuzz Faster U Fool) is a web fuzzer used for content discovery — finding hidden directories, files, and endpoints on a web server that are not linked from public pages. It uses a wordlist to brute-force paths.
+
+## GitHub
+[https://github.com/ffuf/ffuf](https://github.com/ffuf/ffuf)
+
+## Command Artemis runs
+```
+ffuf -u <url>/FUZZ -w /usr/share/seclists/Discovery/Web-Content/common.txt -mc 200,301,302,403
+```
+
+## Flag breakdown
+| Flag | Description |
+|------|-------------|
+| `-u` | Target URL with `FUZZ` as the injection point |
+| `-w` | Wordlist path — uses SecLists common.txt |
+| `-mc` | Match HTTP response codes — only show these status codes |
+
+## HTTP response codes
+| Code | Meaning |
+|------|---------|
+| `200` | Found — page exists and is accessible |
+| `301/302` | Redirect — endpoint exists, follow the redirect |
+| `403` | Forbidden — endpoint exists but access is denied (still a finding) |
+| `401` | Unauthorized — endpoint requires authentication |
+
+## How to read the output
+```
+[Status: 200, Size: 4521, Words: 234, Lines: 89] /admin
+[Status: 301, Size: 0, Words: 0, Lines: 0] /uploads
+[Status: 403, Size: 287, Words: 22, Lines: 12] /.git
+```
+
+**High-priority findings:**
+- `/admin`, `/administrator`, `/wp-admin` — administrative interfaces
+- `/.git` — exposed git repository (critical — source code disclosure)
+- `/backup`, `/old`, `/archive` — may contain sensitive data
+- `/api`, `/api/v1`, `/api/v2` — API endpoints for further testing
+
+## Notes
+- 403 responses are still worth investigating — WAF or auth bypass may be possible
+- An exposed `/.git` directory allows source code reconstruction — always report this as critical
+- Artemis uses the SecLists `common.txt` wordlist — a broader wordlist will find more but take longer
+"""
+    },
+    "wpscan": {
+        "title": "wpscan",
+        "phase": "Phase 3 — Vulnerability Scanning",
+        "github": "https://github.com/wpscanteam/wpscan",
+        "content": """# wpscan
+
+## What it does
+wpscan is the WordPress security scanner. It identifies the WordPress version, installed themes and plugins, user accounts, and known vulnerabilities in any of the above. It only runs against URLs where WordPress is detected.
+
+## GitHub
+[https://github.com/wpscanteam/wpscan](https://github.com/wpscanteam/wpscan)
+
+## Command Artemis runs
+```
+wpscan --url <url> --enumerate vp,vt,u,ap --plugins-detection aggressive
+```
+
+## Flag breakdown
+| Flag | Description |
+|------|-------------|
+| `--url` | Target WordPress URL |
+| `--enumerate vp` | Enumerate vulnerable plugins |
+| `--enumerate vt` | Enumerate vulnerable themes |
+| `--enumerate u` | Enumerate usernames |
+| `--enumerate ap` | Enumerate all plugins (not just vulnerable ones) |
+| `--plugins-detection aggressive` | Check all known plugin paths — slower but more thorough |
+
+## How to read the output
+
+**WordPress version:**
+```
+[+] WordPress version 6.1.1 identified (Outdated, released on 2022-11-15)
+```
+Note the version — check if it has known CVEs.
+
+**Plugins:**
+```
+[+] akismet
+   | Version: 5.0.1 (Outdated)
+   | [!] 2 vulnerabilities identified:
+   |     [!] CVE-2022-XXXX - XSS in admin panel
+```
+
+**Users enumerated:**
+```
+[+] admin
+   | Found By: Author Posts - Display Name (Passive Detection)
+```
+Usernames are valuable for password spray or brute force (if in scope).
+
+**Themes:**
+```
+[+] twentytwentythree
+   | Version: 1.0 (Outdated)
+```
+
+## Notes
+- wpscan requires a free API token for vulnerability data — without it, versions are identified but CVE data is not shown
+- Username enumeration is active — WordPress user enumeration is a known weakness
+- Only runs against confirmed WordPress installations
+"""
+    },
+    "metasploit": {
+        "title": "metasploit",
+        "phase": "Phase 3 — Vulnerability Scanning",
+        "github": "https://github.com/rapid7/metasploit-framework",
+        "content": """# metasploit
+
+## What it does
+In Artemis, Metasploit Framework is used in auxiliary scanner mode — not for exploitation. It runs service identification and version detection modules across discovered hosts to supplement nmap results and identify services that may have known exploitable vulnerabilities.
+
+## GitHub
+[https://github.com/rapid7/metasploit-framework](https://github.com/rapid7/metasploit-framework)
+
+## Command Artemis runs
+Artemis generates a resource script (`.rc` file) and passes it to msfconsole:
+```
+msfconsole -r <msf_scan.rc> -q
+```
+
+The resource script contains:
+```
+setg RHOSTS <scope_list>
+setg THREADS 10
+use auxiliary/scanner/http/http_version
+run
+use auxiliary/scanner/ftp/ftp_version
+run
+use auxiliary/scanner/ssh/ssh_version
+run
+use auxiliary/scanner/smb/smb_version
+run
+```
+
+## Modules run
+| Module | What it detects |
+|--------|----------------|
+| `scanner/http/http_version` | Web server version and headers |
+| `scanner/ftp/ftp_version` | FTP server banner and version |
+| `scanner/ssh/ssh_version` | SSH server version |
+| `scanner/smb/smb_version` | SMB version, OS, and hostname |
+
+## How to read the output
+```
+[+] 192.168.1.100:80 - Apache httpd 2.4.29
+[+] 192.168.1.100:21 - FTP Banner: 220 vsftpd 3.0.3
+[+] 192.168.1.100:22 - SSH-2.0-OpenSSH_7.6p1
+[+] 192.168.1.100:445 - Host is running Windows 10 (build:19041)
+```
+
+Cross-reference these versions with CVE databases to identify known vulnerabilities. Outdated service versions are direct leads for exploitation (outside Artemis scope).
+
+## Notes
+- Artemis uses Metasploit for scanning only — no exploitation modules are run
+- SMB version detection revealing Windows version is useful for patch level assessment
+- FTP anonymous login is tested separately if FTP is discovered
+"""
+    },
+}
+
+
+def load_wiki() -> dict:
+    if WIKI_FILE.exists():
+        try:
+            return json.loads(WIKI_FILE.read_text())
+        except Exception:
+            pass
+    return {}
+
+
+def save_wiki(wiki: dict):
+    WIKI_FILE.write_text(json.dumps(wiki, indent=2))
+
+
+def get_or_init_wiki() -> dict:
+    """Load wiki, seeding with defaults for any missing articles."""
+    wiki = load_wiki()
+    changed = False
+    for slug, article in WIKI_DEFAULTS.items():
+        if slug not in wiki:
+            wiki[slug] = {
+                "title":       article["title"],
+                "phase":       article["phase"],
+                "github":      article["github"],
+                "content":     article["content"],
+                "last_edited": None,
+                "edited_by":   None,
+            }
+            changed = True
+    if changed:
+        save_wiki(wiki)
+    return wiki
 
 
 def bootstrap_admin():
@@ -1175,6 +2268,26 @@ def login_required(f):
                     return jsonify({"ok": False, "error": "Session expired"}), 401
                 return redirect(url_for("login", expired=1))
 
+        # Check account expiry and active status
+        username = session.get("username", "")
+        user     = get_user(username)
+        if user:
+            # Account disabled/deactivated
+            if not user.get("active", True):
+                session.clear()
+                if request.path.startswith("/api/"):
+                    return jsonify({"ok": False, "error": "Account deactivated"}), 403
+                return redirect(url_for("login", locked=1))
+
+            # Account expiry (only applies to accounts with expires_at set)
+            expires_at = user.get("expires_at")
+            if expires_at:
+                if datetime.now() > datetime.fromisoformat(expires_at):
+                    session.clear()
+                    if request.path.startswith("/api/"):
+                        return jsonify({"ok": False, "error": "Account expired"}), 403
+                    return redirect(url_for("login", locked=1))
+
         return f(*args, **kwargs)
     return decorated
 
@@ -1218,6 +2331,7 @@ def active_scan_required(f):
 @app.route("/login", methods=["GET", "POST"])
 def login():
     expired = request.args.get("expired")
+    locked  = request.args.get("locked")
     error   = None
 
     if request.method == "POST":
@@ -1237,10 +2351,14 @@ def login():
             if user.get("must_change"):
                 return redirect(url_for("change_password", first=1))
 
+            # Representatives go to their own portal
+            if user["role"] == "Representative":
+                return redirect(url_for("rep_portal"))
+
             return redirect(url_for("dashboard"))
         error = "Invalid credentials."
 
-    return render_template("login.html", error=error, expired=expired)
+    return render_template("login.html", error=error, expired=expired, locked=locked)
 
 
 @app.route("/logout")
@@ -1295,7 +2413,8 @@ def admin_users():
     }
     return render_template("admin_users.html",
                            users=safe_users, roles=ROLES,
-                           current_user=session.get("username"))
+                           current_user=session.get("username"),
+                           now=datetime.now().isoformat())
 
 
 @app.route("/admin/users/create", methods=["POST"])
@@ -1365,6 +2484,25 @@ def admin_update_user():
     return jsonify({"ok": True})
 
 
+@app.route("/admin/users/reactivate", methods=["POST"])
+@login_required
+@admin_required
+def admin_reactivate_user():
+    data     = request.get_json()
+    username = data.get("username", "").strip().lower()
+    days     = int(data.get("days", 14))
+
+    users = load_users()
+    if username not in users:
+        return jsonify({"ok": False, "error": "User not found."}), 404
+
+    users[username]["active"]     = True
+    users[username]["expires_at"] = (datetime.now() + timedelta(days=days)).isoformat()
+    save_users(users)
+    return jsonify({"ok": True,
+                    "expires_at": users[username]["expires_at"]})
+
+
 @app.route("/admin/users/delete", methods=["POST"])
 @login_required
 @admin_required
@@ -1398,6 +2536,9 @@ def admin_delete_user():
 @app.route("/")
 @login_required
 def dashboard():
+    # Representatives have their own portal
+    if session.get("role") == "Representative":
+        return redirect(url_for("rep_portal"))
     username = session.get("username", "")
     history  = load_history_for_user(username)
     return render_template("dashboard.html",
@@ -2075,6 +3216,267 @@ def export_xlsx(folder_name):
     return send_file(buf, as_attachment=True,
                      download_name=f"Artemis_{safe}_{data['date']}.xlsx",
                      mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# FLASK ROUTES — REPRESENTATIVE PORTAL
+# ══════════════════════════════════════════════════════════════════════════
+
+def rep_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if session.get("role") != "Representative":
+            return redirect(url_for("dashboard"))
+        return f(*args, **kwargs)
+    return decorated
+
+
+@app.route("/rep")
+@login_required
+@rep_required
+def rep_portal():
+    username = session.get("username", "")
+    # Show only requests submitted by this rep
+    all_requests = load_requests()
+    my_requests  = [r for r in all_requests if r.get("submitted_by") == username]
+    return render_template("rep_portal.html",
+                           username=username,
+                           requests=my_requests)
+
+
+@app.route("/api/requests/submit", methods=["POST"])
+@login_required
+@rep_required
+def submit_request():
+    data = request.get_json()
+    name      = data.get("name", "").strip()
+    email     = data.get("email", "").strip().lower()
+    note      = data.get("note", "").strip()
+    username  = session.get("username", "")
+
+    if not name:
+        return jsonify({"ok": False, "error": "Name is required."}), 400
+    if not email or "@" not in email:
+        return jsonify({"ok": False, "error": "Valid email is required."}), 400
+
+    # Role is always Junior Tester for rep-submitted requests
+    role = "Junior Tester"
+
+    # Check email not already a username
+    users = load_users()
+    if email in users:
+        return jsonify({"ok": False, "error": "A user with that email already exists."}), 400
+
+    requests_list = load_requests()
+
+    # Check no pending request for same email
+    existing = [r for r in requests_list
+                if r.get("email") == email and r.get("status") == "pending"]
+    if existing:
+        return jsonify({"ok": False,
+                        "error": "A pending request for that email already exists."}), 400
+
+    import uuid
+    new_request = {
+        "id":           str(uuid.uuid4()),
+        "name":         name,
+        "email":        email,
+        "role":         role,
+        "note":         note,
+        "submitted_by": username,
+        "submitted_at": datetime.now().isoformat(),
+        "status":       "pending",
+        "decided_at":   None,
+        "decided_by":   None,
+    }
+    requests_list.append(new_request)
+    save_requests(requests_list)
+    return jsonify({"ok": True, "request": new_request})
+
+
+@app.route("/api/requests/approve", methods=["POST"])
+@login_required
+@admin_required
+def approve_request():
+    data       = request.get_json()
+    request_id = data.get("id", "")
+
+    requests_list = load_requests()
+    req = next((r for r in requests_list if r["id"] == request_id), None)
+    if not req:
+        return jsonify({"ok": False, "error": "Request not found."}), 404
+    if req["status"] != "pending":
+        return jsonify({"ok": False, "error": "Request already decided."}), 400
+
+    # Generate compliant temporary password
+    special  = "!@#$%^&*"
+    upper    = string.ascii_uppercase
+    lower    = string.ascii_lowercase
+    digits   = string.digits
+    pwd_list = (
+        [secrets.choice(upper)] +
+        [secrets.choice(special)] +
+        [secrets.choice(digits)] +
+        [secrets.choice(upper + lower + digits + special) for _ in range(12)]
+    )
+    secrets.SystemRandom().shuffle(pwd_list)
+    temp_password = "".join(pwd_list)
+
+    # Create the user account
+    users = load_users()
+    email = req["email"]
+    if email in users:
+        return jsonify({"ok": False,
+                        "error": "A user with that email already exists."}), 400
+
+    users[email] = {
+        "password":    _hash_password(temp_password),
+        "role":        req["role"],
+        "created_at":  datetime.now().isoformat(),
+        "expires_at":  (datetime.now() + timedelta(days=14)).isoformat(),
+        "must_change": True,
+        "name":        req["name"],
+        "active":      True,
+    }
+    save_users(users)
+
+    # Update request status
+    req["status"]     = "approved"
+    req["decided_at"] = datetime.now().isoformat()
+    req["decided_by"] = session.get("username", "")
+    save_requests(requests_list)
+
+    return jsonify({
+        "ok":           True,
+        "username":     email,
+        "temp_password": temp_password,
+        "name":         req["name"],
+        "role":         req["role"],
+    })
+
+
+@app.route("/api/requests/deny", methods=["POST"])
+@login_required
+@admin_required
+def deny_request():
+    data       = request.get_json()
+    request_id = data.get("id", "")
+    reason     = data.get("reason", "").strip()
+
+    requests_list = load_requests()
+    req = next((r for r in requests_list if r["id"] == request_id), None)
+    if not req:
+        return jsonify({"ok": False, "error": "Request not found."}), 404
+    if req["status"] != "pending":
+        return jsonify({"ok": False, "error": "Request already decided."}), 400
+
+    req["status"]     = "denied"
+    req["reason"]     = reason
+    req["decided_at"] = datetime.now().isoformat()
+    req["decided_by"] = session.get("username", "")
+    save_requests(requests_list)
+    return jsonify({"ok": True})
+
+
+@app.route("/admin/requests")
+@login_required
+@admin_required
+def admin_requests():
+    all_requests = load_requests()
+    # Sort — pending first, then by date descending
+    all_requests.sort(key=lambda r: (r["status"] != "pending",
+                                      r["submitted_at"]), reverse=False)
+    pending  = [r for r in all_requests if r["status"] == "pending"]
+    decided  = [r for r in all_requests if r["status"] != "pending"]
+    return render_template("admin_requests.html",
+                           pending=pending, decided=decided,
+                           username=session.get("username", ""),
+                           role=session.get("role", ""))
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# FLASK ROUTES — WIKI
+# ══════════════════════════════════════════════════════════════════════════
+
+def _render_markdown(text: str) -> str:
+    """Convert markdown to HTML, installing markdown library if needed."""
+    try:
+        import markdown
+    except ImportError:
+        subprocess.run(["pip3", "install", "markdown", "--break-system-packages"],
+                       capture_output=True)
+        import markdown
+    return markdown.markdown(
+        text,
+        extensions=["tables", "fenced_code", "toc", "nl2br"]
+    )
+
+
+@app.route("/wiki")
+@login_required
+def wiki_home():
+    wiki = get_or_init_wiki()
+    # Group by phase
+    phases = {}
+    for slug, article in wiki.items():
+        phase = article.get("phase", "Other")
+        phases.setdefault(phase, []).append({**article, "slug": slug})
+    # Sort phases in order
+    phase_order = [
+        "Phase 1 — Recon / OSINT",
+        "Phase 2 — Port Scanning",
+        "Phase 3 — Vulnerability Scanning",
+        "Other"
+    ]
+    ordered = {p: phases[p] for p in phase_order if p in phases}
+    for p in phases:
+        if p not in ordered:
+            ordered[p] = phases[p]
+    return render_template("wiki_home.html",
+                           phases=ordered,
+                           role=session.get("role", ""),
+                           username=session.get("username", ""))
+
+
+@app.route("/wiki/<slug>")
+@login_required
+def wiki_article(slug):
+    wiki = get_or_init_wiki()
+    if slug not in wiki:
+        return redirect(url_for("wiki_home"))
+    article  = wiki[slug]
+    rendered = _render_markdown(article["content"])
+    return render_template("wiki_article.html",
+                           slug=slug,
+                           article=article,
+                           rendered=rendered,
+                           role=session.get("role", ""),
+                           username=session.get("username", ""))
+
+
+@app.route("/wiki/<slug>/edit", methods=["GET", "POST"])
+@login_required
+@admin_required
+def wiki_edit(slug):
+    wiki = get_or_init_wiki()
+    if slug not in wiki:
+        return redirect(url_for("wiki_home"))
+
+    if request.method == "POST":
+        data    = request.get_json()
+        content = data.get("content", "").strip()
+        wiki[slug]["content"]     = content
+        wiki[slug]["last_edited"] = datetime.now().strftime("%Y-%m-%d %H:%M")
+        wiki[slug]["edited_by"]   = session.get("username", "")
+        save_wiki(wiki)
+        return jsonify({"ok": True})
+
+    article = wiki[slug]
+    return render_template("wiki_edit.html",
+                           slug=slug,
+                           article=article,
+                           role=session.get("role", ""),
+                           username=session.get("username", ""))
 
 
 # ══════════════════════════════════════════════════════════════════════════
