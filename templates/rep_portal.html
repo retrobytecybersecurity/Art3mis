@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARTEMIS // Representative Portal</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+  :root {
+    --bg:      #0a0d14;
+    --surface: #0f1420;
+    --surface2:#141926;
+    --accent:  #1a4a7a;
+    --success: #2a7a4a;
+    --warning: #8a5a1a;
+    --error:   #8a2a3a;
+    --text:    #e8eaf0;
+    --dim:     #4a6a8a;
+    --border:  #1e2d45;
+    --shadow:  0 2px 12px rgba(0,0,0,0.3);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; min-height: 100vh; display: flex; flex-direction: column; }
+
+  header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 13px 28px; display: flex; align-items: center; justify-content: space-between; box-shadow: var(--shadow); }
+  .logo { font-size: 1.05rem; font-weight: 700; color: var(--text); letter-spacing: .1em; }
+  .role-pill { font-size: 11px; padding: 3px 10px; border-radius: 20px; background: rgba(200,160,80,0.1); border: 0.5px solid #5a4a1a; color: #c8a050; margin-left: 10px; }
+  .nav-btn { font-size: 12px; padding: 6px 14px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface2); color: var(--dim); cursor: pointer; text-decoration: none; transition: all 0.15s; display: inline-block; }
+  .nav-btn:hover { border-color: #2a4a6a; color: var(--text); }
+  .nav-btn.logout { border-color: #5a1a2a; color: #c06070; background: rgba(180,60,80,0.08); }
+
+  main { flex: 1; max-width: 860px; width: 100%; margin: 0 auto; padding: 32px 28px; }
+  .page-label { font-size: 11px; color: var(--dim); letter-spacing: .1em; text-transform: uppercase; margin-bottom: 3px; }
+  .page-title { font-size: 1.3rem; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+  .page-sub   { font-size: 0.8rem; color: var(--dim); margin-bottom: 24px; }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; margin-bottom: 20px; box-shadow: var(--shadow); }
+  .card-hdr { padding: 12px 20px; background: var(--surface2); border-bottom: 1px solid var(--border); font-size: 0.74rem; font-weight: 600; color: var(--dim); letter-spacing: .09em; text-transform: uppercase; display: flex; align-items: center; justify-content: space-between; }
+  .card-body { padding: 20px; }
+
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .form-group { display: flex; flex-direction: column; gap: 5px; }
+  .form-group.full { grid-column: 1 / -1; }
+  .form-group label { font-size: 0.72rem; font-weight: 600; color: var(--dim); letter-spacing: .07em; text-transform: uppercase; }
+  input[type="text"], input[type="email"] {
+    background: #ffffff; border: 1px solid #c8d8e8; border-radius: 10px;
+    color: #0f1826; font-family: 'Inter', sans-serif;
+    font-size: 0.85rem; padding: 9px 12px; outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  input:focus { border-color: #4a7aaa; box-shadow: 0 0 0 3px rgba(74,122,170,0.15); }
+  input::placeholder { color: #8aaabb; }
+
+  .btn-submit { margin-top: 16px; padding: 10px 24px; font-family: 'Inter', sans-serif; font-size: 0.85rem; font-weight: 600; border-radius: 10px; cursor: pointer; background: var(--accent); border: none; color: #e8f4ff; transition: filter 0.15s; }
+  .btn-submit:hover { filter: brightness(1.15); }
+
+  table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+  th { text-align: left; color: var(--dim); font-size: 0.7rem; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; padding: 6px 14px; border-bottom: 1px solid var(--border); }
+  td { padding: 10px 14px; border-bottom: 1px solid rgba(30,45,69,0.5); vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+
+  .status-pending  { font-size: 0.72rem; color: #c8a050; font-weight: 500; }
+  .status-approved { font-size: 0.72rem; color: #4aaa6a; font-weight: 500; }
+  .status-denied   { font-size: 0.72rem; color: #e88a9a; font-weight: 500; }
+
+  .rbadge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 0.68rem; font-weight: 500; border: 0.5px solid; background: rgba(74,106,138,0.1); border-color: var(--border); color: var(--dim); }
+  .empty-note { font-size: 0.82rem; color: var(--dim); padding: 20px; text-align: center; }
+
+  #toast { position: fixed; bottom: 24px; right: 24px; padding: 10px 18px; border-radius: 10px; font-size: 0.82rem; font-family: 'Inter', sans-serif; opacity: 0; pointer-events: none; transition: opacity 0.3s; z-index: 999; font-weight: 500; }
+  #toast.show    { opacity: 1; }
+  #toast.success { background: rgba(42,122,74,0.2); border: 1px solid #2a5a3a; color: #4aaa6a; }
+  #toast.error   { background: rgba(138,42,58,0.2); border: 1px solid #5a1a2a; color: #e88a9a; }
+
+  footer { background: var(--surface); border-top: 1px solid var(--border); padding: 11px 28px; display: flex; justify-content: space-between; font-size: 0.7rem; color: var(--dim); }
+</style>
+</head>
+<body>
+<header>
+  <div style="display:flex;align-items:center">
+    <div class="logo">◈ ART3MIS</div>
+    <span style="font-size:12px;color:var(--dim);margin-left:12px">{{ username }}</span>
+    <span class="role-pill">Representative</span>
+  </div>
+  <div style="display:flex;gap:8px">
+    <a href="/change-password" class="nav-btn">⚙ Password</a>
+    <a href="/logout" class="nav-btn logout">⎋ Logout</a>
+  </div>
+</header>
+
+<main>
+  <div class="page-label">Representative Portal</div>
+  <div class="page-title">Account Requests</div>
+  <div class="page-sub">Submit account requests for your users. An administrator will review and approve each request.</div>
+
+  <div class="card">
+    <div class="card-hdr">Submit New Account Request</div>
+    <div class="card-body">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Full Name</label>
+          <input type="text" id="req-name" placeholder="Jane Smith">
+        </div>
+        <div class="form-group">
+          <label>Email Address <span style="color:var(--dim);font-weight:400;text-transform:none">(becomes username)</span></label>
+          <input type="email" id="req-email" placeholder="jsmith@organization.edu">
+        </div>
+        <div class="form-group full">
+          <label>Note <span style="color:var(--dim);font-weight:400;text-transform:none">(optional)</span></label>
+          <input type="text" id="req-note" placeholder="e.g. Student in Spring 2026 cohort">
+        </div>
+      </div>
+      <div style="font-size:0.75rem;color:var(--dim);margin-top:12px">
+        All accounts are created as <strong style="color:var(--text)">Junior Tester</strong> — passive scanning access only.
+      </div>
+      <button class="btn-submit" onclick="submitRequest()">Submit Request</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-hdr">
+      <span>Your Submitted Requests</span>
+      <span style="color:var(--dim);font-weight:400;font-size:0.7rem">{{ requests|length }} total</span>
+    </div>
+    <div class="card-body" style="padding:0">
+      {% if requests %}
+      <table>
+        <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Submitted</th><th>Status</th><th>Note</th></tr></thead>
+        <tbody>
+          {% for req in requests|sort(attribute='submitted_at', reverse=True) %}
+          <tr>
+            <td style="font-weight:500">{{ req.name }}</td>
+            <td style="color:var(--dim)">{{ req.email }}</td>
+            <td><span class="rbadge">Junior Tester</span></td>
+            <td style="color:var(--dim);font-size:0.75rem">{{ req.submitted_at[:10] }}</td>
+            <td>
+              {% if req.status == 'pending' %}<span class="status-pending">⏳ Pending</span>
+              {% elif req.status == 'approved' %}<span class="status-approved">✓ Approved</span>
+              {% else %}<span class="status-denied">✗ Denied</span>{% endif %}
+            </td>
+            <td style="color:var(--dim);font-size:0.75rem">{{ req.note or '—' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <p class="empty-note">No requests submitted yet. Use the form above to request an account.</p>
+      {% endif %}
+    </div>
+  </div>
+</main>
+
+<footer>
+  <span>Artemis // Representative Portal</span>
+  <span>Confidential — Authorized Use Only</span>
+</footer>
+<div id="toast"></div>
+
+<script>
+function toast(msg,type='success'){ const el=document.getElementById('toast'); el.textContent=msg; el.className=`show ${type}`; setTimeout(()=>{ el.className=''; },3500); }
+async function submitRequest(){
+  const name=document.getElementById('req-name').value.trim();
+  const email=document.getElementById('req-email').value.trim();
+  const note=document.getElementById('req-note').value.trim();
+  if(!name){ toast('Name is required.','error'); return; }
+  if(!email||!email.includes('@')){ toast('Valid email is required.','error'); return; }
+  const res=await fetch('/api/requests/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,email,note})});
+  const data=await res.json();
+  if(data.ok){ toast('✓ Request submitted successfully.'); setTimeout(()=>location.reload(),1400); }
+  else toast(data.error,'error');
+}
+</script>
+</body>
+</html>
