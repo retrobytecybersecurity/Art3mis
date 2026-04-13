@@ -15,6 +15,9 @@ import queue
 import json
 import secrets
 import string
+import urllib.request
+import urllib.error
+import urllib.parse
 from datetime import datetime, timedelta
 from pathlib import Path
 from functools import wraps
@@ -49,6 +52,7 @@ RESULTS_BASE.mkdir(parents=True, exist_ok=True)
 
 app.secret_key        = os.environ.get("ARTEMIS_SECRET", "artemis-secret-key-change-me")
 SESSION_LIFETIME_HOURS = 3
+OATHNET_API_KEY       = os.environ.get("OATHNET_API_KEY", "")
 
 # ══════════════════════════════════════════════════════════════════════════
 # TOOL CONSTANTS
@@ -786,6 +790,147 @@ def run_scan(scope_list, url_list, domain, phases, tools, folder, tool_paths):
             log("  — amass skipped", "dim")
         else:
             log("⚠ No domain — skipping amass", "warn")
+
+        # ── Nuclei passive — passive-tagged templates only ─────────────
+        if url_list and tools.get("nuclei_passive", True):
+            if shutil.which("nuclei"):
+                log("⟶ nuclei PASSIVE (passive-tagged templates) — recon phase", "info")
+                for url in url_list:
+                    safe_t        = re.sub(r"[^\w\-]", "_", re.sub(r"^https?://", "", url).rstrip("/"))
+                    nuclei_p_out  = p1 / f"nuclei_passive_{safe_t}.txt"
+                    run_tool(
+                        ["nuclei", "-target", url,
+                         "-tags", "passive",
+                         "-severity", "low,medium,high,critical",
+                         "-o", str(nuclei_p_out), "-silent"],
+                        nuclei_p_out,
+                        f"nuclei passive [{url}]",
+                        screenshot_name=f"phase1_nuclei_passive_{safe_t}"
+                    )
+                    if nuclei_p_out.exists():
+                        lines = [l.strip() for l in nuclei_p_out.read_text().splitlines() if l.strip()]
+                        if lines:
+                            log(f"  ↳ nuclei passive found {len(lines)} result(s) for {url}", "dim")
+            else:
+                log("⚠ nuclei not found — skipping passive nuclei", "warn")
+        elif url_list and not tools.get("nuclei_passive", True):
+            log("  — nuclei passive skipped", "dim")
+        else:
+            log("⚠ No URLs — skipping nuclei passive", "warn")
+
+        # ── OathNet breach credential check ───────────────────────────
+        if tools.get("breach_check", True):
+            api_key = OATHNET_API_KEY
+            if not api_key:
+                log("⚠ OATHNET_API_KEY not set — skipping breach check", "warn")
+                log("  Set it in /etc/systemd/system/artemis.service and restart", "dim")
+            else:
+                # Collect all emails discovered so far in Phase 1
+                discovered_emails = set()
+
+                # From theHarvester
+                harvester = results.get("harvester", {})
+                discovered_emails.update(harvester.get("emails", []))
+
+                # From bbot output files
+                for f in p1.glob("bbot_*.txt"):
+                    discovered_emails.update(re.findall(
+                        r"[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}",
+                        f.read_text(errors="ignore")
+                    ))
+
+                # Filter to only emails matching the target domain
+                if domain:
+                    domain_emails = {e for e in discovered_emails
+                                     if e.lower().endswith(f"@{domain.lower()}")
+                                     or e.lower().endswith(f".{domain.lower()}")}
+                    # If we have domain-specific emails, use those; else use all found
+                    if domain_emails:
+                        discovered_emails = domain_emails
+
+                if not discovered_emails:
+                    log("  — breach check: no email addresses discovered to check", "dim")
+                else:
+                    log(f"⟶ OathNet breach check — {len(discovered_emails)} email(s)", "info")
+                    breach_out  = p1 / "breach_check.txt"
+                    breach_hits = []
+                    breach_errors = 0
+
+                    with open(breach_out, "w") as bf:
+                        bf.write(f"OathNet Breach Credential Check\n")
+                        bf.write(f"Checked: {datetime.now().isoformat()}\n")
+                        bf.write(f"Emails checked: {len(discovered_emails)}\n")
+                        bf.write("=" * 60 + "\n\n")
+
+                        for email in sorted(discovered_emails):
+                            try:
+                                url_req = (
+                                    f"https://oathnet.org/api/service/search-breach"
+                                    f"?q={urllib.parse.quote(email)}"
+                                )
+                                req = urllib.request.Request(
+                                    url_req,
+                                    headers={"x-api-key": api_key,
+                                             "User-Agent": "Artemis-PenTest/1.0"}
+                                )
+                                with urllib.request.urlopen(req, timeout=15) as resp:
+                                    body = json.loads(resp.read().decode())
+
+                                results_found = body.get("data", {}).get("results_found", 0)
+                                lookups_left  = body.get("data", {}).get("lookups_left",
+                                                body.get("lookups_left", "?"))
+
+                                if results_found > 0:
+                                    bf.write(f"[FOUND] {email}\n")
+                                    bf.write(f"  Breach records: {results_found}\n")
+                                    # Log sources — passwords are redacted by API
+                                    api_results = body.get("data", {}).get("results", [])
+                                    sources = list({r.get("source", r.get("dbname", "unknown"))
+                                                    for r in api_results if isinstance(r, dict)})
+                                    if sources:
+                                        bf.write(f"  Sources: {', '.join(sources)}\n")
+                                    bf.write("\n")
+                                    breach_hits.append({
+                                        "email":   email,
+                                        "count":   results_found,
+                                        "sources": sources,
+                                    })
+                                    log(f"  ⚠ BREACH: {email} — {results_found} record(s) in {', '.join(sources[:3])}", "warn")
+                                else:
+                                    bf.write(f"[CLEAN] {email}\n")
+                                    log(f"  ✓ clean: {email}", "dim")
+
+                            except urllib.error.HTTPError as e:
+                                if e.code == 401:
+                                    log("✗ OathNet API key invalid or expired", "error")
+                                    bf.write(f"[ERROR] {email} — API key invalid\n")
+                                    breach_errors += 1
+                                    break  # No point continuing with bad key
+                                elif e.code == 429:
+                                    log("✗ OathNet rate limit hit — stopping breach check", "warn")
+                                    bf.write(f"[RATE_LIMITED] Stopped at {email}\n")
+                                    break
+                                else:
+                                    log(f"  ✗ HTTP {e.code} for {email}", "error")
+                                    bf.write(f"[ERROR] {email} — HTTP {e.code}\n")
+                                    breach_errors += 1
+                            except Exception as ex:
+                                log(f"  ✗ breach check error for {email}: {ex}", "error")
+                                bf.write(f"[ERROR] {email} — {ex}\n")
+                                breach_errors += 1
+
+                        bf.write("\n" + "=" * 60 + "\n")
+                        bf.write(f"Summary: {len(breach_hits)} breach(es) found, "
+                                 f"{len(discovered_emails) - len(breach_hits) - breach_errors} clean, "
+                                 f"{breach_errors} error(s)\n")
+
+                    results["breach_hits"] = breach_hits
+                    if breach_hits:
+                        log(f"  ↳ {len(breach_hits)} breached email(s) found — see breach_check.txt", "warn")
+                    else:
+                        log(f"  ↳ No breached emails found across {len(discovered_emails)} address(es)", "success")
+        else:
+            log("  — breach check skipped", "dim")
 
     if phases.get("scan"):
         phase("PHASE 2 — Port & Service Scanning")
@@ -2646,6 +2791,8 @@ def start_scan():
         "bbot_mode":    data.get("bbot_mode",     "passive"),
         "amass":        data.get("amass",         True),
         "amass_mode":   data.get("amass_mode",    "passive"),
+        "nuclei_passive": data.get("nuclei_passive", True),
+        "breach_check":   data.get("breach_check",   True),
         "curl_sweep":   data.get("curl_sweep",    True),
         "masscan":      data.get("masscan",       True),
         "nmap_tcp":     data.get("nmap_tcp",      True),
