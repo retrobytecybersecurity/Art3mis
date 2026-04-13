@@ -77,8 +77,8 @@ GO_TOOLS = {
 }
 
 PIP_TOOLS = {
-    "pymeta": "pymeta3",
-    "bbot":   "bbot",
+    "metagoofil": "metagoofil",
+    "bbot":       "bbot",
 }
 
 SHCHECK_SEARCH_PATHS = [
@@ -287,11 +287,10 @@ def check_and_install_tools(log_fn):
     # ── 5. Pip tools ──────────────────────────────────────────────────
     log_fn("  [pip] Checking Python tools...", "info")
 
-    # pymeta installs as 'pymeta' but sometimes needs explicit check
-    # bbot installs its own binary — search multiple locations
+    # metagoofil and bbot — search multiple locations
     pip_tool_map = {
-        "pymeta": {"pkg": "pymeta3",  "bins": ["pymeta", "pymeta3"]},
-        "bbot":   {"pkg": "bbot",     "bins": ["bbot"]},
+        "metagoofil": {"pkg": "metagoofil", "bins": ["metagoofil"]},
+        "bbot":       {"pkg": "bbot",       "bins": ["bbot"]},
     }
 
     for tool, info in pip_tool_map.items():
@@ -557,7 +556,7 @@ def run_scan(scope_list, url_list, domain, phases, tools, folder, tool_paths):
         "msf_findings":     [],
         "o365_findings":    {},
         "harvester":        {},
-        "pymeta":           [],
+        "metagoofil":       [],
     }
 
     if phases.get("recon"):
@@ -664,34 +663,35 @@ def run_scan(scope_list, url_list, domain, phases, tools, folder, tool_paths):
         else:
             log("⚠ No domain — skipping theHarvester", "warn")
 
-        if domain and tools.get("pymeta", True):
-            safe_d = re.sub(r"[^\w\-]", "_", domain)
-            pymeta_exts = (
-                "txt,pdf,xls,xlsx,csv,doc,docx,ppt,config,log,bat,env,ini,"
-                "yaml,py,php,bak,old,tmp,swp,asp,aspx,jsp,go,java,c,debug,"
-                "trace,sql,db,git,dump,mdb,sqlite,hg,svn,zip,tar,rar,7z,tgz,"
-                "rst,pem,key,crt,pfx,json,html"
-            )
-            # pymeta -o expects a directory, not a file
-            pymeta_dir = p1 / f"pymeta_{safe_d}"
-            pymeta_dir.mkdir(exist_ok=True)
-            pymeta_stdout = p1 / f"pymeta_{safe_d}.txt"
-            run_tool(["pymeta", "-d", domain, "--file-type", pymeta_exts, "-o", str(pymeta_dir)],
-                     pymeta_stdout, f"pymeta [{domain}]",
-                     screenshot_name=f"phase1_pymeta_{safe_d}")
-            # Collect findings from all files pymeta wrote to the output dir
-            pymeta_findings = []
-            for f in list(pymeta_dir.glob("*")) + [pymeta_stdout]:
-                if f.exists() and f.is_file():
-                    pymeta_findings.extend([
-                        l.strip() for l in f.read_text(errors="ignore").splitlines()
-                        if l.strip() and not l.startswith("#")
-                    ])
-            results["pymeta"] = list(set(pymeta_findings))
-        elif domain and not tools.get("pymeta", True):
-            log("  — pymeta skipped", "dim")
+        if domain and tools.get("metagoofil", True):
+            if shutil.which("metagoofil"):
+                safe_d       = re.sub(r"[^\w\-]", "_", domain)
+                meta_exts    = "pdf,doc,docx,xls,xlsx,ppt,pptx"
+                meta_dir     = p1 / f"metagoofil_{safe_d}"
+                meta_dir.mkdir(exist_ok=True)
+                meta_out     = p1 / f"metagoofil_{safe_d}.txt"
+                log(f"⟶ metagoofil — root domain [{domain}]", "info")
+                run_tool(
+                    ["metagoofil", "-d", domain, "-t", meta_exts,
+                     "-n", "20", "-o", str(meta_dir)],
+                    meta_out,
+                    f"metagoofil [{domain}]",
+                    screenshot_name=f"phase1_metagoofil_{safe_d}"
+                )
+                meta_findings = []
+                for mf in list(meta_dir.glob("*")) + [meta_out]:
+                    if mf.exists() and mf.is_file():
+                        meta_findings.extend([
+                            l.strip() for l in mf.read_text(errors="ignore").splitlines()
+                            if l.strip() and not l.startswith("#")
+                        ])
+                results["metagoofil"] = list(set(meta_findings))
+            else:
+                log("⚠ metagoofil not found — install: pip3 install metagoofil --break-system-packages", "warn")
+        elif domain and not tools.get("metagoofil", True):
+            log("  — metagoofil skipped", "dim")
         else:
-            log("⚠ No domain — skipping pymeta", "warn")
+            log("⚠ No domain — skipping metagoofil", "warn")
 
         # ── BBOT — passive or active depending on preset ──────────────
         if domain and tools.get("bbot", True):
@@ -790,6 +790,72 @@ def run_scan(scope_list, url_list, domain, phases, tools, folder, tool_paths):
             log("  — amass skipped", "dim")
         else:
             log("⚠ No domain — skipping amass", "warn")
+
+        # ── metagoofil subdomain sweep ────────────────────────────────
+        # Runs after all OSINT tools so subdomains list is fully populated
+        if domain and tools.get("metagoofil", True) and shutil.which("metagoofil"):
+            all_subs = results.get("subdomains", [])
+            if all_subs:
+                # Priority keywords — subdomains most likely to host interesting docs
+                PRIORITY_KEYWORDS = [
+                    "mail", "vpn", "portal", "admin", "dev", "stage", "staging",
+                    "remote", "citrix", "login", "secure", "extranet", "intranet",
+                    "sharepoint", "files", "docs", "hr", "finance", "it", "helpdesk",
+                ]
+                # Score each subdomain — more keyword matches = higher priority
+                def sub_score(s):
+                    s_lower = s.lower()
+                    return sum(1 for k in PRIORITY_KEYWORDS if k in s_lower)
+
+                priority_subs = sorted(
+                    [s for s in all_subs if sub_score(s) > 0],
+                    key=sub_score, reverse=True
+                )
+                # Fill remaining slots with non-priority subs
+                other_subs = [s for s in all_subs if sub_score(s) == 0]
+                targets = (priority_subs + other_subs)[:20]
+
+                log(f"⟶ metagoofil subdomain sweep — {len(targets)} subdomain(s) "
+                    f"({len(priority_subs)} priority, {max(0, len(targets)-len(priority_subs))} other)", "info")
+
+                meta_exts = "pdf,doc,docx,xls,xlsx,ppt,pptx"
+                for sub in targets:
+                    safe_s   = re.sub(r"[^\w\-]", "_", sub)
+                    sub_dir  = p1 / f"metagoofil_{safe_s}"
+                    sub_dir.mkdir(exist_ok=True)
+                    sub_out  = p1 / f"metagoofil_{safe_s}.txt"
+                    log(f"  ↳ metagoofil [{sub}]", "dim")
+                    try:
+                        with open(sub_out, "w") as mf:
+                            subprocess.run(
+                                ["metagoofil", "-d", sub, "-t", meta_exts,
+                                 "-n", "10", "-o", str(sub_dir)],
+                                stdout=mf, stderr=subprocess.STDOUT,
+                                text=True, timeout=120
+                            )
+                    except subprocess.TimeoutExpired:
+                        log(f"  ✗ metagoofil timed out for {sub}", "warn")
+                    except Exception as ex:
+                        log(f"  ✗ metagoofil error for {sub}: {ex}", "warn")
+
+                    # Merge findings into results
+                    sub_findings = []
+                    for mf in list(sub_dir.glob("*")) + [sub_out]:
+                        if mf.exists() and mf.is_file():
+                            sub_findings.extend([
+                                l.strip() for l in mf.read_text(errors="ignore").splitlines()
+                                if l.strip() and not l.startswith("#")
+                            ])
+                    results["metagoofil"] = list(set(
+                        results.get("metagoofil", []) + sub_findings))
+
+                    # Small delay to avoid search engine rate limiting
+                    import time
+                    time.sleep(3)
+
+                log(f"  ↳ metagoofil subdomain sweep complete", "success")
+            else:
+                log("  — metagoofil subdomain sweep: no subdomains discovered yet", "dim")
 
         # ── Nuclei passive — passive-tagged templates only ─────────────
         if url_list and tools.get("nuclei_passive", True):
@@ -1501,56 +1567,79 @@ python3 /opt/o365spray/o365spray.py --validate --domain <domain>
 - If O365 is confirmed and user enumeration is in scope, o365spray supports `--enum -U userlist.txt`
 """
     },
-    "pymeta": {
-        "title": "pymeta",
+    "metagoofil": {
+        "title": "metagoofil",
         "phase": "Phase 1 — Recon / OSINT",
-        "github": "https://github.com/m8sec/pymeta",
-        "content": """# pymeta
+        "github": "https://github.com/opsdisk/metagoofil",
+        "content": """# metagoofil
 
 ## What it does
-pymeta searches Google and Bing for files associated with a target domain, downloads them, and extracts metadata. Metadata in documents often contains usernames, software versions, internal paths, and email addresses that were never intended to be public.
+metagoofil searches Google for publicly accessible files associated with a target domain, downloads them, and extracts metadata. Metadata embedded in documents often contains usernames, software versions, email addresses, and internal paths that were never intended to be public.
+
+In Artemis, metagoofil runs twice — once against the root domain, then again against up to 20 priority subdomains discovered during Phase 1 (prioritizing subdomains with names like mail, portal, admin, dev, vpn, sharepoint).
 
 ## GitHub
-[https://github.com/m8sec/pymeta](https://github.com/m8sec/pymeta)
+[https://github.com/opsdisk/metagoofil](https://github.com/opsdisk/metagoofil)
 
 ## Command Artemis runs
+
+**Root domain:**
 ```
-pymeta -d <domain> --file-type txt,pdf,xls,xlsx,csv,doc,docx,ppt,config,log,bat,env,ini,yaml,py,php,bak,old,tmp -o <output_directory>
+metagoofil -d <domain> -t pdf,doc,docx,xls,xlsx,ppt,pptx -n 20 -o <output_directory>
+```
+
+**Per subdomain (up to 20):**
+```
+metagoofil -d <subdomain> -t pdf,doc,docx,xls,xlsx,ppt,pptx -n 10 -o <output_directory>
 ```
 
 ## Flag breakdown
 | Flag | Description |
 |------|-------------|
-| `-d` | Target domain to search for |
-| `--file-type` | Comma-separated list of file extensions to search for |
-| `-o` | Output directory for downloaded files and results |
+| `-d` | Target domain or subdomain to search |
+| `-t` | Comma-separated file types to search for |
+| `-n` | Maximum number of files to download per run |
+| `-o` | Output directory for downloaded files |
 
 ## File types targeted
 | Type | Why it matters |
 |------|---------------|
-| `pdf`, `doc`, `docx` | Often contain author names, internal paths, software versions |
-| `xls`, `xlsx` | May contain usernames, email lists, internal data |
-| `env`, `config`, `ini` | May expose credentials or internal configuration |
-| `bak`, `old`, `tmp` | Backup files sometimes left publicly accessible |
-| `py`, `php` | Source code may contain hardcoded credentials |
+| `pdf` | Often contain author names, internal paths, software versions |
+| `doc`, `docx` | Word documents with author and revision metadata |
+| `xls`, `xlsx` | Spreadsheets may contain usernames, email lists, internal data |
+| `ppt`, `pptx` | Presentations often reveal internal structure and personnel |
+
+## Subdomain prioritization
+Artemis scores subdomains by keyword relevance before running metagoofil:
+
+| Priority keywords | Why |
+|------------------|-----|
+| `mail`, `portal`, `login` | Likely user-facing services with document exposure |
+| `admin`, `helpdesk`, `it` | Internal tools often have leaked docs |
+| `dev`, `stage`, `staging` | Development environments may expose source or config files |
+| `sharepoint`, `files`, `docs` | Explicit document hosting |
+| `finance`, `hr` | High-value document targets |
 
 ## How to read the output
-pymeta outputs a summary of metadata found per file:
+metagoofil outputs metadata extracted per file:
 ```
-[*] Extracting metadata: report.pdf
-    Author:   John Smith
-    Creator:  Microsoft Word 2016
-    Producer: Adobe PDF
+[*] Searching for pdf files, with a maximum of 20
+[*] Downloading file: https://example.com/report.pdf
+[+] Author: John Smith
+[+] Creator: Microsoft Word 2019
+[+] Last Modified By: jsmith
+[+] Producer: Adobe PDF Library
 ```
 
 Key fields to note:
 - **Author / Last Modified By** — real usernames, often matching Active Directory usernames
-- **Creator** — software and version information useful for vulnerability research
-- **Internal paths** — Windows paths revealing internal directory structure
+- **Creator** — software and version revealing what internal tools are in use
+- **Internal paths** — Windows UNC paths like `C:/Users/jsmith/Documents/` reveal directory structure
 
 ## Notes
-- Results are stored in the output directory as individual files
-- Username findings should be cross-referenced with theHarvester email results
+- A 3-second delay is applied between subdomain runs to avoid Google rate limiting
+- Usernames found should be cross-referenced with theHarvester email results and used for o365spray enumeration if in scope
+- Results are stored per-subdomain in the `1_recon/` folder
 """
     },
     "bbot": {
@@ -2786,7 +2875,7 @@ def start_scan():
         "theharvester": data.get("theharvester",  True),
         "spoofy":       data.get("spoofy",        True),
         "o365spray":    data.get("o365spray",     True),
-        "pymeta":       data.get("pymeta",        True),
+        "metagoofil":   data.get("metagoofil",    True),
         "bbot":         data.get("bbot",          True),
         "bbot_mode":    data.get("bbot_mode",     "passive"),
         "amass":        data.get("amass",         True),
@@ -3652,3 +3741,4 @@ if __name__ == "__main__":
     startup_thread = threading.Thread(target=startup, daemon=True)
     startup_thread.start()
     app.run(host="127.0.0.1", port=5000, debug=False, threaded=True)
+
