@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARTEMIS // Wiki — {{ article.title }}</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+  :root{--bg:#0a0d14;--surface:#0f1420;--surface2:#141926;--accent:#1a4a7a;--text:#e8eaf0;--dim:#4a6a8a;--border:#1e2d45;--shadow:0 2px 12px rgba(0,0,0,0.3);}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-height:100vh;display:flex;flex-direction:column}
+  header{background:var(--surface);border-bottom:1px solid var(--border);padding:13px 28px;display:flex;align-items:center;justify-content:space-between;box-shadow:var(--shadow)}
+  .logo{font-size:1.05rem;font-weight:700;color:var(--text);letter-spacing:.1em}
+  .nav-btn{font-size:12px;padding:6px 14px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--dim);cursor:pointer;text-decoration:none;transition:all 0.15s;display:inline-block}
+  .nav-btn:hover{border-color:#2a4a6a;color:var(--text)}
+  .nav-btn.edit{border-color:#6a3a1a;color:#e8944a;background:rgba(232,148,74,0.08)}
+  .nav-btn.edit:hover{background:rgba(232,148,74,0.18)}
+  .nav-btn.logout{border-color:#5a1a2a;color:#c06070;background:rgba(180,60,80,0.08)}
+
+  main{flex:1;max-width:860px;width:100%;margin:0 auto;padding:32px 28px}
+
+  .article-header{margin-bottom:28px;padding-bottom:20px;border-bottom:1px solid var(--border)}
+  .article-phase{font-size:11px;color:var(--dim);letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px}
+  .article-title{font-size:1.8rem;font-weight:700;color:var(--text);margin-bottom:8px}
+  .article-meta{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+  .article-meta a{font-size:0.78rem;color:#5a9acc;text-decoration:none}
+  .article-meta a:hover{text-decoration:underline}
+  .article-meta span{font-size:0.72rem;color:var(--dim)}
+
+  /* Rendered markdown styles */
+  .wiki-content{line-height:1.8;font-size:0.92rem}
+  .wiki-content h1{font-size:1.4rem;font-weight:700;color:var(--text);margin:28px 0 12px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+  .wiki-content h1:first-child{margin-top:0}
+  .wiki-content h2{font-size:1.1rem;font-weight:600;color:#8ab8d8;margin:24px 0 10px}
+  .wiki-content h3{font-size:0.95rem;font-weight:600;color:var(--dim);margin:18px 0 8px;text-transform:uppercase;letter-spacing:.06em}
+  .wiki-content p{margin-bottom:12px;color:#c8d4e0}
+  .wiki-content strong{color:var(--text);font-weight:600}
+  .wiki-content a{color:#5a9acc;text-decoration:none}
+  .wiki-content a:hover{text-decoration:underline}
+  .wiki-content ul,.wiki-content ol{margin:8px 0 12px 20px;color:#c8d4e0}
+  .wiki-content li{margin-bottom:4px}
+  .wiki-content code{font-family:'JetBrains Mono',monospace;font-size:0.82rem;background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:2px 6px;color:#8ab8d8}
+  .wiki-content pre{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:16px;overflow-x:auto;margin:12px 0}
+  .wiki-content pre code{background:none;border:none;padding:0;color:#8ab8d8;font-size:0.85rem}
+  .wiki-content table{width:100%;border-collapse:collapse;margin:12px 0;font-size:0.84rem}
+  .wiki-content th{background:var(--surface2);color:#8ab8d8;font-weight:600;padding:8px 12px;text-align:left;border:1px solid var(--border);font-size:0.78rem;text-transform:uppercase;letter-spacing:.05em}
+  .wiki-content td{padding:8px 12px;border:1px solid var(--border);color:#c8d4e0;vertical-align:top}
+  .wiki-content tr:nth-child(even) td{background:rgba(255,255,255,0.02)}
+  .wiki-content blockquote{border-left:3px solid var(--accent);margin:12px 0;padding:8px 16px;background:rgba(26,74,122,0.1);border-radius:0 8px 8px 0;color:var(--dim)}
+
+  footer{background:var(--surface);border-top:1px solid var(--border);padding:11px 28px;display:flex;justify-content:space-between;font-size:0.7rem;color:var(--dim)}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">◈ ART3MIS — Wiki</div>
+  <div style="display:flex;gap:8px">
+    <a href="/wiki" class="nav-btn">← All Tools</a>
+    {% if role == 'Administrator' %}
+    <a href="/wiki/{{ slug }}/edit" class="nav-btn edit">✎ Edit Article</a>
+    {% endif %}
+    <a href="/logout" class="nav-btn logout">⎋ Logout</a>
+  </div>
+</header>
+<main>
+  <div class="article-header">
+    <div class="article-phase">{{ article.phase }}</div>
+    <div class="article-title">{{ article.title }}</div>
+    <div class="article-meta">
+      <a href="{{ article.github }}" target="_blank">⬡ GitHub →</a>
+      {% if article.last_edited %}
+      <span>Last edited {{ article.last_edited }} by {{ article.edited_by }}</span>
+      {% else %}
+      <span>Default article — edit to customize</span>
+      {% endif %}
+    </div>
+  </div>
+  <div class="wiki-content">
+    {{ rendered | safe }}
+  </div>
+</main>
+<footer>
+  <span>Artemis // Wiki — {{ article.title }}</span>
+  <span>Confidential — Authorized Use Only</span>
+</footer>
+</body>
+</html>
