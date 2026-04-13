@@ -7,6 +7,7 @@ Dependencies: reportlab, python-docx
 """
 
 import json
+import re
 from datetime import datetime
 from pathlib import Path
 from typing import Callable
@@ -29,6 +30,39 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.enum.table import WD_TABLE_ALIGNMENT
 from docx.oxml.ns import qn
 from docx.oxml import OxmlElement
+
+# ══════════════════════════════════════════════════════════════════════════
+# STRING SANITIZATION
+# ══════════════════════════════════════════════════════════════════════════
+
+def _s(value) -> str:
+    """
+    Sanitize any value for safe use in PDF/DOCX output.
+    - Converts to string
+    - Strips null bytes and non-XML-compatible control characters
+    - Keeps printable ASCII, tabs, newlines, and valid Unicode
+    - Truncates extremely long strings to prevent layout issues
+    """
+    if value is None:
+        return "—"
+    text = str(value)
+    # Remove null bytes
+    text = text.replace("\x00", "")
+    # Remove control characters except tab (\x09), newline (\x0a), carriage return (\x0d)
+    text = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]", "", text)
+    # Remove invalid XML unicode characters (surrogates etc.)
+    text = re.sub(
+        r"[^\u0009\u000a\u000d\u0020-\uD7FF\uE000-\uFFFD]", "", text
+    )
+    # Truncate to avoid ReportLab overflow
+    if len(text) > 2000:
+        text = text[:2000] + "…"
+    return text.strip() or "—"
+
+
+def _sl(items: list, limit: int = 50) -> list:
+    """Sanitize a list of strings, capping at limit items."""
+    return [_s(i) for i in (items or [])[:limit]]
 
 # ══════════════════════════════════════════════════════════════════════════
 # COLOUR PALETTE (shared)
@@ -111,18 +145,18 @@ def _table_style_main():
 
 
 def build_pdf(results: dict, folder: Path, styles: dict) -> Path:
-    client   = results.get("client", "Unknown")
-    date     = results.get("date",   datetime.now().strftime("%Y-%m-%d"))
-    targets  = results.get("targets", [])
-    ports    = results.get("open_ports", {})
-    vulns    = results.get("vulnerabilities", {})
-    subs     = results.get("subdomains", [])
-    headers  = results.get("missing_headers", {})
-    ffuf     = results.get("ffuf_findings", {})
-    msf      = results.get("msf_findings", [])
+    client   = _s(results.get("client", "Unknown"))
+    date     = _s(results.get("date",   datetime.now().strftime("%Y-%m-%d")))
+    targets  = _sl(results.get("targets", []))
+    ports    = {_s(k): _sl(v) for k, v in results.get("open_ports", {}).items()}
+    vulns    = {_s(k): _sl(v, 30) for k, v in results.get("vulnerabilities", {}).items()}
+    subs     = _sl(results.get("subdomains", []))
+    headers  = {_s(k): _sl(v) for k, v in results.get("missing_headers", {}).items()}
+    ffuf     = {_s(k): v for k, v in results.get("ffuf_findings", {}).items()}
+    msf      = _sl(results.get("msf_findings", []))
     o365     = results.get("o365_findings", {})
     harvest  = results.get("harvester", {})
-    pymeta   = results.get("pymeta", [])
+    metagoofil_data = _sl(results.get("metagoofil", []))
 
     out_path = folder / f"Artemis_Report_{client}_{date}.pdf"
     doc = SimpleDocTemplate(
@@ -156,16 +190,25 @@ def build_pdf(results: dict, folder: Path, styles: dict) -> Path:
     # ── SECTION 1 — Vulnerability / Port Summary ──────────────────────
     story.append(Paragraph("1. Vulnerability & Port Summary", S["section"]))
     story.append(_hr())
+
+    # Use Paragraph for vuln text so ReportLab wraps long content naturally
+    wrap_style = ParagraphStyle("cell_wrap",
+        fontName="Courier", fontSize=8, textColor=C_TEXT, leading=11)
+
     if targets:
         rows = [["Host / IP", "Vulnerabilities Found", "Open Ports"]]
         for t in targets:
-            v_list  = vulns.get(t, [])
-            p_list  = ports.get(t, [])
-            v_text  = "\n".join(v_list[:10]) if v_list else "None detected"
-            p_text  = ", ".join(sorted(set(p_list), key=lambda x: int(x))) if p_list else "—"
+            v_list = vulns.get(t, [])
+            p_list = ports.get(t, [])
+            v_text = "\n".join(_s(v) for v in v_list[:10]) if v_list else "None detected"
             if len(v_list) > 10:
                 v_text += f"\n... (+{len(v_list)-10} more)"
-            rows.append([t, v_text, p_text])
+            p_text = ", ".join(sorted(set(_s(p) for p in p_list), key=lambda x: int(x) if x.isdigit() else 0)) if p_list else "—"
+            rows.append([
+                Paragraph(_s(t), wrap_style),
+                Paragraph(v_text.replace("\n", "<br/>"), wrap_style),
+                Paragraph(p_text, wrap_style),
+            ])
         tbl = Table(rows, colWidths=[1.8*inch, 3.8*inch, 1.8*inch], repeatRows=1)
         tbl.setStyle(_table_style_main())
         story.append(tbl)
@@ -177,11 +220,13 @@ def build_pdf(results: dict, folder: Path, styles: dict) -> Path:
     story.append(Paragraph("2. OSINT — Subdomain & OSINT Enumeration", S["section"]))
     story.append(_hr())
 
-    # 2a — Subdomains
+    # 2a — Subdomains: summary count only
     story.append(Paragraph("2a. Subdomains Discovered", S["subsection"]))
-    if subs:
-        rows = [["Subdomain"]] + [[s] for s in sorted(set(subs))]
-        tbl = Table(rows, colWidths=[7.0*inch], repeatRows=1)
+    unique_subs = list(set(subs))
+    if unique_subs:
+        rows = [["Source", "Total Subdomains Discovered"],
+                ["assetfinder + theHarvester", str(len(unique_subs))]]
+        tbl = Table(rows, colWidths=[3.5*inch, 3.5*inch], repeatRows=1)
         tbl.setStyle(_table_style_main())
         story.append(tbl)
     else:
@@ -209,25 +254,25 @@ def build_pdf(results: dict, folder: Path, styles: dict) -> Path:
         story.append(Paragraph("theHarvester not run or no findings.", S["note"]))
     story.append(Spacer(1, 0.1*inch))
 
-    # 2c — pymeta
-    story.append(Paragraph("2c. pymeta — Exposed File Metadata", S["subsection"]))
-    if pymeta:
-        rows = [["Discovered File / Metadata"]] + [[p] for p in pymeta[:50]]
-        tbl = Table(rows, colWidths=[7.0*inch], repeatRows=1)
+    # 2c — metagoofil: summary count only
+    story.append(Paragraph("2c. metagoofil — Exposed File Metadata", S["subsection"]))
+    if metagoofil_data:
+        rows = [["File Types Searched", "Total Exposed Files Found"],
+                ["pdf, doc, docx, xls, xlsx, ppt, pptx (root domain + subdomains)", str(len(metagoofil_data))]]
+        tbl = Table(rows, colWidths=[4.0*inch, 3.0*inch], repeatRows=1)
         tbl.setStyle(_table_style_main())
         story.append(tbl)
-        if len(pymeta) > 50:
-            story.append(Paragraph(f"... (+{len(pymeta)-50} more — see pymeta output file)",
-                                   S["note"]))
+        story.append(Paragraph(
+            "See metagoofil_*.txt in 1_recon/ for full file listing.", S["note"]))
     else:
-        story.append(Paragraph("pymeta not run or no exposed files found.", S["note"]))
+        story.append(Paragraph("metagoofil not run or no exposed files found.", S["note"]))
     story.append(Spacer(1, 0.2*inch))
 
     # ── SECTION 3 — Domain Security ──────────────────────────────────
     story.append(Paragraph("3. Domain Security", S["section"]))
     story.append(_hr())
 
-    # 3a — spoofy (no data structure — raw file referenced)
+    # 3a — spoofy
     story.append(Paragraph("3a. Email Spoofability (spoofy)", S["subsection"]))
     story.append(Paragraph(
         "See spoofy_*.txt in the 1_recon folder for full SPF/DMARC/DKIM analysis.",
@@ -255,12 +300,14 @@ def build_pdf(results: dict, folder: Path, styles: dict) -> Path:
     story.append(Paragraph("4. Missing HTTP Security Headers", S["section"]))
     story.append(_hr())
     if headers:
-        rows = [["Host", "Missing Headers"]]
+        rows = [["Host", "Missing Header Count"]]
         for host, h_list in headers.items():
-            rows.append([host, "\n".join(h_list)])
-        tbl = Table(rows, colWidths=[2.5*inch, 4.5*inch], repeatRows=1)
+            rows.append([host, str(len(h_list))])
+        tbl = Table(rows, colWidths=[4.5*inch, 2.5*inch], repeatRows=1)
         tbl.setStyle(_table_style_main())
         story.append(tbl)
+        story.append(Paragraph(
+            "See shcheck_*.txt in 3_vuln/ for full header details.", S["note"]))
     else:
         story.append(Paragraph("No missing security headers detected.", S["note"]))
     story.append(Spacer(1, 0.2*inch))
@@ -269,13 +316,15 @@ def build_pdf(results: dict, folder: Path, styles: dict) -> Path:
     story.append(Paragraph("5. Web Content Discovery (FFUF — HTTP 200)", S["section"]))
     story.append(_hr())
     if ffuf:
-        rows = [["Host", "Discovered URL"]]
+        rows = [["Host", "HTTP 200 Paths Found"]]
         for host, findings in ffuf.items():
-            for f in findings:
-                rows.append([host, f.get("url", "")])
-        tbl = Table(rows, colWidths=[2.5*inch, 4.5*inch], repeatRows=1)
+            count = len([f for f in findings if f.get("status") == 200])
+            rows.append([host, str(count)])
+        tbl = Table(rows, colWidths=[4.5*inch, 2.5*inch], repeatRows=1)
         tbl.setStyle(_table_style_main())
         story.append(tbl)
+        story.append(Paragraph(
+            "See ffuf_*.json in 3_vuln/ for full URL listing.", S["note"]))
     else:
         story.append(Paragraph("No HTTP 200 responses discovered by FFUF.", S["note"]))
     story.append(Spacer(1, 0.2*inch))
@@ -379,18 +428,18 @@ def _add_table(doc: Document, rows: list[list[str]],
 
 
 def build_docx(results: dict, folder: Path) -> Path:
-    client  = results.get("client", "Unknown")
-    date    = results.get("date",   datetime.now().strftime("%Y-%m-%d"))
-    targets = results.get("targets", [])
-    ports   = results.get("open_ports", {})
-    vulns   = results.get("vulnerabilities", {})
-    subs    = results.get("subdomains", [])
-    headers = results.get("missing_headers", {})
-    ffuf    = results.get("ffuf_findings", {})
-    msf     = results.get("msf_findings", [])
+    client  = _s(results.get("client", "Unknown"))
+    date    = _s(results.get("date",   datetime.now().strftime("%Y-%m-%d")))
+    targets = _sl(results.get("targets", []))
+    ports   = {_s(k): _sl(v) for k, v in results.get("open_ports", {}).items()}
+    vulns   = {_s(k): _sl(v, 30) for k, v in results.get("vulnerabilities", {}).items()}
+    subs    = _sl(results.get("subdomains", []))
+    headers = {_s(k): _sl(v) for k, v in results.get("missing_headers", {}).items()}
+    ffuf    = {_s(k): v for k, v in results.get("ffuf_findings", {}).items()}
+    msf     = _sl(results.get("msf_findings", []))
     o365    = results.get("o365_findings", {})
     harvest = results.get("harvester", {})
-    pymeta  = results.get("pymeta", [])
+    metagoofil_data = _sl(results.get("metagoofil", []))
 
     doc = Document()
     section = doc.sections[0]
@@ -430,10 +479,11 @@ def build_docx(results: dict, folder: Path) -> Path:
         for t in targets:
             v_list = vulns.get(t, [])
             p_list = ports.get(t, [])
-            v_text = "; ".join(v_list[:8]) if v_list else "None detected"
+            v_text = "; ".join(_s(v) for v in v_list[:8]) if v_list else "None detected"
             if len(v_list) > 8: v_text += f" (+{len(v_list)-8} more)"
-            p_text = ", ".join(sorted(set(p_list), key=lambda x: int(x))) if p_list else "—"
-            rows.append([t, v_text, p_text])
+            p_text = ", ".join(sorted(set(_s(p) for p in p_list), key=lambda x: int(x) if x.isdigit() else 0)) if p_list else "—"
+            t_display = (_s(t)[:40] + "...") if len(_s(t)) > 40 else _s(t)
+            rows.append([t_display, v_text, p_text])
         _add_table(doc, rows, col_widths=[1.8, 3.8, 1.8])
     else:
         doc.add_paragraph("No targets scanned.")
@@ -442,16 +492,19 @@ def build_docx(results: dict, folder: Path) -> Path:
     _heading_para(doc, "2. OSINT — Subdomain & OSINT Enumeration")
 
     _heading_para(doc, "2a. Subdomains Discovered", level=2)
-    if subs:
-        rows = [["Subdomain"]] + [[s] for s in sorted(set(subs))]
-        _add_table(doc, rows, col_widths=[7.0])
+    unique_subs = list(set(subs))
+    if unique_subs:
+        rows = [["Source", "Total Subdomains Discovered"],
+                ["assetfinder + amass + bbot + theHarvester", str(len(unique_subs))]]
+        _add_table(doc, rows, col_widths=[3.5, 3.5])
+        doc.add_paragraph("See assetfinder_*.txt, amass_*.txt and theharvester_*.txt in 1_recon/ for full listing.")
     else:
         doc.add_paragraph("No subdomains discovered.")
 
     _heading_para(doc, "2b. theHarvester — Emails / IPs / Subdomains", level=2)
     if harvest:
-        emails = harvest.get("emails", [])
-        h_ips  = harvest.get("ips", [])
+        emails = [_s(e) for e in harvest.get("emails", [])]
+        h_ips  = [_s(ip) for ip in harvest.get("ips", [])]
         if emails:
             rows = [["Discovered Emails"]] + [[e] for e in sorted(set(emails))]
             _add_table(doc, rows, col_widths=[7.0])
@@ -462,14 +515,14 @@ def build_docx(results: dict, folder: Path) -> Path:
     else:
         doc.add_paragraph("theHarvester not run or no findings.")
 
-    _heading_para(doc, "2c. pymeta — Exposed File Metadata", level=2)
-    if pymeta:
-        rows = [["Discovered File / Metadata"]] + [[p] for p in pymeta[:50]]
-        _add_table(doc, rows, col_widths=[7.0])
-        if len(pymeta) > 50:
-            doc.add_paragraph(f"... (+{len(pymeta)-50} more — see pymeta output file)")
+    _heading_para(doc, "2c. metagoofil — Exposed File Metadata", level=2)
+    if metagoofil_data:
+        rows = [["File Types Searched", "Total Exposed Files Found"],
+                ["pdf, doc, docx, xls, xlsx, ppt, pptx (root domain + subdomains)", str(len(metagoofil_data))]]
+        _add_table(doc, rows, col_widths=[4.5, 2.5])
+        doc.add_paragraph("See metagoofil_*.txt in 1_recon/ for full file listing.")
     else:
-        doc.add_paragraph("pymeta not run or no exposed files found.")
+        doc.add_paragraph("metagoofil not run or no exposed files found.")
 
     # ── Section 3 — Domain Security ──────────────────────────────────
     _heading_para(doc, "3. Domain Security")
@@ -493,28 +546,30 @@ def build_docx(results: dict, folder: Path) -> Path:
     # ── Section 4 — Missing Headers ──────────────────────────────────
     _heading_para(doc, "4. Missing HTTP Security Headers")
     if headers:
-        rows = [["Host", "Missing Headers"]]
+        rows = [["Host", "Missing Header Count"]]
         for host, h_list in headers.items():
-            rows.append([host, "; ".join(h_list)])
-        _add_table(doc, rows, col_widths=[2.5, 4.5])
+            rows.append([_s(host), str(len(h_list))])
+        _add_table(doc, rows, col_widths=[4.5, 2.5])
+        doc.add_paragraph("See shcheck_*.txt in 3_vuln/ for full header details.")
     else:
         doc.add_paragraph("No missing security headers detected.")
 
     # ── Section 5 — FFUF ─────────────────────────────────────────────
     _heading_para(doc, "5. Web Content Discovery (FFUF — HTTP 200)")
     if ffuf:
-        rows = [["Host", "Discovered URL"]]
+        rows = [["Host", "HTTP 200 Paths Found"]]
         for host, findings in ffuf.items():
-            for f in findings:
-                rows.append([host, f.get("url", "")])
-        _add_table(doc, rows, col_widths=[2.5, 4.5])
+            count = len([f for f in findings if isinstance(f, dict) and f.get("status") == 200])
+            rows.append([_s(host), str(count)])
+        _add_table(doc, rows, col_widths=[4.5, 2.5])
+        doc.add_paragraph("See ffuf_*.txt in 3_vuln/ for full URL listing.")
     else:
         doc.add_paragraph("No HTTP 200 responses discovered by FFUF.")
 
     # ── Section 6 — Metasploit ────────────────────────────────────────
     _heading_para(doc, "6. Metasploit Auxiliary Findings")
     if msf:
-        rows = [["Finding"]] + [[m] for m in msf]
+        rows = [["Finding"]] + [[_s(m)] for m in msf]
         _add_table(doc, rows, col_widths=[7.0])
     else:
         doc.add_paragraph("No notable findings from Metasploit auxiliary modules.")
