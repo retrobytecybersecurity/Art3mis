@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARTEMIS // Account Requests</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+  :root {
+    --bg:      #0a0d14;
+    --surface: #0f1420;
+    --surface2:#141926;
+    --accent:  #1a4a7a;
+    --success: #2a7a4a;
+    --warning: #8a5a1a;
+    --error:   #8a2a3a;
+    --text:    #e8eaf0;
+    --dim:     #4a6a8a;
+    --border:  #1e2d45;
+    --shadow:  0 2px 12px rgba(0,0,0,0.3);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; min-height: 100vh; display: flex; flex-direction: column; }
+
+  header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 13px 28px; display: flex; align-items: center; justify-content: space-between; box-shadow: var(--shadow); }
+  .logo { font-size: 1.05rem; font-weight: 700; color: var(--text); letter-spacing: .1em; }
+  .nav-btn { font-size: 12px; padding: 6px 14px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface2); color: var(--dim); cursor: pointer; text-decoration: none; transition: all 0.15s; display: inline-block; }
+  .nav-btn:hover { border-color: #2a4a6a; color: var(--text); }
+  .nav-btn.logout { border-color: #5a1a2a; color: #c06070; background: rgba(180,60,80,0.08); }
+
+  main { flex: 1; max-width: 1020px; width: 100%; margin: 0 auto; padding: 32px 28px; }
+  .page-label { font-size: 11px; color: var(--dim); letter-spacing: .1em; text-transform: uppercase; margin-bottom: 3px; }
+  .page-title { font-size: 1.3rem; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+  .page-sub   { font-size: 0.8rem; color: var(--dim); margin-bottom: 24px; }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; margin-bottom: 20px; box-shadow: var(--shadow); }
+  .card-hdr { padding: 12px 20px; background: var(--surface2); border-bottom: 1px solid var(--border); font-size: 0.74rem; font-weight: 600; color: var(--dim); letter-spacing: .09em; text-transform: uppercase; display: flex; align-items: center; justify-content: space-between; }
+  .pending-badge { background: rgba(138,90,26,0.2); border: 0.5px solid #5a4a1a; color: #c8a050; font-size: 0.68rem; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+  th { text-align: left; color: var(--dim); font-size: 0.7rem; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; padding: 6px 14px; border-bottom: 1px solid var(--border); }
+  td { padding: 10px 14px; border-bottom: 1px solid rgba(30,45,69,0.5); vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(255,255,255,0.02); }
+
+  .rbadge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 0.68rem; font-weight: 500; border: 0.5px solid; }
+  .rb-junior { background: rgba(74,106,138,0.1); border-color: var(--border); color: var(--dim); }
+
+  .status-pending  { font-size: 0.72rem; color: #c8a050; font-weight: 500; }
+  .status-approved { font-size: 0.72rem; color: #4aaa6a; font-weight: 500; }
+  .status-denied   { font-size: 0.72rem; color: #e88a9a; font-weight: 500; }
+
+  .btn-approve { padding: 4px 12px; font-family: 'Inter', sans-serif; font-size: 0.72rem; font-weight: 500; border-radius: 7px; cursor: pointer; border: 0.5px solid #2a5a3a; color: #4aaa6a; background: rgba(42,122,74,0.1); transition: all 0.15s; }
+  .btn-approve:hover { background: rgba(42,122,74,0.2); }
+  .btn-deny    { padding: 4px 12px; font-family: 'Inter', sans-serif; font-size: 0.72rem; font-weight: 500; border-radius: 7px; cursor: pointer; border: 0.5px solid #5a1a2a; color: #e88a9a; background: rgba(138,42,58,0.1); transition: all 0.15s; }
+  .btn-deny:hover { background: rgba(138,42,58,0.2); }
+
+  .empty-note { font-size: 0.82rem; color: var(--dim); padding: 24px; text-align: center; }
+
+  /* Credentials modal */
+  .modal-bg { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.65); z-index: 200; align-items: center; justify-content: center; }
+  .modal-bg.open { display: flex; }
+  .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; width: 460px; overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
+  .modal-hdr { padding: 14px 20px; background: rgba(42,122,74,0.15); border-bottom: 1px solid #2a5a3a; font-size: 0.82rem; font-weight: 600; color: #4aaa6a; }
+  .modal-body { padding: 22px 20px; }
+  .modal-warn { background: rgba(138,90,26,0.15); border: 1px solid #5a4a1a; border-radius: 8px; padding: 10px 14px; font-size: 0.78rem; color: #c8a050; margin-bottom: 18px; line-height: 1.5; }
+  .cred-row { display: flex; align-items: center; justify-content: space-between; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; margin-bottom: 10px; }
+  .cred-label { font-size: 0.7rem; color: var(--dim); font-weight: 600; text-transform: uppercase; letter-spacing: .07em; margin-bottom: 3px; }
+  .cred-value { font-family: 'Courier New', monospace; font-size: 0.95rem; color: var(--text); font-weight: 600; }
+  .btn-copy { font-size: 0.72rem; padding: 4px 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); color: var(--dim); cursor: pointer; white-space: nowrap; transition: all 0.15s; flex-shrink: 0; }
+  .btn-copy:hover { border-color: #2a4a6a; color: var(--text); }
+  .btn-copy.copied { border-color: #2a5a3a; color: #4aaa6a; }
+  .btn-close-modal { width: 100%; margin-top: 16px; padding: 11px; background: rgba(42,122,74,0.25); border: 1px solid #2a5a3a; border-radius: 10px; color: #4aaa6a; font-family: 'Inter', sans-serif; font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: filter 0.15s; }
+  .btn-close-modal:hover { filter: brightness(1.15); }
+
+  /* Deny modal */
+  .deny-modal { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; width: 420px; overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
+  .deny-modal-hdr { padding: 14px 20px; background: rgba(138,42,58,0.15); border-bottom: 1px solid #5a1a2a; font-size: 0.82rem; font-weight: 600; color: #e88a9a; }
+  .deny-modal-body { padding: 20px; }
+  textarea { width: 100%; background: #ffffff; border: 1px solid #c8d8e8; border-radius: 10px; color: #0f1826; font-family: 'Inter', sans-serif; font-size: 0.85rem; padding: 9px 12px; outline: none; resize: vertical; min-height: 80px; }
+  .deny-actions { display: flex; gap: 8px; margin-top: 14px; }
+  .btn-confirm-deny { flex: 1; padding: 10px; background: rgba(138,42,58,0.3); border: 1px solid #5a1a2a; border-radius: 10px; color: #e88a9a; font-family: 'Inter', sans-serif; font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: filter 0.15s; }
+  .btn-confirm-deny:hover { filter: brightness(1.15); }
+  .btn-cancel-deny { flex: 1; padding: 10px; background: transparent; border: 1px solid var(--border); border-radius: 10px; color: var(--dim); font-family: 'Inter', sans-serif; font-size: 0.85rem; cursor: pointer; }
+
+  #toast { position: fixed; bottom: 24px; right: 24px; padding: 10px 18px; border-radius: 10px; font-size: 0.82rem; font-family: 'Inter', sans-serif; opacity: 0; pointer-events: none; transition: opacity 0.3s; z-index: 999; font-weight: 500; }
+  #toast.show    { opacity: 1; }
+  #toast.success { background: rgba(42,122,74,0.2); border: 1px solid #2a5a3a; color: #4aaa6a; }
+  #toast.error   { background: rgba(138,42,58,0.2); border: 1px solid #5a1a2a; color: #e88a9a; }
+
+  footer { background: var(--surface); border-top: 1px solid var(--border); padding: 11px 28px; display: flex; justify-content: space-between; font-size: 0.7rem; color: var(--dim); }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">◈ ART3MIS</div>
+  <div style="display:flex;gap:8px">
+    <a href="/" class="nav-btn">← Dashboard</a>
+    <a href="/admin/users" class="nav-btn">◈ Users</a>
+    <a href="/logout" class="nav-btn logout">⎋ Logout</a>
+  </div>
+</header>
+
+<main>
+  <div class="page-label">Administration</div>
+  <div class="page-title">Account Requests</div>
+  <div class="page-sub">Review and approve or deny account requests submitted by your representative.</div>
+
+  <div class="card">
+    <div class="card-hdr">
+      <span>Pending Requests</span>
+      {% if pending %}<span class="pending-badge">{{ pending|length }} awaiting review</span>{% endif %}
+    </div>
+    <div class="card-body" style="padding:0">
+      {% if pending %}
+      <table>
+        <thead><tr><th>Name</th><th>Email / Username</th><th>Role</th><th>Submitted By</th><th>Date</th><th>Note</th><th>Actions</th></tr></thead>
+        <tbody>
+          {% for req in pending %}
+          <tr id="row-{{ req.id }}">
+            <td style="font-weight:500">{{ req.name }}</td>
+            <td style="font-family:monospace;font-size:0.78rem;color:var(--dim)">{{ req.email }}</td>
+            <td><span class="rbadge rb-junior">Junior Tester</span></td>
+            <td style="color:var(--dim)">{{ req.submitted_by }}</td>
+            <td style="color:var(--dim);font-size:0.75rem">{{ req.submitted_at[:10] }}</td>
+            <td style="color:var(--dim);font-size:0.75rem">{{ req.note or '—' }}</td>
+            <td>
+              <div style="display:flex;gap:6px">
+                <button class="btn-approve" onclick="approveRequest('{{ req.id }}','{{ req.name }}')">✓ Approve</button>
+                <button class="btn-deny"    onclick="openDenyModal('{{ req.id }}')">✗ Deny</button>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <p class="empty-note">No pending requests — all caught up.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if decided %}
+  <div class="card">
+    <div class="card-hdr">
+      <span>Decision History</span>
+      <span style="font-weight:400;font-size:0.7rem">{{ decided|length }} decided</span>
+    </div>
+    <div class="card-body" style="padding:0">
+      <table>
+        <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Decided By</th><th>Date</th></tr></thead>
+        <tbody>
+          {% for req in decided|sort(attribute='decided_at', reverse=True) %}
+          <tr>
+            <td style="font-weight:500">{{ req.name }}</td>
+            <td style="font-family:monospace;font-size:0.78rem;color:var(--dim)">{{ req.email }}</td>
+            <td><span class="rbadge rb-junior">Junior Tester</span></td>
+            <td>
+              {% if req.status == 'approved' %}<span class="status-approved">✓ Approved</span>
+              {% else %}<span class="status-denied">✗ Denied{% if req.reason %} — {{ req.reason }}{% endif %}</span>{% endif %}
+            </td>
+            <td style="color:var(--dim)">{{ req.decided_by or '—' }}</td>
+            <td style="color:var(--dim);font-size:0.75rem">{{ req.decided_at[:10] if req.decided_at else '—' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+</main>
+
+<footer>
+  <span>Artemis // Account Requests</span>
+  <span>Confidential — Authorized Use Only</span>
+</footer>
+
+<!-- Credentials modal -->
+<div class="modal-bg" id="cred-modal">
+  <div class="modal">
+    <div class="modal-hdr">✓ Account Created — Save These Credentials</div>
+    <div class="modal-body">
+      <div class="modal-warn">⚠ These credentials will only be shown once. Copy them now and share with the user securely. They will be forced to change their password on first login.</div>
+      <div class="cred-row">
+        <div><div class="cred-label">Username</div><div class="cred-value" id="cred-username"></div></div>
+        <button class="btn-copy" onclick="copyField('cred-username',this)">Copy</button>
+      </div>
+      <div class="cred-row">
+        <div><div class="cred-label">Temporary Password</div><div class="cred-value" id="cred-password"></div></div>
+        <button class="btn-copy" onclick="copyField('cred-password',this)">Copy</button>
+      </div>
+      <div style="font-size:0.75rem;color:var(--dim);margin-top:10px">
+        Role: <strong id="cred-role" style="color:var(--text)"></strong> &nbsp;|&nbsp; Name: <strong id="cred-name" style="color:var(--text)"></strong>
+      </div>
+      <button class="btn-close-modal" onclick="closeCredModal()">✓ I have saved these credentials</button>
+    </div>
+  </div>
+</div>
+
+<!-- Deny modal -->
+<div class="modal-bg" id="deny-modal">
+  <div class="deny-modal">
+    <div class="deny-modal-hdr">Deny Request</div>
+    <div class="deny-modal-body">
+      <div style="margin-bottom:8px">
+        <label style="font-size:0.72rem;font-weight:600;color:var(--dim);letter-spacing:.07em;text-transform:uppercase;display:block;margin-bottom:6px">Reason <span style="font-weight:400;text-transform:none">(optional)</span></label>
+        <textarea id="deny-reason" placeholder="e.g. Insufficient information provided"></textarea>
+      </div>
+      <div class="deny-actions">
+        <button class="btn-confirm-deny" onclick="confirmDeny()">✗ Confirm Deny</button>
+        <button class="btn-cancel-deny"  onclick="closeDenyModal()">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="toast"></div>
+
+<script>
+let denyingId = null;
+function toast(msg,type='success'){ const el=document.getElementById('toast'); el.textContent=msg; el.className=`show ${type}`; setTimeout(()=>{ el.className=''; },3500); }
+function copyField(id,btn){ navigator.clipboard.writeText(document.getElementById(id).textContent).then(()=>{ btn.textContent='Copied!'; btn.classList.add('copied'); setTimeout(()=>{ btn.textContent='Copy'; btn.classList.remove('copied'); },2000); }); }
+async function approveRequest(id,name){
+  const res=await fetch('/api/requests/approve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id})});
+  const data=await res.json();
+  if(!data.ok){ toast(data.error,'error'); return; }
+  document.getElementById('cred-username').textContent=data.username;
+  document.getElementById('cred-password').textContent=data.temp_password;
+  document.getElementById('cred-role').textContent=data.role;
+  document.getElementById('cred-name').textContent=data.name;
+  document.getElementById('cred-modal').classList.add('open');
+  const row=document.getElementById(`row-${id}`); if(row) row.remove();
+  const rem=document.querySelectorAll('tr[id^="row-"]').length;
+  const badge=document.querySelector('.pending-badge');
+  if(badge){ if(rem===0) badge.remove(); else badge.textContent=`${rem} awaiting review`; }
+}
+function closeCredModal(){ document.getElementById('cred-modal').classList.remove('open'); location.reload(); }
+function openDenyModal(id){ denyingId=id; document.getElementById('deny-reason').value=''; document.getElementById('deny-modal').classList.add('open'); }
+function closeDenyModal(){ denyingId=null; document.getElementById('deny-modal').classList.remove('open'); }
+async function confirmDeny(){
+  const reason=document.getElementById('deny-reason').value.trim();
+  const res=await fetch('/api/requests/deny',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:denyingId,reason})});
+  const data=await res.json();
+  if(!data.ok){ toast(data.error,'error'); return; }
+  closeDenyModal(); toast('Request denied.');
+  const row=document.getElementById(`row-${denyingId}`); if(row) row.remove();
+  setTimeout(()=>location.reload(),1200);
+}
+document.getElementById('cred-modal').addEventListener('click',function(e){ if(e.target===this) closeCredModal(); });
+document.getElementById('deny-modal').addEventListener('click',function(e){ if(e.target===this) closeDenyModal(); });
+</script>
+</body>
+</html>
