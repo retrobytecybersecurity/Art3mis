@@ -302,6 +302,8 @@
             <label class="tool-check"><input type="checkbox" id="t-pymeta" checked> pymeta</label>
             <label class="tool-check"><input type="checkbox" id="t-bbot" checked> bbot <span id="bbot-mode-label" style="color:var(--dim);font-size:0.68rem">(passive)</span></label>
             <label class="tool-check"><input type="checkbox" id="t-amass" checked> amass <span id="amass-mode-label" style="color:var(--dim);font-size:0.68rem">(passive)</span></label>
+            <label class="tool-check"><input type="checkbox" id="t-nuclei-passive" checked> nuclei <span style="color:var(--dim);font-size:0.68rem">(passive tags only)</span></label>
+            <label class="tool-check"><input type="checkbox" id="t-breach-check" checked> OathNet breach check <span style="color:var(--dim);font-size:0.68rem">(discovered emails)</span></label>
             <div class="tool-group-label" style="margin-top:8px">Active</div>
             <label class="tool-check"><input type="checkbox" id="t-curl-sweep" checked> curl header sweep</label>
           </div>
@@ -515,7 +517,7 @@ function togglePhase(id) {
 
 function syncPhaseCheck(id) {
   const phaseMap = {
-    p1: ['t-assetfinder','t-dnsenum','t-theharvester','t-spoofy','t-o365spray','t-pymeta','t-bbot','t-amass','t-curl-sweep'],
+    p1: ['t-assetfinder','t-dnsenum','t-theharvester','t-spoofy','t-o365spray','t-pymeta','t-bbot','t-amass','t-nuclei-passive','t-breach-check','t-curl-sweep'],
     p2: ['t-masscan','t-nmap-tcp','t-nmap-udp','t-gowitness'],
     p3: ['t-sslscan','t-shcheck','t-nikto','t-nuclei','t-ffuf','t-wpscan','t-metasploit'],
   };
@@ -524,7 +526,7 @@ function syncPhaseCheck(id) {
   phaseMap[id].forEach(tid => { const el = document.getElementById(tid); if (el) el.checked = checked; });
 }
 
-const PASSIVE_TOOLS = ['t-assetfinder','t-dnsenum','t-theharvester','t-spoofy','t-o365spray','t-pymeta','t-bbot','t-amass','t-sslscan','t-shcheck'];
+const PASSIVE_TOOLS = ['t-assetfinder','t-dnsenum','t-theharvester','t-spoofy','t-o365spray','t-pymeta','t-bbot','t-amass','t-nuclei-passive','t-breach-check','t-sslscan','t-shcheck'];
 const ACTIVE_TOOLS  = ['t-curl-sweep','t-masscan','t-nmap-tcp','t-nmap-udp','t-gowitness','t-nikto','t-nuclei','t-ffuf','t-wpscan','t-metasploit'];
 const ALL_TOOLS     = [...PASSIVE_TOOLS, ...ACTIVE_TOOLS];
 
@@ -548,7 +550,7 @@ function applyPreset(mode) {
     if (amassLabel) { amassLabel.textContent='(passive — OSINT only)'; amassLabel.style.color='var(--dim)'; }
   }
   const ptm = {
-    'ph-recon': ['t-assetfinder','t-dnsenum','t-theharvester','t-spoofy','t-o365spray','t-pymeta','t-bbot','t-amass','t-curl-sweep'],
+    'ph-recon': ['t-assetfinder','t-dnsenum','t-theharvester','t-spoofy','t-o365spray','t-pymeta','t-bbot','t-amass','t-nuclei-passive','t-breach-check','t-curl-sweep'],
     'ph-scan':  ['t-masscan','t-nmap-tcp','t-nmap-udp','t-gowitness'],
     'ph-vuln':  ['t-sslscan','t-shcheck','t-nikto','t-nuclei','t-ffuf','t-wpscan','t-metasploit'],
   };
@@ -571,6 +573,8 @@ function collectTools() {
     o365spray:get('t-o365spray'), pymeta:get('t-pymeta'),
     bbot:get('t-bbot'), bbot_mode:bbotMode,
     amass:get('t-amass'), amass_mode:amassMode,
+    nuclei_passive:get('t-nuclei-passive'),
+    breach_check:get('t-breach-check'),
     curl_sweep:get('t-curl-sweep'), masscan:get('t-masscan'),
     nmap_tcp:get('t-nmap-tcp'),
     nmap_udp:get('t-nmap-udp'), gowitness:get('t-gowitness'),
