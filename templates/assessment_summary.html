@@ -195,7 +195,7 @@
           <span class="pbadge {{ 'on' if data.phases.get('vuln')  else 'off' }}">Phase 3 — Vulns</span>
         </div>
         <div style="font-size:0.75rem;color:var(--dim);margin-top:8px">
-          {% if data.phases.get('recon') %}✓ assetfinder, dnsenum, theHarvester, spoofy, o365spray, pymeta, bbot<br>{% endif %}
+          {% if data.phases.get('recon') %}✓ assetfinder, dnsenum, spoofy, o365spray, metagoofil, bbot<br>{% endif %}
           {% if data.phases.get('scan')  %}✓ nmap TCP/UDP, gowitness<br>{% endif %}
           {% if data.phases.get('vuln')  %}✓ sslscan, shcheck, nikto, nuclei, ffuf, wpscan, metasploit{% endif %}
         </div>
