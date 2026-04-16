@@ -155,7 +155,6 @@ def build_pdf(results: dict, folder: Path, styles: dict) -> Path:
     ffuf     = {_s(k): v for k, v in results.get("ffuf_findings", {}).items()}
     msf      = _sl(results.get("msf_findings", []))
     o365     = results.get("o365_findings", {})
-    harvest  = results.get("harvester", {})
     metagoofil_data = _sl(results.get("metagoofil", []))
 
     out_path = folder / f"Artemis_Report_{client}_{date}.pdf"
@@ -225,7 +224,7 @@ def build_pdf(results: dict, folder: Path, styles: dict) -> Path:
     unique_subs = list(set(subs))
     if unique_subs:
         rows = [["Source", "Total Subdomains Discovered"],
-                ["assetfinder + theHarvester", str(len(unique_subs))]]
+                ["assetfinder + amass + bbot", str(len(unique_subs))]]
         tbl = Table(rows, colWidths=[3.5*inch, 3.5*inch], repeatRows=1)
         tbl.setStyle(_table_style_main())
         story.append(tbl)
@@ -233,39 +232,6 @@ def build_pdf(results: dict, folder: Path, styles: dict) -> Path:
         story.append(Paragraph("No subdomains discovered.", S["note"]))
     story.append(Spacer(1, 0.1*inch))
 
-    # 2b — theHarvester
-    story.append(Paragraph("2b. theHarvester — Emails / IPs / Subdomains", S["subsection"]))
-    if harvest:
-        emails = harvest.get("emails", [])
-        h_ips  = harvest.get("ips", [])
-        h_subs = harvest.get("subdomains", [])
-        if emails:
-            rows = [["Discovered Emails"]] + [[e] for e in sorted(set(emails))]
-            tbl = Table(rows, colWidths=[7.0*inch], repeatRows=1)
-            tbl.setStyle(_table_style_main())
-            story.append(tbl)
-            story.append(Spacer(1, 0.05*inch))
-        if h_ips:
-            rows = [["Discovered IPs"]] + [[ip] for ip in sorted(set(h_ips))]
-            tbl = Table(rows, colWidths=[7.0*inch], repeatRows=1)
-            tbl.setStyle(_table_style_main())
-            story.append(tbl)
-    else:
-        story.append(Paragraph("theHarvester not run or no findings.", S["note"]))
-    story.append(Spacer(1, 0.1*inch))
-
-    # 2c — metagoofil: summary count only
-    story.append(Paragraph("2c. metagoofil — Exposed File Metadata", S["subsection"]))
-    if metagoofil_data:
-        rows = [["File Types Searched", "Total Exposed Files Found"],
-                ["pdf, doc, docx, xls, xlsx, ppt, pptx (root domain + subdomains)", str(len(metagoofil_data))]]
-        tbl = Table(rows, colWidths=[4.0*inch, 3.0*inch], repeatRows=1)
-        tbl.setStyle(_table_style_main())
-        story.append(tbl)
-        story.append(Paragraph(
-            "See metagoofil_*.txt in 1_recon/ for full file listing.", S["note"]))
-    else:
-        story.append(Paragraph("metagoofil not run or no exposed files found.", S["note"]))
     story.append(Spacer(1, 0.2*inch))
 
     # ── SECTION 3 — Domain Security ──────────────────────────────────
@@ -438,7 +404,6 @@ def build_docx(results: dict, folder: Path) -> Path:
     ffuf    = {_s(k): v for k, v in results.get("ffuf_findings", {}).items()}
     msf     = _sl(results.get("msf_findings", []))
     o365    = results.get("o365_findings", {})
-    harvest = results.get("harvester", {})
     metagoofil_data = _sl(results.get("metagoofil", []))
 
     doc = Document()
@@ -495,27 +460,13 @@ def build_docx(results: dict, folder: Path) -> Path:
     unique_subs = list(set(subs))
     if unique_subs:
         rows = [["Source", "Total Subdomains Discovered"],
-                ["assetfinder + amass + bbot + theHarvester", str(len(unique_subs))]]
+                ["assetfinder + amass + bbot", str(len(unique_subs))]]
         _add_table(doc, rows, col_widths=[3.5, 3.5])
-        doc.add_paragraph("See assetfinder_*.txt, amass_*.txt and theharvester_*.txt in 1_recon/ for full listing.")
+        doc.add_paragraph("See assetfinder_*.txt, amass_*.txt and bbot_*.txt in 1_recon/ for full listing.")
     else:
         doc.add_paragraph("No subdomains discovered.")
 
-    _heading_para(doc, "2b. theHarvester — Emails / IPs / Subdomains", level=2)
-    if harvest:
-        emails = [_s(e) for e in harvest.get("emails", [])]
-        h_ips  = [_s(ip) for ip in harvest.get("ips", [])]
-        if emails:
-            rows = [["Discovered Emails"]] + [[e] for e in sorted(set(emails))]
-            _add_table(doc, rows, col_widths=[7.0])
-            doc.add_paragraph()
-        if h_ips:
-            rows = [["Discovered IPs"]] + [[ip] for ip in sorted(set(h_ips))]
-            _add_table(doc, rows, col_widths=[7.0])
-    else:
-        doc.add_paragraph("theHarvester not run or no findings.")
-
-    _heading_para(doc, "2c. metagoofil — Exposed File Metadata", level=2)
+    _heading_para(doc, "2b. metagoofil — Exposed File Metadata", level=2)
     if metagoofil_data:
         rows = [["File Types Searched", "Total Exposed Files Found"],
                 ["pdf, doc, docx, xls, xlsx, ppt, pptx (root domain + subdomains)", str(len(metagoofil_data))]]
