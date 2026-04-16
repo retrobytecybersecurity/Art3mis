@@ -63,7 +63,6 @@ APT_PACKAGES = {
     "sslscan":      "sslscan",
     "dnsenum":      "dnsenum",
     "curl":         "curl",
-    "theHarvester": "theharvester",
     "wpscan":       "wpscan",
 }
 
@@ -209,6 +208,16 @@ def _find_script(search_paths: list, name: str) -> str | None:
         return lines[0] if lines else None
     except Exception:
         return None
+
+
+def _tor_running() -> bool:
+    """Check if Tor is listening on port 9050."""
+    import socket
+    try:
+        with socket.create_connection(("127.0.0.1", 9050), timeout=2):
+            return True
+    except Exception:
+        return False
 
 
 def find_shcheck() -> str | None:
@@ -457,7 +466,6 @@ def _run_functional_tests(log_fn):
     test("sslscan",      ["sslscan",      "--version"],  "sslscan")
     test("dnsenum",      ["dnsenum",      "--help"],     "dnsenum")
     test("curl",         ["curl",         "--version"],  "curl")
-    test("theHarvester", ["theHarvester", "-h"],         "theharvester")
     test("nuclei",       ["nuclei",       "-version"],   "nuclei")
     test("ffuf",         ["ffuf",         "-V"],         "ffuf")
     test("assetfinder",  ["assetfinder",  "--help"],     "assetfinder")
@@ -555,7 +563,6 @@ def run_scan(scope_list, url_list, domain, phases, tools, folder, tool_paths):
         "ffuf_findings":    {},
         "msf_findings":     [],
         "o365_findings":    {},
-        "harvester":        {},
         "metagoofil":       [],
     }
 
@@ -640,29 +647,6 @@ def run_scan(scope_list, url_list, domain, phases, tools, folder, tool_paths):
         elif domain:
             log("⚠ o365spray not found — skipping", "warn")
 
-        if domain and tools.get("theharvester", True):
-            safe_d = re.sub(r"[^\w\-]", "_", domain)
-            run_tool(["theHarvester", "-d", domain, "-b",
-                      "anubis,crtsh,dnsdumpster,fullhunt,hackertarget,otx,rapiddns,urlscan,virustotal",
-                      "-l", "500"],
-                     p1 / f"theharvester_{safe_d}.txt",
-                     f"theHarvester [{domain}]",
-                     screenshot_name=f"phase1_theharvester_{safe_d}")
-            h_txt = p1 / f"theharvester_{safe_d}.txt"
-            hdata = {"emails": [], "ips": [], "subdomains": []}
-            if h_txt.exists():
-                content = h_txt.read_text()
-                hdata["emails"]     = re.findall(r"[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}", content)
-                hdata["ips"]        = re.findall(r"\b(?:\d{1,3}\.){3}\d{1,3}\b", content)
-                hdata["subdomains"] = [l.strip() for l in content.splitlines()
-                                       if l.strip().endswith(f".{domain}") and " " not in l.strip()]
-            results["harvester"] = hdata
-            results["subdomains"] = list(set(results["subdomains"] + hdata["subdomains"]))
-        elif domain and not tools.get("theharvester", True):
-            log("  — theHarvester skipped", "dim")
-        else:
-            log("⚠ No domain — skipping theHarvester", "warn")
-
         if domain and tools.get("metagoofil", True):
             if shutil.which("metagoofil"):
                 safe_d       = re.sub(r"[^\w\-]", "_", domain)
@@ -670,9 +654,18 @@ def run_scan(scope_list, url_list, domain, phases, tools, folder, tool_paths):
                 meta_dir     = p1 / f"metagoofil_{safe_d}"
                 meta_dir.mkdir(exist_ok=True)
                 meta_out     = p1 / f"metagoofil_{safe_d}.txt"
-                log(f"⟶ metagoofil — root domain [{domain}]", "info")
+
+                # Use proxychains4 if available and Tor is listening on 9050
+                use_proxy = (shutil.which("proxychains4") and
+                             _tor_running())
+                proxy_prefix = ["proxychains4", "-q"] if use_proxy else []
+                if use_proxy:
+                    log(f"⟶ metagoofil — root domain [{domain}] (via proxychains/Tor)", "info")
+                else:
+                    log(f"⟶ metagoofil — root domain [{domain}] (no proxy — install tor + proxychains4 to avoid blocks)", "warn")
+
                 run_tool(
-                    ["metagoofil", "-d", domain, "-t", meta_exts,
+                    proxy_prefix + ["metagoofil", "-d", domain, "-t", meta_exts,
                      "-n", "20", "-o", str(meta_dir)],
                     meta_out,
                     f"metagoofil [{domain}]",
@@ -819,19 +812,21 @@ def run_scan(scope_list, url_list, domain, phases, tools, folder, tool_paths):
                     f"({len(priority_subs)} priority, {max(0, len(targets)-len(priority_subs))} other)", "info")
 
                 meta_exts = "pdf,doc,docx,xls,xlsx,ppt,pptx"
+                use_proxy    = (shutil.which("proxychains4") and _tor_running())
+                proxy_prefix = ["proxychains4", "-q"] if use_proxy else []
                 for sub in targets:
                     safe_s   = re.sub(r"[^\w\-]", "_", sub)
                     sub_dir  = p1 / f"metagoofil_{safe_s}"
                     sub_dir.mkdir(exist_ok=True)
                     sub_out  = p1 / f"metagoofil_{safe_s}.txt"
-                    log(f"  ↳ metagoofil [{sub}]", "dim")
+                    log(f"  ↳ metagoofil [{sub}]{'  (proxychains)' if use_proxy else ''}", "dim")
                     try:
                         with open(sub_out, "w") as mf:
                             subprocess.run(
-                                ["metagoofil", "-d", sub, "-t", meta_exts,
+                                proxy_prefix + ["metagoofil", "-d", sub, "-t", meta_exts,
                                  "-n", "10", "-o", str(sub_dir)],
                                 stdout=mf, stderr=subprocess.STDOUT,
-                                text=True, timeout=120
+                                text=True, timeout=180
                             )
                     except subprocess.TimeoutExpired:
                         log(f"  ✗ metagoofil timed out for {sub}", "warn")
@@ -866,7 +861,7 @@ def run_scan(scope_list, url_list, domain, phases, tools, folder, tool_paths):
                     nuclei_p_out  = p1 / f"nuclei_passive_{safe_t}.txt"
                     run_tool(
                         ["nuclei", "-target", url,
-                         "-tags", "passive",
+                         "-passive",
                          "-severity", "low,medium,high,critical",
                          "-o", str(nuclei_p_out), "-silent"],
                         nuclei_p_out,
@@ -893,10 +888,6 @@ def run_scan(scope_list, url_list, domain, phases, tools, folder, tool_paths):
             else:
                 # Collect all emails discovered so far in Phase 1
                 discovered_emails = set()
-
-                # From theHarvester
-                harvester = results.get("harvester", {})
-                discovered_emails.update(harvester.get("emails", []))
 
                 # From bbot output files
                 for f in p1.glob("bbot_*.txt"):
@@ -1434,56 +1425,6 @@ ns2.example.com.
 - A successful zone transfer reveals the entire DNS structure of the domain
 """
     },
-    "theharvester": {
-        "title": "theHarvester",
-        "phase": "Phase 1 — Recon / OSINT",
-        "github": "https://github.com/laramies/theHarvester",
-        "content": """# theHarvester
-
-## What it does
-theHarvester is an OSINT tool that aggregates email addresses, subdomains, IPs, and employee names from public sources. It queries multiple search engines and threat intelligence platforms simultaneously.
-
-## GitHub
-[https://github.com/laramies/theHarvester](https://github.com/laramies/theHarvester)
-
-## Command Artemis runs
-```
-theHarvester -d <domain> -b anubis,crtsh,dnsdumpster,fullhunt,hackertarget,otx,rapiddns,urlscan,virustotal
-```
-
-## Flag breakdown
-| Flag | Description |
-|------|-------------|
-| `-d` | Target domain |
-| `-b` | Comma-separated list of data sources to query |
-
-## Data sources used
-| Source | What it finds |
-|--------|--------------|
-| `anubis` | Subdomains via Anubis-DB |
-| `crtsh` | Certificate transparency logs |
-| `dnsdumpster` | DNS records and subdomains |
-| `fullhunt` | Attack surface data |
-| `hackertarget` | DNS and network data |
-| `otx` | AlienVault Open Threat Exchange |
-| `rapiddns` | Passive DNS |
-| `urlscan` | URLs and subdomains from urlscan.io |
-| `virustotal` | Subdomains and URLs |
-
-## How to read the output
-Results are grouped by type:
-
-**Emails found** — valid email addresses associated with the domain. These are targets for phishing assessment or password spray if in scope.
-
-**Hosts found** — subdomains with their resolved IPs. Cross-reference with your scope.
-
-**IPs found** — IP addresses directly associated with the domain.
-
-## Notes
-- Entirely passive — no direct contact with target
-- Email addresses can be used to build a username list for o365spray or Kerbrute
-"""
-    },
     "spoofy": {
         "title": "spoofy",
         "phase": "Phase 1 — Recon / OSINT",
@@ -1522,7 +1463,7 @@ spoofy outputs a verdict for each domain:
 
 ## Notes
 - A SPOOFABLE result is a significant finding worth including in your report
-- Combine with theHarvester email results to demonstrate the impact
+- Combine with bbot-discovered email results to demonstrate the impact
 """
     },
     "o365spray": {
@@ -1638,7 +1579,7 @@ Key fields to note:
 
 ## Notes
 - A 3-second delay is applied between subdomain runs to avoid Google rate limiting
-- Usernames found should be cross-referenced with theHarvester email results and used for o365spray enumeration if in scope
+- Usernames found should be cross-referenced with bbot email results and used for o365spray enumeration if in scope
 - Results are stored per-subdomain in the `1_recon/` folder
 """
     },
@@ -2872,7 +2813,6 @@ def start_scan():
     tools = {
         "assetfinder":  data.get("assetfinder",  True),
         "dnsenum":      data.get("dnsenum",       True),
-        "theharvester": data.get("theharvester",  True),
         "spoofy":       data.get("spoofy",        True),
         "o365spray":    data.get("o365spray",     True),
         "metagoofil":   data.get("metagoofil",    True),
@@ -3117,14 +3057,6 @@ def _read_assessment_data(folder: Path, entry: dict) -> dict:
     subs = set()
     for fname in (folder / "1_recon").glob("assetfinder_*.txt") if (folder / "1_recon").exists() else []:
         subs.update(l.strip() for l in fname.read_text().splitlines() if l.strip())
-    for fname in (folder / "1_recon").glob("theharvester_*.txt") if (folder / "1_recon").exists() else []:
-        for l in fname.read_text().splitlines():
-            l = l.strip()
-            if "." in l and " " not in l and "@" not in l:
-                subs.add(l)
-        emails = re.findall(r"[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}",
-                            fname.read_text())
-        data["emails"].extend(emails)
     data["subdomains"] = list(subs)
 
     # Open ports from nmap
