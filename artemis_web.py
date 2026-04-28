@@ -517,12 +517,12 @@ def run_scan(scope_list, url_list, domain, phases, tools, folder, tool_paths):
         log(f"  {title}", "phase")
         log("─" * 52, "phase")
 
-    def run_tool(cmd, out_file, label, screenshot_name=None):
+    def run_tool(cmd, out_file, label, screenshot_name=None, timeout=600):
         log(f"⟶ {label}", "info")
         try:
             with open(out_file, "w") as fh:
                 r = subprocess.run(cmd, stdout=fh, stderr=subprocess.STDOUT,
-                                   text=True, timeout=600)
+                                   text=True, timeout=timeout)
             if r.returncode not in (0, 1):
                 log(f"⚠ {label} exited with code {r.returncode}", "warn")
             else:
@@ -536,7 +536,7 @@ def run_scan(scope_list, url_list, domain, phases, tools, folder, tool_paths):
                     pass
             return r.returncode
         except subprocess.TimeoutExpired:
-            log(f"✗ {label} timed out", "error")
+            log(f"✗ {label} timed out after {timeout}s", "error")
             return -1
         except FileNotFoundError:
             log(f"✗ {label} — tool not found in PATH", "error")
@@ -666,10 +666,11 @@ def run_scan(scope_list, url_list, domain, phases, tools, folder, tool_paths):
 
                 run_tool(
                     proxy_prefix + ["metagoofil", "-d", domain, "-t", meta_exts,
-                     "-n", "20", "-o", str(meta_dir)],
+                     "-n", "10", "-o", str(meta_dir)],
                     meta_out,
                     f"metagoofil [{domain}]",
-                    screenshot_name=f"phase1_metagoofil_{safe_d}"
+                    screenshot_name=f"phase1_metagoofil_{safe_d}",
+                    timeout=900
                 )
                 meta_findings = []
                 for mf in list(meta_dir.glob("*")) + [meta_out]:
@@ -715,7 +716,8 @@ def run_scan(scope_list, url_list, domain, phases, tools, folder, tool_paths):
                 run_tool(bbot_cmd,
                          p1 / f"bbot_{safe_d}.txt",
                          f"bbot [{bbot_mode}] [{domain}]",
-                         screenshot_name=f"phase1_bbot_{safe_d}")
+                         screenshot_name=f"phase1_bbot_{safe_d}",
+                         timeout=3600)
 
                 # Parse bbot output for subdomains, emails, IPs
                 bbot_txt = p1 / f"bbot_{safe_d}.txt"
@@ -768,7 +770,7 @@ def run_scan(scope_list, url_list, domain, phases, tools, folder, tool_paths):
                 run_tool(amass_cmd,
                          amass_out,
                          f"amass [{amass_mode}] [{domain}]",
-                         screenshot_name=f"phase1_amass_{safe_d}")
+                         screenshot_name=f"phase1_amass_{safe_d}", timeout=3600)
 
                 # Parse amass output — one subdomain per line
                 if amass_out.exists():
@@ -814,6 +816,7 @@ def run_scan(scope_list, url_list, domain, phases, tools, folder, tool_paths):
                 meta_exts = "pdf,doc,docx,xls,xlsx,ppt,pptx"
                 use_proxy    = (shutil.which("proxychains4") and _tor_running())
                 proxy_prefix = ["proxychains4", "-q"] if use_proxy else []
+                import time
                 for sub in targets:
                     safe_s   = re.sub(r"[^\w\-]", "_", sub)
                     sub_dir  = p1 / f"metagoofil_{safe_s}"
@@ -824,12 +827,12 @@ def run_scan(scope_list, url_list, domain, phases, tools, folder, tool_paths):
                         with open(sub_out, "w") as mf:
                             subprocess.run(
                                 proxy_prefix + ["metagoofil", "-d", sub, "-t", meta_exts,
-                                 "-n", "10", "-o", str(sub_dir)],
+                                 "-n", "5", "-o", str(sub_dir)],
                                 stdout=mf, stderr=subprocess.STDOUT,
-                                text=True, timeout=180
+                                text=True, timeout=300
                             )
                     except subprocess.TimeoutExpired:
-                        log(f"  ✗ metagoofil timed out for {sub}", "warn")
+                        log(f"  ✗ metagoofil timed out for {sub} — continuing", "warn")
                     except Exception as ex:
                         log(f"  ✗ metagoofil error for {sub}: {ex}", "warn")
 
@@ -844,9 +847,8 @@ def run_scan(scope_list, url_list, domain, phases, tools, folder, tool_paths):
                     results["metagoofil"] = list(set(
                         results.get("metagoofil", []) + sub_findings))
 
-                    # Small delay to avoid search engine rate limiting
-                    import time
-                    time.sleep(3)
+                    # Delay between subdomains — longer through Tor to avoid blocks
+                    time.sleep(6 if use_proxy else 3)
 
                 log(f"  ↳ metagoofil subdomain sweep complete", "success")
             else:
@@ -1048,7 +1050,7 @@ def run_scan(scope_list, url_list, domain, phases, tools, folder, tool_paths):
                 run_tool(nmap_cmd,
                          p2 / f"nmap_tcp_{target}.txt",
                          f"nmap TCP [{target}]",
-                         screenshot_name=f"phase2_nmap_tcp_{safe_t}")
+                         screenshot_name=f"phase2_nmap_tcp_{safe_t}", timeout=3600)
 
                 txt_file = p2 / f"nmap_tcp_{target}.txt"
                 ports = []
@@ -1071,7 +1073,7 @@ def run_scan(scope_list, url_list, domain, phases, tools, folder, tool_paths):
                           "-oN", str(p2 / f"nmap_udp_{target}.txt"), target],
                          p2 / f"nmap_udp_{target}.txt",
                          f"nmap UDP [{target}]",
-                         screenshot_name=f"phase2_nmap_udp_{safe_t}")
+                         screenshot_name=f"phase2_nmap_udp_{safe_t}", timeout=1800)
             else:
                 log(f"  — nmap UDP skipped for {target}", "dim")
 
@@ -1087,7 +1089,10 @@ def run_scan(scope_list, url_list, domain, phases, tools, folder, tool_paths):
                 with open(gw_dir / "gowitness.log", "w") as gwl:
                     subprocess.run(
                         ["gowitness", "file", "-f", str(urls_file),
-                         "-P", str(gw_dir / "screenshots"), "--threads", "5"],
+                         "-P", str(gw_dir / "screenshots"),
+                         "--threads", "2",
+                         "--delay", "3",
+                         "--user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"],
                         stdout=gwl, stderr=subprocess.STDOUT,
                         text=True, timeout=900)
                 log("✓ gowitness complete", "success")
@@ -1148,7 +1153,7 @@ def run_scan(scope_list, url_list, domain, phases, tools, folder, tool_paths):
                           "-Format", "xml", "-nointeractive"],
                          p3 / f"nikto_{safe_t}.txt",
                          f"nikto [{url}]",
-                         screenshot_name=f"phase3_nikto_{safe_t}")
+                         screenshot_name=f"phase3_nikto_{safe_t}", timeout=1800)
                 nf = p3 / f"nikto_{safe_t}.txt"
                 if nf.exists():
                     findings = re.findall(r"\+ (.+)", nf.read_text())
@@ -1168,7 +1173,7 @@ def run_scan(scope_list, url_list, domain, phases, tools, folder, tool_paths):
                               "--plugins-detection", "aggressive"],
                              p3 / f"wpscan_{safe_t}.txt",
                              f"wpscan [{url}]",
-                             screenshot_name=f"phase3_wpscan_{safe_t}")
+                             screenshot_name=f"phase3_wpscan_{safe_t}", timeout=1200)
                     wf = p3 / f"wpscan_{safe_t}.txt"
                     if wf.exists():
                         wp_findings = re.findall(
@@ -1185,7 +1190,7 @@ def run_scan(scope_list, url_list, domain, phases, tools, folder, tool_paths):
                           "-o", str(p3 / f"nuclei_{safe_t}.txt"), "-silent"],
                          p3 / f"nuclei_raw_{safe_t}.txt",
                          f"nuclei [{url}]",
-                         screenshot_name=f"phase3_nuclei_{safe_t}")
+                         screenshot_name=f"phase3_nuclei_{safe_t}", timeout=1800)
                 nuf = p3 / f"nuclei_{safe_t}.txt"
                 if nuf.exists():
                     nlines = [l.strip() for l in nuf.read_text().splitlines() if l.strip()]
@@ -1230,7 +1235,7 @@ def run_scan(scope_list, url_list, domain, phases, tools, folder, tool_paths):
                 _write_msf_rc(msf_rc, scope_list)
             run_tool(["msfconsole", "-q", "-r", str(msf_rc)],
                      p3 / "metasploit.txt", "metasploit auxiliary scanners",
-                     screenshot_name="phase3_metasploit")
+                     screenshot_name="phase3_metasploit", timeout=1800)
             msf_txt = p3 / "metasploit.txt"
             if msf_txt.exists():
                 msf_findings = re.findall(r"\[\+\].*", msf_txt.read_text())
