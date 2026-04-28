@@ -517,12 +517,17 @@ def run_scan(scope_list, url_list, domain, phases, tools, folder, tool_paths):
         log(f"  {title}", "phase")
         log("─" * 52, "phase")
 
+    # Strip ANSI escape codes from output files
+    _ansi_re = re.compile(r'\x1b\[[0-9;]*[mGKHF]|\x1b\[[0-9;]*[A-Za-z]|\x1b\(B|\x1b=|\x1b>')
+
     def run_tool(cmd, out_file, label, screenshot_name=None, timeout=600):
         log(f"⟶ {label}", "info")
         try:
+            r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+            # Strip ANSI codes before writing to file
+            clean_out = _ansi_re.sub('', r.stdout + r.stderr)
             with open(out_file, "w") as fh:
-                r = subprocess.run(cmd, stdout=fh, stderr=subprocess.STDOUT,
-                                   text=True, timeout=timeout)
+                fh.write(clean_out)
             if r.returncode not in (0, 1):
                 log(f"⚠ {label} exited with code {r.returncode}", "warn")
             else:
@@ -631,7 +636,8 @@ def run_scan(scope_list, url_list, domain, phases, tools, folder, tool_paths):
             safe_d = re.sub(r"[^\w\-]", "_", domain)
             o365_out = p1 / f"o365scan_{safe_d}.txt"
             run_tool(["python3", o365scan_path,
-                      "--validate", "--domain", domain, "--output", str(p1)],
+                      "--validate", "--domain", domain, "--output", str(p1),
+                      "--no-color"],
                      o365_out, f"o365spray [{domain}]",
                      screenshot_name=f"phase1_o365scan_{safe_d}")
             if o365_out.exists():
@@ -702,6 +708,8 @@ def run_scan(scope_list, url_list, domain, phases, tools, folder, tool_paths):
                         "-p", "everything",
                         "-o", str(bbot_out),
                         "--yes",
+                        "-s",
+                        "-om", "human,json",
                     ]
                 else:
                     # Passive only — safe modules, no direct target interaction
@@ -711,6 +719,8 @@ def run_scan(scope_list, url_list, domain, phases, tools, folder, tool_paths):
                         "-f", "safe,passive",
                         "-o", str(bbot_out),
                         "--yes",
+                        "-s",
+                        "-om", "human,json",
                     ]
 
                 run_tool(bbot_cmd,
@@ -751,7 +761,7 @@ def run_scan(scope_list, url_list, domain, phases, tools, folder, tool_paths):
                     if not Path(wordlist).exists():
                         wordlist = ""
                     amass_cmd = [
-                        "amass", "enum", "-active",
+                        "amass", "enum", "-active", "-nocolor",
                         "-d", domain,
                         "-o", str(amass_out),
                         "-timeout", "30",
@@ -864,8 +874,7 @@ def run_scan(scope_list, url_list, domain, phases, tools, folder, tool_paths):
                     run_tool(
                         ["nuclei", "-target", url,
                          "-passive",
-                         "-severity", "low,medium,high,critical",
-                         "-o", str(nuclei_p_out), "-silent"],
+                         "-o", str(nuclei_p_out), "-nc"],
                         nuclei_p_out,
                         f"nuclei passive [{url}]",
                         screenshot_name=f"phase1_nuclei_passive_{safe_t}"
@@ -1124,7 +1133,7 @@ def run_scan(scope_list, url_list, domain, phases, tools, folder, tool_paths):
             host = re.sub(r"^https?://", "", url).rstrip("/")
 
             if tools.get("sslscan", True):
-                run_tool(["sslscan", "--show-certificate", host],
+                run_tool(["sslscan", "--show-certificate", "--no-colour", host],
                          p3 / f"sslscan_{safe_t}.txt",
                          f"sslscan [{host}]",
                          screenshot_name=f"phase3_sslscan_{safe_t}")
@@ -1148,7 +1157,7 @@ def run_scan(scope_list, url_list, domain, phases, tools, folder, tool_paths):
                 log("  — shcheck skipped", "dim")
 
             if tools.get("nikto", True):
-                run_tool(["nikto", "-h", url,
+                run_tool(["nikto", "-h", url, "-nocolor",
                           "-o", str(p3 / f"nikto_{safe_t}.xml"),
                           "-Format", "xml", "-nointeractive"],
                          p3 / f"nikto_{safe_t}.txt",
@@ -1185,15 +1194,14 @@ def run_scan(scope_list, url_list, domain, phases, tools, folder, tool_paths):
                 log("  — wpscan skipped", "dim")
 
             if tools.get("nuclei", True):
+                nuclei_out = p3 / f"nuclei_{safe_t}.txt"
                 run_tool(["nuclei", "-target", url,
-                          "-severity", "low,medium,high,critical",
-                          "-o", str(p3 / f"nuclei_{safe_t}.txt"), "-silent"],
-                         p3 / f"nuclei_raw_{safe_t}.txt",
+                          "-o", str(nuclei_out), "-nc"],
+                         nuclei_out,
                          f"nuclei [{url}]",
                          screenshot_name=f"phase3_nuclei_{safe_t}", timeout=1800)
-                nuf = p3 / f"nuclei_{safe_t}.txt"
-                if nuf.exists():
-                    nlines = [l.strip() for l in nuf.read_text().splitlines() if l.strip()]
+                if nuclei_out.exists():
+                    nlines = [l.strip() for l in nuclei_out.read_text().splitlines() if l.strip()]
                     vulnerabilities[target_key].extend(nlines[:30])
             else:
                 log("  — nuclei skipped", "dim")
@@ -2137,17 +2145,24 @@ nuclei is a template-based vulnerability scanner from ProjectDiscovery. It runs 
 [https://github.com/projectdiscovery/nuclei](https://github.com/projectdiscovery/nuclei)
 
 ## Command Artemis runs
+
+**Passive (Phase 1):**
 ```
-nuclei -target <url> -severity low,medium,high,critical -o <output_file> -silent
+nuclei -target <url> -passive -o <output_file> -nc
+```
+
+**Active (Phase 3):**
+```
+nuclei -target <url> -o <output_file> -nc
 ```
 
 ## Flag breakdown
 | Flag | Description |
 |------|-------------|
 | `-target` | Single URL target |
-| `-severity` | Only run templates matching these severity levels |
+| `-passive` | Passive mode — read-only requests only (Phase 1) |
 | `-o` | Write results to output file |
-| `-silent` | Suppress banner and progress output — results only |
+| `-nc` | No colour — clean output with no ANSI escape codes |
 
 ## Severity levels
 | Level | Examples |
@@ -3678,4 +3693,3 @@ if __name__ == "__main__":
     startup_thread = threading.Thread(target=startup, daemon=True)
     startup_thread.start()
     app.run(host="127.0.0.1", port=5000, debug=False, threaded=True)
-
