@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARTEMIS // Audit Log</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+  :root{--bg:#0a0d14;--surface:#0f1420;--surface2:#141926;--accent:#1a4a7a;--text:#e8eaf0;--dim:#4a6a8a;--border:#1e2d45;--shadow:0 2px 12px rgba(0,0,0,0.3);}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-height:100vh;display:flex;flex-direction:column}
+  header{background:var(--surface);border-bottom:1px solid var(--border);padding:13px 28px;display:flex;align-items:center;justify-content:space-between;box-shadow:var(--shadow)}
+  .logo{font-size:1.05rem;font-weight:700;color:var(--text);letter-spacing:.1em}
+  .nav-btn{font-size:12px;padding:6px 14px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--dim);text-decoration:none;transition:all 0.15s;display:inline-block}
+  .nav-btn:hover{border-color:#2a4a6a;color:var(--text)}
+  .nav-btn.logout{border-color:#5a1a2a;color:#c06070;background:rgba(180,60,80,0.08)}
+  main{flex:1;max-width:1100px;width:100%;margin:0 auto;padding:32px 28px}
+  .page-label{font-size:11px;color:var(--dim);letter-spacing:.1em;text-transform:uppercase;margin-bottom:3px}
+  .page-title{font-size:1.3rem;font-weight:600;color:var(--text);margin-bottom:6px}
+  .page-sub{font-size:0.8rem;color:var(--dim);margin-bottom:22px}
+
+  .toolbar{display:flex;gap:10px;margin-bottom:14px;align-items:center}
+  .search-wrap{position:relative;max-width:320px;flex:1}
+  .search-wrap input{width:100%;background:#ffffff;border:1px solid #c8d8e8;border-radius:8px;color:#0f1826;font-family:'Inter',sans-serif;font-size:0.82rem;padding:7px 10px 7px 30px;outline:none}
+  .search-icon{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:#8aaabb;font-size:0.78rem;pointer-events:none}
+  .count-lbl{font-size:0.72rem;color:var(--dim);margin-left:auto}
+
+  .log-wrap{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+  .log-line{font-family:'JetBrains Mono',monospace;font-size:0.73rem;padding:6px 14px;border-bottom:1px solid rgba(30,45,69,0.4);display:flex;gap:16px;align-items:baseline}
+  .log-line:last-child{border-bottom:none}
+  .log-line:hover{background:rgba(26,74,122,0.04)}
+  .log-ts{color:var(--dim);flex-shrink:0;white-space:nowrap}
+  .log-event{font-weight:600;min-width:140px;flex-shrink:0}
+  .log-detail{color:var(--dim);word-break:break-all}
+  .ev-LOGIN_SUCCESS {color:#4aaa6a}
+  .ev-LOGIN_FAILED  {color:#e8c860}
+  .ev-LOGIN_LOCKOUT {color:#f08090}
+  .ev-LOGIN_BLOCKED {color:#f08090}
+  .ev-LOGOUT        {color:#8ab8d8}
+  .ev-SCAN_STARTED  {color:#5a9acc}
+  .ev-SCAN_SAVED    {color:#4aaa6a}
+  .ev-CSRF_BLOCKED  {color:#f08090}
+  .ev-default       {color:var(--dim)}
+  .empty-note{padding:32px;text-align:center;color:var(--dim);font-size:0.82rem}
+
+  footer{background:var(--surface);border-top:1px solid var(--border);padding:11px 28px;display:flex;justify-content:space-between;font-size:0.7rem;color:var(--dim)}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">◈ ART3MIS — Audit Log</div>
+  <div style="display:flex;gap:8px">
+    <a href="/" class="nav-btn">← Dashboard</a>
+    <a href="/logout" class="nav-btn logout">⎋ Logout</a>
+  </div>
+</header>
+<main>
+  <div class="page-label">Security</div>
+  <div class="page-title">Audit Log</div>
+  <div class="page-sub">All login events, scan activity, and security events. Most recent first.</div>
+
+  <div class="toolbar">
+    <div class="search-wrap">
+      <span class="search-icon">⌕</span>
+      <input type="text" id="search-input" placeholder="Filter by user, event, IP..."
+             oninput="filterLog(this.value)">
+    </div>
+    <span class="count-lbl" id="count-lbl">{{ lines|length }} event(s)</span>
+  </div>
+
+  <div class="log-wrap">
+    {% if lines %}
+      {% for line in lines %}
+      {# Parse: [2026-04-29 12:00:00] EVENT_NAME          user=xxx          ip=xxx     detail #}
+      {% set parts = line.split(' ') %}
+      <div class="log-line" data-line="{{ line|lower }}">
+        <span class="log-ts">{{ line[1:20] if line.startswith('[') else '' }}</span>
+        {% set rest = line[22:] if line.startswith('[') else line %}
+        {% set ev = rest.strip().split(' ')[0] %}
+        <span class="log-event ev-{{ ev }} ev-default">{{ ev }}</span>
+        <span class="log-detail">{{ rest.strip()[rest.strip().find(' ')+1:] }}</span>
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="empty-note">No audit events recorded yet.</div>
+    {% endif %}
+  </div>
+</main>
+<footer>
+  <span>Artemis // Audit Log</span>
+  <span>Confidential — Authorized Use Only</span>
+</footer>
+<script>
+function filterLog(q){
+  const clean = q.toLowerCase()
+  const lines = document.querySelectorAll('.log-line[data-line]')
+  let visible = 0
+  lines.forEach(l=>{
+    const show = !clean || l.dataset.line.includes(clean)
+    l.style.display = show ? '' : 'none'
+    if(show) visible++
+  })
+  document.getElementById('count-lbl').textContent = `${visible} event(s)`
+}
+</script>
+</body>
+</html>
