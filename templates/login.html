@@ -185,10 +185,17 @@
     <div class="card-header">Authorized Access Only</div>
     <div class="card-body">
       <form method="POST" action="/login">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
 
         {% if expired %}
         <div class="notice-expired">
           Your session expired after 3 hours. Please log in again.
+        </div>
+        {% endif %}
+
+        {% if locked %}
+        <div class="notice-expired" style="background:rgba(176,80,96,0.1);border-color:rgba(176,80,96,0.3);color:#e87a8a;">
+          Your account has expired or been deactivated. Please contact your administrator.
         </div>
         {% endif %}
 
