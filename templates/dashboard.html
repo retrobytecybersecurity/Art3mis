@@ -7,160 +7,115 @@
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
   :root {
-    --bg:      #0a0d14;
-    --surface: #0f1420;
-    --surface2:#141926;
-    --accent:  #1a4a7a;
-    --accent2: #e8944a;
-    --success: #2a7a4a;
-    --warning: #8a5a1a;
-    --error:   #8a2a3a;
-    --text:    #e8eaf0;
-    --dim:     #4a6a8a;
-    --border:  #1e2d45;
-    --shadow:  0 2px 12px rgba(0,0,0,0.3);
+    --bg:#0a0d14;--surface:#0f1420;--surface2:#141926;
+    --accent:#1a4a7a;--accent2:#e8944a;--success:#2a7a4a;
+    --text:#e8eaf0;--dim:#4a6a8a;--border:#1e2d45;--shadow:0 2px 12px rgba(0,0,0,0.3);
   }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; min-height: 100vh; display: flex; flex-direction: column; }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-height:100vh;display:flex;flex-direction:column}
 
-  header {
-    background: var(--surface); border-bottom: 1px solid var(--border);
-    padding: 13px 28px; display: flex; align-items: center;
-    gap: 12px; box-shadow: var(--shadow);
-  }
-  .logo { font-size: 1.1rem; font-weight: 700; color: #e8eaf0; letter-spacing: .12em; }
-  .header-mid { flex: 1; display: flex; align-items: center; gap: 10px; }
-  .role-pill {
-    font-size: 11px; padding: 3px 10px; border-radius: 20px;
-    border: 0.5px solid var(--border); color: var(--dim); background: var(--surface2);
-  }
-  .role-pill.admin  { border-color: #3a5a7a; color: #5a9acc; background: rgba(26,74,122,0.2); }
-  .role-pill.rep    { border-color: #6a3a1a; color: #e8944a; background: rgba(232,148,74,0.1); }
-  .header-right { display: flex; align-items: center; gap: 8px; }
-  .nav-btn {
-    font-size: 12px; padding: 6px 14px; border-radius: 8px;
-    border: 1px solid var(--border); background: var(--surface2);
-    color: var(--dim); cursor: pointer; text-decoration: none;
-    transition: all 0.15s; display: inline-block;
-  }
-  .nav-btn:hover { border-color: #2a4a6a; color: var(--text); }
-  .nav-btn.new    { border-color: #1e4a7a; color: #5a9acc; background: rgba(26,74,122,0.15); }
-  .nav-btn.new:hover { background: rgba(26,74,122,0.3); }
-  .nav-btn.users  { border-color: #6a3a1a; color: #e8944a; background: rgba(232,148,74,0.08); }
-  .nav-btn.users:hover { background: rgba(232,148,74,0.18); }
-  .nav-btn.req    { border-color: #5a4a1a; color: #c8a050; background: rgba(200,160,80,0.08); }
-  .nav-btn.req:hover { background: rgba(200,160,80,0.18); }
-  .nav-btn.logout { border-color: #5a1a2a; color: #c06070; background: rgba(180,60,80,0.08); }
-  .nav-btn.logout:hover { background: rgba(180,60,80,0.18); }
+  /* ── Header ── */
+  header{background:var(--surface);border-bottom:1px solid var(--border);padding:12px 28px;display:flex;align-items:center;gap:12px;box-shadow:var(--shadow);position:relative;z-index:100}
+  .logo{font-size:1.1rem;font-weight:700;color:#e8eaf0;letter-spacing:.12em}
+  .header-mid{flex:1;display:flex;align-items:center;gap:10px}
+  .role-pill{font-size:11px;padding:3px 10px;border-radius:20px;border:0.5px solid var(--border);color:var(--dim);background:var(--surface2)}
+  .role-pill.admin{border-color:#3a5a7a;color:#5a9acc;background:rgba(26,74,122,0.2)}
+  .header-right{display:flex;align-items:center;gap:6px}
 
-  main { flex: 1; max-width: 960px; width: 100%; margin: 0 auto; padding: 32px 28px; }
-  .page-label { font-size: 11px; color: var(--dim); letter-spacing: .1em; text-transform: uppercase; margin-bottom: 3px; }
-  .page-title { font-size: 1.3rem; font-weight: 600; color: var(--text); margin-bottom: 24px; }
+  /* Scan button */
+  .btn-scan{font-size:12px;padding:6px 16px;border-radius:8px;border:1px solid #1e4a7a;background:rgba(26,74,122,0.15);color:#5a9acc;cursor:pointer;text-decoration:none;transition:all 0.15s;font-weight:600}
+  .btn-scan:hover{background:rgba(26,74,122,0.3)}
 
-  .cta {
-    background: rgba(26,74,122,0.15); border: 1px solid #1e3a5a;
-    border-radius: 14px; padding: 18px 22px;
-    display: flex; align-items: center; justify-content: space-between;
-    gap: 16px; margin-bottom: 28px;
-  }
-  .cta h2 { font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: 3px; }
-  .cta p  { font-size: 0.8rem; color: var(--dim); }
-  .btn-cta {
-    background: var(--accent); border: none; color: #e8f4ff;
-    font-family: 'Inter', sans-serif; font-size: 0.85rem; font-weight: 600;
-    padding: 10px 20px; border-radius: 10px; cursor: pointer;
-    white-space: nowrap; transition: filter 0.15s; text-decoration: none; display: inline-block;
-  }
-  .btn-cta:hover { filter: brightness(1.15); }
+  /* Dropdown menus */
+  .dd-wrap{position:relative}
+  .dd-btn{font-size:12px;padding:6px 14px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--dim);cursor:pointer;transition:all 0.15s;display:flex;align-items:center;gap:5px;white-space:nowrap;user-select:none}
+  .dd-btn:hover,.dd-btn.open{border-color:#2a4a6a;color:var(--text)}
+  .dd-caret{font-size:0.6rem;transition:transform 0.15s}
+  .dd-btn.open .dd-caret{transform:rotate(180deg)}
+  .dd-menu{display:none;position:absolute;right:0;top:calc(100% + 6px);background:var(--surface);border:1px solid var(--border);border-radius:10px;min-width:160px;box-shadow:0 8px 24px rgba(0,0,0,0.4);overflow:hidden;z-index:200}
+  .dd-menu.show{display:block}
+  .dd-item{display:block;padding:9px 16px;font-size:0.8rem;color:var(--dim);text-decoration:none;transition:all 0.12s;border-bottom:1px solid rgba(30,45,69,0.5)}
+  .dd-item:last-child{border-bottom:none}
+  .dd-item:hover{background:rgba(26,74,122,0.12);color:var(--text)}
+  .dd-item.danger{color:#c06070}
+  .dd-item.danger:hover{background:rgba(180,60,80,0.1)}
+  .dd-divider{height:1px;background:var(--border);margin:2px 0}
 
-  .section-hdr { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
-  .section-title { font-size: 0.75rem; font-weight: 600; color: var(--dim); letter-spacing: .1em; text-transform: uppercase; }
-  .count-pill { font-size: 11px; padding: 2px 9px; border-radius: 10px; background: var(--surface2); color: var(--dim); border: 0.5px solid var(--border); }
+  /* Main */
+  main{flex:1;max-width:1000px;width:100%;margin:0 auto;padding:28px 28px}
+  .page-label{font-size:11px;color:var(--dim);letter-spacing:.1em;text-transform:uppercase;margin-bottom:3px}
+  .page-title{font-size:1.3rem;font-weight:600;color:var(--text);margin-bottom:20px}
 
-  .assessment-grid { display: flex; flex-direction: column; gap: 8px; }
-  .acard {
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: 12px; padding: 14px 18px;
-    display: flex; align-items: center; gap: 14px;
-    position: relative; overflow: hidden;
-    transition: border-color 0.15s; cursor: pointer;
-  }
-  .acard::before {
-    content: ''; position: absolute; left: 0; top: 0; bottom: 0;
-    width: 3px; border-radius: 3px 0 0 3px;
-  }
-  .acard:nth-child(1)::before { background: #2a6a9a; }
-  .acard:nth-child(2)::before { background: #2a7a5a; }
-  .acard:nth-child(3)::before { background: #6a4a9a; }
-  .acard:nth-child(4)::before { background: #8a5a2a; }
-  .acard:nth-child(5)::before { background: #7a2a4a; }
-  .acard:hover { border-color: #2a4a6a; }
+  /* CTA bar */
+  .cta{background:rgba(26,74,122,0.15);border:1px solid #1e3a5a;border-radius:14px;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:24px}
+  .cta h2{font-size:0.95rem;font-weight:600;color:var(--text);margin-bottom:2px}
+  .cta p{font-size:0.78rem;color:var(--dim)}
+  .btn-cta{background:var(--accent);border:none;color:#e8f4ff;font-family:'Inter',sans-serif;font-size:0.82rem;font-weight:600;padding:9px 18px;border-radius:10px;cursor:pointer;white-space:nowrap;transition:filter 0.15s;text-decoration:none;display:inline-block}
+  .btn-cta:hover{filter:brightness(1.15)}
 
-  .card-rank { font-size: 1.3rem; font-weight: 600; color: #1e3050; min-width: 28px; text-align: center; }
-  .acard:first-child .card-rank { color: #6a4a2a; }
-  .card-main { flex: 1; min-width: 0; }
-  .card-client { font-size: 0.9rem; font-weight: 600; color: var(--text); margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .card-meta { display: flex; gap: 14px; flex-wrap: wrap; }
-  .card-meta span { font-size: 0.72rem; color: var(--dim); }
-  .card-meta .val { color: #8ab8d8; }
+  /* Section header */
+  .section-hdr{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+  .section-title{font-size:0.72rem;font-weight:600;color:var(--dim);letter-spacing:.1em;text-transform:uppercase}
+  .count-pill{font-size:11px;padding:2px 8px;border-radius:10px;background:var(--surface2);color:var(--dim);border:0.5px solid var(--border)}
 
-  .card-phases { display: flex; gap: 5px; flex-shrink: 0; }
-  .pbadge { font-size: 0.65rem; padding: 2px 8px; border-radius: 4px; border: 0.5px solid; letter-spacing: .04em; }
-  .pbadge.on  { background: rgba(42,122,74,0.15); border-color: #2a5a3a; color: #4aaa6a; }
-  .pbadge.off { background: transparent; border-color: var(--border); color: var(--dim); opacity: 0.4; }
+  /* Client table */
+  .client-table-wrap{background:#ffffff;border:1px solid #dce8f2;border-radius:12px;overflow:hidden;margin-bottom:24px}
+  .client-search-row{padding:12px 16px;border-bottom:1px solid #dce8f2;display:flex;align-items:center;gap:10px}
+  .search-inner{position:relative;flex:1;max-width:360px}
+  .search-inner input{width:100%;background:#ffffff;border:1px solid #c8d8e8;border-radius:8px;color:#0f1826;font-family:'Inter',sans-serif;font-size:0.82rem;padding:7px 10px 7px 32px;outline:none;transition:border-color 0.2s}
+  .search-inner input:focus{border-color:#4a7aaa}
+  .search-inner input::placeholder{color:#8aaabb}
+  .search-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#8aaabb;font-size:0.8rem;pointer-events:none}
+  .tbl-link{font-size:0.75rem;color:#5a9acc;text-decoration:none;margin-left:auto}
+  .tbl-link:hover{text-decoration:underline}
 
-  .card-completed { font-size: 0.68rem; color: var(--dim); text-align: right; flex-shrink: 0; white-space: nowrap; line-height: 1.5; }
-  .btn-del {
-    background: transparent; border: 1px solid var(--border); border-radius: 6px;
-    color: var(--dim); font-size: 0.7rem; padding: 3px 9px; cursor: pointer; flex-shrink: 0;
-    transition: all 0.15s;
-  }
-  .btn-del:hover { border-color: #5a1a2a; color: #c06070; background: rgba(180,60,80,0.08); }
+  table.ctbl{width:100%;border-collapse:collapse;font-size:0.8rem}
+  table.ctbl thead th{text-align:left;color:#6a8aaa;font-size:0.68rem;font-weight:600;letter-spacing:.07em;text-transform:uppercase;padding:7px 16px;border-bottom:1px solid #dce8f2;background:#f8fafc}
+  table.ctbl tbody tr{border-bottom:1px solid #eef3f8;cursor:pointer;transition:background 0.1s}
+  table.ctbl tbody tr:last-child{border-bottom:none}
+  table.ctbl tbody tr:hover td{background:#eef4fc}
+  table.ctbl td{padding:10px 16px;vertical-align:middle}
+  .tbl-name{font-weight:600;color:#1a2a3a}
+  .tbl-dim{color:#6a8aaa}
+  .empty-row td{padding:24px;text-align:center;color:#6a8aaa;font-size:0.82rem}
 
-  .empty-state {
-    background: var(--surface); border: 1px dashed var(--border);
-    border-radius: 12px; padding: 48px 24px; text-align: center;
-  }
-  .empty-state p { color: var(--dim); font-size: 0.85rem; line-height: 1.8; }
+  /* Assessment cards */
+  .assessment-grid{display:flex;flex-direction:column;gap:8px}
+  .acard{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:13px 18px;display:flex;align-items:center;gap:14px;position:relative;overflow:hidden;transition:border-color 0.15s;cursor:pointer}
+  .acard::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:3px 0 0 3px}
+  .acard:nth-child(1)::before{background:#2a6a9a}.acard:nth-child(2)::before{background:#2a7a5a}
+  .acard:nth-child(3)::before{background:#6a4a9a}.acard:nth-child(4)::before{background:#8a5a2a}
+  .acard:nth-child(5)::before{background:#7a2a4a}
+  .acard:hover{border-color:#2a4a6a}
+  .card-rank{font-size:1.2rem;font-weight:600;color:#1e3050;min-width:26px;text-align:center}
+  .acard:first-child .card-rank{color:#6a4a2a}
+  .card-main{flex:1;min-width:0}
+  .card-client{font-size:0.88rem;font-weight:600;color:var(--text);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .card-meta{display:flex;gap:14px;flex-wrap:wrap}
+  .card-meta span{font-size:0.7rem;color:var(--dim)}
+  .card-meta .val{color:#8ab8d8}
+  .card-phases{display:flex;gap:5px;flex-shrink:0}
+  .pbadge{font-size:0.63rem;padding:2px 7px;border-radius:4px;border:0.5px solid;letter-spacing:.04em}
+  .pbadge.on{background:rgba(42,122,74,0.15);border-color:#2a5a3a;color:#4aaa6a}
+  .pbadge.off{background:transparent;border-color:var(--border);color:var(--dim);opacity:0.4}
+  .card-completed{font-size:0.67rem;color:var(--dim);text-align:right;flex-shrink:0;white-space:nowrap;line-height:1.5}
+  .btn-del{background:transparent;border:1px solid var(--border);border-radius:6px;color:var(--dim);font-size:0.7rem;padding:3px 8px;cursor:pointer;flex-shrink:0;transition:all 0.15s}
+  .btn-del:hover{border-color:#5a1a2a;color:#c06070;background:rgba(180,60,80,0.08)}
+  .empty-state{background:var(--surface);border:1px dashed var(--border);border-radius:12px;padding:40px 24px;text-align:center}
+  .empty-state p{color:var(--dim);font-size:0.82rem;line-height:1.8}
 
   /* Delete modal */
-  #delete-modal-bg {
-    display: none; position: fixed; inset: 0;
-    background: rgba(0,0,0,0.6); z-index: 200;
-    align-items: center; justify-content: center;
-  }
-  .del-modal {
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: 14px; width: 380px; overflow: hidden;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
-  }
-  .del-modal-hdr {
-    padding: 14px 20px; background: var(--surface2);
-    border-bottom: 1px solid var(--border);
-    font-size: 0.82rem; font-weight: 600; color: var(--text);
-  }
-  .del-modal-body { padding: 20px; }
-  .del-modal-body p { font-size: 0.85rem; color: var(--text); margin-bottom: 6px; }
-  .del-modal-body small { font-size: 0.75rem; color: var(--dim); }
-  .del-modal-actions { display: flex; gap: 8px; margin-top: 18px; }
-  .btn-del-confirm {
-    flex: 1; padding: 10px; border: none; border-radius: 10px;
-    background: #8a1a2a; color: #f8d8dc; font-family: 'Inter', sans-serif;
-    font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: filter 0.15s;
-  }
-  .btn-del-confirm:hover { filter: brightness(1.15); }
-  .btn-del-cancel {
-    flex: 1; padding: 10px; background: transparent;
-    border: 1px solid var(--border); border-radius: 10px;
-    color: var(--dim); font-family: 'Inter', sans-serif; font-size: 0.85rem; cursor: pointer;
-  }
-  .btn-del-cancel:hover { border-color: #2a4a6a; color: var(--text); }
+  #delete-modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:200;align-items:center;justify-content:center}
+  .del-modal{background:var(--surface);border:1px solid var(--border);border-radius:14px;width:360px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.4)}
+  .del-modal-hdr{padding:13px 18px;background:var(--surface2);border-bottom:1px solid var(--border);font-size:0.82rem;font-weight:600;color:var(--text)}
+  .del-modal-body{padding:18px}
+  .del-modal-body p{font-size:0.83rem;color:var(--text);margin-bottom:5px}
+  .del-modal-body small{font-size:0.73rem;color:var(--dim)}
+  .del-modal-actions{display:flex;gap:8px;margin-top:16px}
+  .btn-del-confirm{flex:1;padding:10px;border:none;border-radius:10px;background:#8a1a2a;color:#f8d8dc;font-family:'Inter',sans-serif;font-size:0.83rem;font-weight:600;cursor:pointer}
+  .btn-del-cancel{flex:1;padding:10px;background:transparent;border:1px solid var(--border);border-radius:10px;color:var(--dim);font-family:'Inter',sans-serif;font-size:0.83rem;cursor:pointer}
 
-  footer {
-    background: var(--surface); border-top: 1px solid var(--border);
-    padding: 11px 28px; display: flex; justify-content: space-between;
-    font-size: 0.7rem; color: var(--dim);
-  }
+  footer{background:var(--surface);border-top:1px solid var(--border);padding:10px 28px;display:flex;justify-content:space-between;font-size:0.7rem;color:var(--dim)}
 </style>
 </head>
 <body>
@@ -168,24 +123,53 @@
   <div class="logo">◈ ART3MIS</div>
   <div class="header-mid">
     <span style="font-size:12px;color:var(--dim)">{{ username }}</span>
-    {% if role == 'Administrator' %}
-      <span class="role-pill admin">Administrator</span>
-    {% elif role == 'Manager' %}
-      <span class="role-pill">Manager</span>
-    {% else %}
-      <span class="role-pill">{{ role }}</span>
-    {% endif %}
+    {% if role == 'Administrator' %}<span class="role-pill admin">Administrator</span>
+    {% elif role == 'Manager' %}<span class="role-pill">Manager</span>
+    {% else %}<span class="role-pill">{{ role }}</span>{% endif %}
   </div>
   <div class="header-right">
-    <a href="/scan" class="nav-btn new">▶ New Scan</a>
-    <a href="/clients" class="nav-btn" style="border-color:#2a3a5a;color:#8ab8d8">◈ Clients</a>
-    <a href="/wiki" class="nav-btn" style="border-color:#2a3a5a;color:#8ab8d8">📖 Wiki</a>
-    <a href="/change-password" class="nav-btn">⚙ Password</a>
+
+    <!-- New Scan -->
+    <a href="/scan" class="btn-scan">▶ New Scan</a>
+
+    <!-- Resources dropdown -->
+    <div class="dd-wrap">
+      <div class="dd-btn" onclick="toggleDd('dd-resources')">
+        Resources <span class="dd-caret">▾</span>
+      </div>
+      <div class="dd-menu" id="dd-resources">
+        <a href="/clients" class="dd-item">◈ Clients</a>
+        <a href="/wiki" class="dd-item">📖 Wiki</a>
+        <div class="dd-divider"></div>
+        <a href="/change-password" class="dd-item">⚙ Change Password</a>
+      </div>
+    </div>
+
     {% if role == 'Administrator' %}
-    <a href="/admin/users" class="nav-btn users">◈ Users</a>
-    <a href="/admin/requests" class="nav-btn req">◈ Requests</a>
+    <!-- Admin dropdown -->
+    <div class="dd-wrap">
+      <div class="dd-btn" onclick="toggleDd('dd-admin')">
+        Admin <span class="dd-caret">▾</span>
+      </div>
+      <div class="dd-menu" id="dd-admin">
+        <a href="/admin/users" class="dd-item">◈ Users</a>
+        <a href="/admin/requests" class="dd-item">◈ Account Requests</a>
+      </div>
+    </div>
     {% endif %}
-    <a href="/logout" class="nav-btn logout">⎋ Logout</a>
+
+    <!-- Account dropdown -->
+    <div class="dd-wrap">
+      <div class="dd-btn" onclick="toggleDd('dd-account')">
+        {{ username }} <span class="dd-caret">▾</span>
+      </div>
+      <div class="dd-menu" id="dd-account">
+        <a href="/change-password" class="dd-item">⚙ Change Password</a>
+        <div class="dd-divider"></div>
+        <a href="/logout" class="dd-item danger">⎋ Logout</a>
+      </div>
+    </div>
+
   </div>
 </header>
 
@@ -198,45 +182,62 @@
       <h2>Start a New Assessment</h2>
       <p>Configure targets, select phases, and launch the automated scan pipeline.</p>
     </div>
-    <a href="/scan" class="btn-cta">▶  Begin Assessment</a>
+    <a href="/scan" class="btn-cta">▶ Begin Assessment</a>
   </div>
 
-  <!-- Client search -->
-  <div class="section-hdr" style="margin-bottom:10px">
-    <span class="section-title">Client Search</span>
-  </div>
-  <div style="display:flex;align-items:center;gap:10px;margin-bottom:28px">
-    <div style="position:relative;flex:1;max-width:400px">
-      <span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);color:#4a6a8a;font-size:0.85rem;pointer-events:none">⌕</span>
-      <input type="text" id="client-search" placeholder="Search clients..."
-             maxlength="60" onkeypress="return /[a-zA-Z0-9 ]/.test(event.key)"
-             oninput="searchClients(this.value)"
-             style="width:100%;background:#ffffff;border:1px solid #c8d8e8;border-radius:10px;color:#0f1826;font-family:'Inter',sans-serif;font-size:0.85rem;padding:9px 12px 9px 36px;outline:none">
+  <!-- Client directory table -->
+  <div class="section-hdr"><span class="section-title">Clients</span></div>
+  <div class="client-table-wrap">
+    <div class="client-search-row">
+      <div class="search-inner">
+        <span class="search-icon">⌕</span>
+        <input type="text" id="client-search" placeholder="Search by name..."
+               maxlength="60" onkeypress="return /[a-zA-Z0-9 ]/.test(event.key)"
+               oninput="filterTable(this.value)">
+      </div>
+      <a href="/clients" class="tbl-link">Manage clients →</a>
     </div>
-    <a href="/clients" style="font-size:0.78rem;color:#5a9acc;text-decoration:none">View all →</a>
-  </div>
-  <div id="client-results" style="display:none;margin-bottom:24px">
-    <div id="client-cards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px"></div>
+    <table class="ctbl" id="client-tbl">
+      <thead>
+        <tr>
+          <th>Client Name</th>
+          <th>Industry</th>
+          <th>Contact</th>
+          <th>Created</th>
+        </tr>
+      </thead>
+      <tbody id="client-tbody">
+        {% if clients %}
+          {% for client in clients | sort(attribute='name') %}
+          <tr onclick="window.location='/clients/{{ client.client_id }}'">
+            <td class="tbl-name">{{ client.name }}</td>
+            <td class="tbl-dim">{{ client.industry or '—' }}</td>
+            <td class="tbl-dim">{{ client.contact_name or '—' }}</td>
+            <td class="tbl-dim">{{ client.created_at or '—' }}</td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr class="empty-row"><td colspan="4">No clients assigned yet.</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
   </div>
 
+  <!-- Recent assessments -->
   <div class="section-hdr">
     <span class="section-title">Recent Assessments</span>
     <span class="count-pill">{{ history|length }} / 5</span>
   </div>
-
   <div class="assessment-grid">
     {% if history %}
       {% for entry in history %}
-      <div class="acard" id="card-{{ loop.index0 }}"
-           onclick="window.location='/assessment/{{ entry.folder.split('/')[-1] }}'"
-           style="cursor:pointer">
+      <div class="acard" onclick="window.location='/assessment/{{ entry.folder.split('/')[-1] }}'">
         <div class="card-rank">{{ loop.index }}</div>
         <div class="card-main">
           <div class="card-client">{{ entry.client }}</div>
           <div class="card-meta">
             <span>Date: <span class="val">{{ entry.date }}</span></span>
             <span>Domain: <span class="val">{{ entry.domain }}</span></span>
-            <span style="font-size:0.65rem;opacity:0.5">{{ entry.folder }}</span>
           </div>
         </div>
         <div class="card-phases">
@@ -244,7 +245,7 @@
           <span class="pbadge {{ 'on' if entry.phases.get('scan')  else 'off' }}">P2</span>
           <span class="pbadge {{ 'on' if entry.phases.get('vuln')  else 'off' }}">P3</span>
         </div>
-        <div class="card-completed">Completed<br>{{ entry.completed }}</div>
+        <div class="card-completed">{{ entry.completed }}</div>
         <button class="btn-del"
                 data-folder="{{ entry.folder }}"
                 data-client="{{ entry.client }}"
@@ -270,7 +271,7 @@
   <div class="del-modal">
     <div class="del-modal-hdr">Remove Assessment</div>
     <div class="del-modal-body">
-      <p>Are you sure you want to remove <strong id="modal-client-name"></strong> from the dashboard?</p>
+      <p>Remove <strong id="modal-client-name"></strong> from the dashboard?</p>
       <small>Files on disk are not deleted.</small>
       <div class="del-modal-actions">
         <button class="btn-del-confirm" onclick="confirmDelete()">Yes, Remove</button>
@@ -281,51 +282,68 @@
 </div>
 
 <script>
-async function searchClients(q){
-  const clean=q.replace(/[^a-zA-Z0-9 ]/g,'').trim()
-  const results=document.getElementById('client-results')
-  const cards=document.getElementById('client-cards')
-  if(!clean){results.style.display='none';cards.innerHTML='';return}
-  const res=await fetch(`/api/clients/search?q=${encodeURIComponent(clean)}`)
-  const data=await res.json()
-  if(!data.ok) return
-  results.style.display='block'
-  if(data.clients.length===0){
-    cards.innerHTML='<div style="color:var(--dim);font-size:0.82rem;padding:10px">No clients found.</div>'
-    return
+// ── Dropdown logic ────────────────────────────────────────────────────────
+function toggleDd(id){
+  document.querySelectorAll('.dd-menu').forEach(m=>{
+    if(m.id!==id){ m.classList.remove('show'); m.previousElementSibling.classList.remove('open') }
+  })
+  const menu=document.getElementById(id)
+  const btn=menu.previousElementSibling
+  const opening=!menu.classList.contains('show')
+  menu.classList.toggle('show',opening)
+  btn.classList.toggle('open',opening)
+}
+document.addEventListener('click',e=>{
+  if(!e.target.closest('.dd-wrap')){
+    document.querySelectorAll('.dd-menu').forEach(m=>m.classList.remove('show'))
+    document.querySelectorAll('.dd-btn').forEach(b=>b.classList.remove('open'))
   }
-  cards.innerHTML=data.clients.map(c=>`
-    <a href="/clients/${c.client_id}" style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px;text-decoration:none;display:block;transition:border-color 0.15s" onmouseover="this.style.borderColor='#2a4a7a'" onmouseout="this.style.borderColor='var(--border)'">
-      <div style="font-size:0.88rem;font-weight:600;color:var(--text);margin-bottom:3px">${c.name}</div>
-      <div style="font-size:0.7rem;color:var(--dim);text-transform:uppercase;letter-spacing:.06em">${c.industry||'No industry'}</div>
-      <div style="font-size:0.72rem;color:var(--dim);margin-top:6px">${c.assessments.length} assessment(s) · Last: ${c.last_tested||'Never'}</div>
-    </a>`).join('')
+})
+
+// ── Client table filter ───────────────────────────────────────────────────
+function filterTable(q){
+  const clean=q.replace(/[^a-zA-Z0-9 ]/g,'').toLowerCase()
+  const rows=document.querySelectorAll('#client-tbody tr:not(.empty-row)')
+  let visible=0
+  rows.forEach(r=>{
+    const name=r.querySelector('.tbl-name')?.textContent.toLowerCase()||''
+    const show=!clean||name.includes(clean)
+    r.style.display=show?'':'none'
+    if(show)visible++
+  })
+  // Show empty message if nothing matches
+  let noMatch=document.getElementById('no-match-row')
+  if(visible===0&&rows.length>0){
+    if(!noMatch){
+      noMatch=document.createElement('tr')
+      noMatch.id='no-match-row'
+      noMatch.className='empty-row'
+      noMatch.innerHTML='<td colspan="4">No clients match your search.</td>'
+      document.getElementById('client-tbody').appendChild(noMatch)
+    }
+    noMatch.style.display=''
+  } else if(noMatch){
+    noMatch.style.display='none'
+  }
 }
 
-function openDeleteModal(btn) {
-  pendingFolder = btn.getAttribute('data-folder');
-  document.getElementById('modal-client-name').textContent = `"${btn.getAttribute('data-client')}"`;
-  document.getElementById('delete-modal-bg').style.display = 'flex';
+// ── Assessment delete ─────────────────────────────────────────────────────
+let pendingFolder=null
+function openDeleteModal(btn){
+  pendingFolder=btn.getAttribute('data-folder')
+  document.getElementById('modal-client-name').textContent=`"${btn.getAttribute('data-client')}"`
+  document.getElementById('delete-modal-bg').style.display='flex'
 }
-function closeDeleteModal() {
-  pendingFolder = null;
-  document.getElementById('delete-modal-bg').style.display = 'none';
+function closeDeleteModal(){pendingFolder=null;document.getElementById('delete-modal-bg').style.display='none'}
+async function confirmDelete(){
+  if(!pendingFolder)return
+  const folder=pendingFolder;closeDeleteModal()
+  const res=await fetch('/api/delete-assessment',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({folder})})
+  const data=await res.json()
+  if(!data.ok){alert('Error: '+data.error);return}
+  window.location.reload()
 }
-async function confirmDelete() {
-  if (!pendingFolder) return;
-  const folder = pendingFolder;
-  closeDeleteModal();
-  const res  = await fetch('/api/delete-assessment', {
-    method: 'POST', headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({ folder }),
-  });
-  const data = await res.json();
-  if (!data.ok) { alert('Error: ' + data.error); return; }
-  window.location.reload();
-}
-document.getElementById('delete-modal-bg').addEventListener('click', function(e) {
-  if (e.target === this) closeDeleteModal();
-});
+document.getElementById('delete-modal-bg').addEventListener('click',function(e){if(e.target===this)closeDeleteModal()})
 </script>
 </body>
 </html>
