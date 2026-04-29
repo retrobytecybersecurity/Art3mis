@@ -652,8 +652,7 @@ def run_scan(scope_list, url_list, domain, phases, tools, folder, tool_paths):
             safe_d = re.sub(r"[^\w\-]", "_", domain)
             o365_out = p1 / f"o365scan_{safe_d}.txt"
             run_tool(["python3", o365scan_path,
-                      "--validate", "--domain", domain, "--output", str(p1),
-                      "--no-color"],
+                      "--validate", "--domain", domain, "--output", str(p1)],
                      o365_out, f"o365spray [{domain}]",
                      screenshot_name=f"phase1_o365scan_{safe_d}")
             if o365_out.exists():
@@ -913,7 +912,9 @@ def run_scan(scope_list, url_list, domain, phases, tools, folder, tool_paths):
                 log("⚠ OATHNET_API_KEY not set — skipping breach check", "warn")
                 log("  Set it in /etc/systemd/system/artemis.service and restart", "dim")
             else:
-                # Collect all emails discovered so far in Phase 1
+                # Build email targets:
+                # 1. Query domain directly (catches all breached emails for the domain)
+                # 2. Also check any specific emails discovered by bbot
                 discovered_emails = set()
 
                 # From bbot output files
@@ -923,19 +924,23 @@ def run_scan(scope_list, url_list, domain, phases, tools, folder, tool_paths):
                         f.read_text(errors="ignore")
                     ))
 
-                # Filter to only emails matching the target domain
+                # Filter to target domain emails only
                 if domain:
                     domain_emails = {e for e in discovered_emails
-                                     if e.lower().endswith(f"@{domain.lower()}")
-                                     or e.lower().endswith(f".{domain.lower()}")}
-                    # If we have domain-specific emails, use those; else use all found
-                    if domain_emails:
-                        discovered_emails = domain_emails
+                                     if e.lower().endswith(f"@{domain.lower()}")}
+                    discovered_emails = domain_emails
 
-                if not discovered_emails:
-                    log("  — breach check: no email addresses discovered to check", "dim")
+                # Always include the domain itself as a search target
+                targets = []
+                if domain:
+                    targets.append(domain)   # domain-level query first
+                targets.extend(sorted(discovered_emails))  # then individual emails
+
+                if not targets:
+                    log("  — breach check: no domain or emails to check", "dim")
                 else:
-                    log(f"⟶ OathNet breach check — {len(discovered_emails)} email(s)", "info")
+                    log(f"⟶ OathNet breach check — domain: {domain}"
+                        f"{f' + {len(discovered_emails)} email(s)' if discovered_emails else ''}", "info")
                     breach_out  = p1 / "breach_check.txt"
                     breach_hits = []
                     breach_errors = 0
@@ -943,14 +948,15 @@ def run_scan(scope_list, url_list, domain, phases, tools, folder, tool_paths):
                     with open(breach_out, "w") as bf:
                         bf.write(f"OathNet Breach Credential Check\n")
                         bf.write(f"Checked: {datetime.now().isoformat()}\n")
-                        bf.write(f"Emails checked: {len(discovered_emails)}\n")
+                        bf.write(f"Domain: {domain}\n")
+                        bf.write(f"Individual emails checked: {len(discovered_emails)}\n")
                         bf.write("=" * 60 + "\n\n")
 
-                        for email in sorted(discovered_emails):
+                        for target in targets:
                             try:
                                 url_req = (
                                     f"https://oathnet.org/api/service/search-breach"
-                                    f"?q={urllib.parse.quote(email)}"
+                                    f"?q={urllib.parse.quote(target)}"
                                 )
                                 req = urllib.request.Request(
                                     url_req,
@@ -965,9 +971,8 @@ def run_scan(scope_list, url_list, domain, phases, tools, folder, tool_paths):
                                                 body.get("lookups_left", "?"))
 
                                 if results_found > 0:
-                                    bf.write(f"[FOUND] {email}\n")
+                                    bf.write(f"[FOUND] {target}\n")
                                     bf.write(f"  Breach records: {results_found}\n")
-                                    # Log sources — passwords are redacted by API
                                     api_results = body.get("data", {}).get("results", [])
                                     sources = list({r.get("source", r.get("dbname", "unknown"))
                                                     for r in api_results if isinstance(r, dict)})
@@ -975,44 +980,45 @@ def run_scan(scope_list, url_list, domain, phases, tools, folder, tool_paths):
                                         bf.write(f"  Sources: {', '.join(sources)}\n")
                                     bf.write("\n")
                                     breach_hits.append({
-                                        "email":   email,
+                                        "target":  target,
                                         "count":   results_found,
                                         "sources": sources,
                                     })
-                                    log(f"  ⚠ BREACH: {email} — {results_found} record(s) in {', '.join(sources[:3])}", "warn")
+                                    log(f"  ⚠ BREACH: {target} — {results_found} record(s)"
+                                        f" in {', '.join(sources[:3])}", "warn")
                                 else:
-                                    bf.write(f"[CLEAN] {email}\n")
-                                    log(f"  ✓ clean: {email}", "dim")
+                                    bf.write(f"[CLEAN] {target}\n")
+                                    log(f"  ✓ clean: {target}", "dim")
 
                             except urllib.error.HTTPError as e:
                                 if e.code == 401:
                                     log("✗ OathNet API key invalid or expired", "error")
-                                    bf.write(f"[ERROR] {email} — API key invalid\n")
+                                    bf.write(f"[ERROR] {target} — API key invalid\n")
                                     breach_errors += 1
-                                    break  # No point continuing with bad key
+                                    break
                                 elif e.code == 429:
                                     log("✗ OathNet rate limit hit — stopping breach check", "warn")
-                                    bf.write(f"[RATE_LIMITED] Stopped at {email}\n")
+                                    bf.write(f"[RATE_LIMITED] Stopped at {target}\n")
                                     break
                                 else:
-                                    log(f"  ✗ HTTP {e.code} for {email}", "error")
-                                    bf.write(f"[ERROR] {email} — HTTP {e.code}\n")
+                                    log(f"  ✗ HTTP {e.code} for {target}", "error")
+                                    bf.write(f"[ERROR] {target} — HTTP {e.code}\n")
                                     breach_errors += 1
                             except Exception as ex:
-                                log(f"  ✗ breach check error for {email}: {ex}", "error")
-                                bf.write(f"[ERROR] {email} — {ex}\n")
+                                log(f"  ✗ breach check error for {target}: {ex}", "error")
+                                bf.write(f"[ERROR] {target} — {ex}\n")
                                 breach_errors += 1
 
                         bf.write("\n" + "=" * 60 + "\n")
                         bf.write(f"Summary: {len(breach_hits)} breach(es) found, "
-                                 f"{len(discovered_emails) - len(breach_hits) - breach_errors} clean, "
+                                 f"{len(targets) - len(breach_hits) - breach_errors} clean, "
                                  f"{breach_errors} error(s)\n")
 
                     results["breach_hits"] = breach_hits
                     if breach_hits:
-                        log(f"  ↳ {len(breach_hits)} breached email(s) found — see breach_check.txt", "warn")
+                        log(f"  ↳ {len(breach_hits)} breach(es) found — see breach_check.txt", "warn")
                     else:
-                        log(f"  ↳ No breached emails found across {len(discovered_emails)} address(es)", "success")
+                        log(f"  ↳ No breaches found for {domain}", "success")
         else:
             log("  — breach check skipped", "dim")
 
@@ -1149,7 +1155,7 @@ def run_scan(scope_list, url_list, domain, phases, tools, folder, tool_paths):
             host = re.sub(r"^https?://", "", url).rstrip("/")
 
             if tools.get("sslscan", True):
-                run_tool(["sslscan", "--show-certificate", "--no-colour", host],
+                run_tool(["sslscan", "--show-certificate", "-d", host],
                          p3 / f"sslscan_{safe_t}.txt",
                          f"sslscan [{host}]",
                          screenshot_name=f"phase3_sslscan_{safe_t}")
