@@ -35,32 +35,44 @@
   @keyframes spin{to{transform:rotate(360deg)}}
   .error-box{background:rgba(138,42,58,0.12);border:1px solid #5a1a2a;border-radius:10px;padding:12px 16px;color:#e88a9a;font-size:0.82rem;display:none;margin-bottom:16px}
   #results-section{display:none}
-  .summary-row{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px}
-  .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 18px;text-align:center}
-  .stat-val{font-size:1.9rem;font-weight:700;margin-bottom:4px}
-  .stat-val.breach{color:#e88a9a}
+  .summary-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
+  .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px;text-align:center}
+  .stat-val{font-size:1.7rem;font-weight:700;margin-bottom:3px}
+  .stat-val.breach-col{color:#e88a9a}
+  .stat-val.stealer-col{color:#e8944a}
   .stat-val.clean{color:#4aaa6a}
-  .stat-val.info{color:#5a9acc}
-  .stat-lbl{font-size:0.68rem;color:var(--dim);text-transform:uppercase;letter-spacing:.08em}
+  .stat-lbl{font-size:0.65rem;color:var(--dim);text-transform:uppercase;letter-spacing:.07em;line-height:1.3}
+  .result-section{margin-bottom:24px}
+  .section-hdr{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+  .section-badge{font-size:0.7rem;padding:3px 10px;border-radius:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase}
+  .badge-breach{background:rgba(232,138,154,0.12);border:0.5px solid #5a1a2a;color:#e88a9a}
+  .badge-stealer{background:rgba(232,148,74,0.12);border:0.5px solid #6a3a1a;color:#e8944a}
+  .section-title-text{font-size:0.9rem;font-weight:600;color:var(--text)}
+  .section-sub{font-size:0.72rem;color:var(--dim);margin-left:auto}
   .results-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:var(--shadow)}
-  .results-hdr{padding:12px 18px;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
-  .results-hdr-left{font-size:0.74rem;font-weight:600;color:var(--dim);letter-spacing:.09em;text-transform:uppercase}
-  .btn-export{padding:5px 14px;font-family:'Inter',sans-serif;font-size:0.72rem;font-weight:600;border-radius:7px;cursor:pointer;transition:all 0.15s;border:1px solid #2a5a3a;color:#4aaa6a;background:rgba(42,122,74,0.1)}
+  .results-hdr{padding:10px 16px;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+  .results-hdr-left{font-size:0.7rem;font-weight:600;color:var(--dim);letter-spacing:.08em;text-transform:uppercase}
+  .btn-export{padding:4px 12px;font-family:'Inter',sans-serif;font-size:0.7rem;font-weight:600;border-radius:6px;cursor:pointer;transition:all 0.15s;border:1px solid #2a5a3a;color:#4aaa6a;background:rgba(42,122,74,0.1)}
   .btn-export:hover{background:rgba(42,122,74,0.2)}
-  .tbl-wrap{overflow-x:auto;max-height:600px;overflow-y:auto}
-  table{width:100%;border-collapse:collapse;font-size:0.76rem}
-  thead th{text-align:left;color:var(--dim);font-size:0.65rem;font-weight:600;letter-spacing:.07em;text-transform:uppercase;padding:8px 12px;border-bottom:1px solid var(--border);background:var(--surface2);position:sticky;top:0;white-space:nowrap;z-index:1}
-  tbody tr{border-bottom:1px solid rgba(30,45,69,0.5)}
+  .tbl-wrap{overflow-x:auto;max-height:420px;overflow-y:auto}
+  table{width:100%;border-collapse:collapse;font-size:0.75rem}
+  thead th{text-align:left;color:var(--dim);font-size:0.63rem;font-weight:600;letter-spacing:.07em;text-transform:uppercase;padding:7px 12px;border-bottom:1px solid var(--border);background:var(--surface2);position:sticky;top:0;white-space:nowrap;z-index:1}
+  tbody tr{border-bottom:1px solid rgba(30,45,69,0.4)}
   tbody tr:last-child{border-bottom:none}
   tbody tr:hover td{background:rgba(255,255,255,0.02)}
-  td{padding:8px 12px;vertical-align:middle;font-family:'JetBrains Mono',monospace;font-size:0.73rem;white-space:nowrap;max-width:220px;overflow:hidden;text-overflow:ellipsis}
-  .td-username{color:#8ab8d8}
-  .td-password{color:#e8944a;font-weight:500}
+  td{padding:7px 12px;vertical-align:middle;font-family:'JetBrains Mono',monospace;font-size:0.72rem;white-space:nowrap;max-width:220px;overflow:hidden;text-overflow:ellipsis}
+  .td-email{color:#8ab8d8}
+  .td-user{color:#c8d4e0}
+  .td-name{color:#e8eaf0}
   .td-domain{color:var(--dim)}
   .td-date{color:var(--dim)}
   .td-source{color:var(--dim)}
-  .td-redacted{color:rgba(200,200,200,0.25);font-style:italic;font-size:0.68rem;font-family:'Inter',sans-serif}
-  .empty-row td{padding:28px;text-align:center;color:var(--dim);font-size:0.82rem;font-family:'Inter',sans-serif;white-space:normal}
+  /* Password blacked out in GUI */
+  .td-pass-hidden{background:#0f1420;color:#0f1420;border-radius:3px;user-select:none;letter-spacing:0.1em;cursor:default}
+  .td-pass-hidden:hover{background:#1a2535;color:#1a2535}
+  .td-none{color:rgba(200,200,200,0.2);font-style:italic;font-size:0.66rem;font-family:'Inter',sans-serif}
+  .empty-row td{padding:24px;text-align:center;color:var(--dim);font-size:0.8rem;font-family:'Inter',sans-serif;white-space:normal}
+  .error-row td{padding:16px;text-align:center;color:#e88a9a;font-size:0.78rem;font-family:'Inter',sans-serif}
   footer{background:var(--surface);border-top:1px solid var(--border);padding:11px 28px;display:flex;justify-content:space-between;font-size:0.7rem;color:var(--dim)}
 </style>
 </head>
@@ -74,10 +86,10 @@
 </header>
 <main>
   <div class="page-label">OathNet Intelligence</div>
-  <div class="page-title">Breach Credential Check</div>
+  <div class="page-title">Breach & Stealer Credential Check</div>
   <div class="page-sub">
-    Check if a domain or email address appears in known breach databases.<br>
-    Powered by OathNet — passwords shown are from public breach data. Only non-duplicate credentials are counted.
+    Queries both the OathNet <strong style="color:#e88a9a">breach database</strong> (compromised database dumps) and <strong style="color:#e8944a">stealer log database</strong> (infostealer malware captures with plaintext passwords).<br>
+    Results are shown separately. Passwords are blacked out in the UI but included in CSV exports.
   </div>
   <div class="search-card">
     <div class="accent-line"></div>
@@ -89,10 +101,10 @@
         </div>
         <button class="btn-check" id="check-btn" onclick="runCheck()">Check Breaches</button>
       </div>
-      <div class="input-hint">Enter a domain to check all breached accounts, or a specific email address.</div>
+      <div class="input-hint">Enter a domain to check all records, or a specific email address.</div>
       <div class="loading" id="loading">
         <div class="spinner"></div>
-        <span>Querying OathNet breach database...</span>
+        <span>Querying OathNet breach and stealer databases...</span>
       </div>
     </div>
   </div>
@@ -100,109 +112,189 @@
   <div id="results-section">
     <div class="summary-row">
       <div class="stat-card">
-        <div class="stat-val breach" id="stat-total">0</div>
-        <div class="stat-lbl">Security Breaches Found</div>
+        <div class="stat-val breach-col" id="stat-breach-total">0</div>
+        <div class="stat-lbl">Breach Records</div>
       </div>
       <div class="stat-card">
-        <div class="stat-val info" id="stat-unique">0</div>
-        <div class="stat-lbl">Unique Stolen Credentials</div>
+        <div class="stat-val breach-col" id="stat-breach-unique">0</div>
+        <div class="stat-lbl">Unique Breach Credentials</div>
       </div>
       <div class="stat-card">
-        <div class="stat-val info" id="stat-sources">0</div>
-        <div class="stat-lbl">Data Sources</div>
+        <div class="stat-val stealer-col" id="stat-stealer-total">0</div>
+        <div class="stat-lbl">Stealer Log Records</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val stealer-col" id="stat-stealer-unique">0</div>
+        <div class="stat-lbl">Unique Stealer Credentials</div>
       </div>
     </div>
-    <div class="results-card">
-      <div class="results-hdr">
-        <div class="results-hdr-left">Breach Records — <span id="tbl-target"></span></div>
-        <button class="btn-export" onclick="exportCSV()">↓ Export CSV</button>
+
+    <!-- Breach section: email, username, full_name, email_domain -->
+    <div class="result-section">
+      <div class="section-hdr">
+        <span class="section-badge badge-breach">Data Breach</span>
+        <span class="section-title-text">Compromised Database Records</span>
+        <span class="section-sub" id="breach-sub"></span>
       </div>
-      <div class="tbl-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Username</th>
-              <th>Password</th>
-              <th>Domain</th>
-              <th>Date of Breach</th>
-              <th>Source Database</th>
-            </tr>
-          </thead>
-          <tbody id="results-tbody"></tbody>
-        </table>
+      <div class="results-card">
+        <div class="results-hdr">
+          <div class="results-hdr-left">Breach Records — <span id="breach-target"></span></div>
+          <button class="btn-export" onclick="exportCSV('breach')">↓ Export CSV</button>
+        </div>
+        <div class="tbl-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Email</th>
+                <th>Username</th>
+                <th>Full Name</th>
+                <th>Email Domain</th>
+                <th>Source Database</th>
+              </tr>
+            </thead>
+            <tbody id="breach-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stealer section: username, password (blacked out), pwned_at -->
+    <div class="result-section">
+      <div class="section-hdr">
+        <span class="section-badge badge-stealer">Stealer Log</span>
+        <span class="section-title-text">Infostealer Malware Captures</span>
+        <span class="section-sub" id="stealer-sub"></span>
+      </div>
+      <div class="results-card">
+        <div class="results-hdr">
+          <div class="results-hdr-left">Stealer Records — <span id="stealer-target"></span></div>
+          <button class="btn-export" onclick="exportCSV('stealer')">↓ Export CSV</button>
+        </div>
+        <div class="tbl-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Username</th>
+                <th>Password</th>
+                <th>Date Pwned</th>
+                <th>Source</th>
+              </tr>
+            </thead>
+            <tbody id="stealer-tbody"></tbody>
+          </table>
+        </div>
       </div>
     </div>
   </div>
 </main>
 <footer>
-  <span>Artemis // Breach Check — OathNet</span>
+  <span>Artemis // Breach & Stealer Check — OathNet</span>
   <span>Confidential — Authorized Use Only</span>
 </footer>
 <script>
 let currentData = null
+
 async function runCheck(){
-  const raw=document.getElementById('target-input').value.trim()
-  const target=raw.replace(/[^a-zA-Z0-9@._\-]/g,'')
-  if(!target){showError('Enter a domain or email address.');return}
-  document.getElementById('check-btn').disabled=true
-  document.getElementById('loading').style.display='flex'
-  document.getElementById('results-section').style.display='none'
-  document.getElementById('error-box').style.display='none'
+  const raw    = document.getElementById('target-input').value.trim()
+  const target = raw.replace(/[^a-zA-Z0-9@._\-]/g,'')
+  if(!target){ showError('Enter a domain or email address.'); return }
+  document.getElementById('check-btn').disabled    = true
+  document.getElementById('loading').style.display = 'flex'
+  document.getElementById('results-section').style.display = 'none'
+  document.getElementById('error-box').style.display      = 'none'
   try{
-    const res=await fetch('/api/breach/check',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({target})})
-    const data=await res.json()
-    document.getElementById('loading').style.display='none'
-    document.getElementById('check-btn').disabled=false
-    if(!data.ok){showError(data.error);return}
-    currentData=data
+    const res  = await fetch('/api/breach/check',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({target})})
+    const data = await res.json()
+    document.getElementById('loading').style.display = 'none'
+    document.getElementById('check-btn').disabled    = false
+    if(!data.ok){ showError(data.error); return }
+    currentData = data
     renderResults(data)
-  }catch(err){
+  } catch(err){
     document.getElementById('loading').style.display='none'
     document.getElementById('check-btn').disabled=false
     showError('Request failed — check your connection.')
   }
 }
+
 function renderResults(data){
-  document.getElementById('stat-total').textContent=data.results_found.toLocaleString()
-  document.getElementById('stat-unique').textContent=data.unique_creds.toLocaleString()
-  document.getElementById('stat-sources').textContent=data.sources.length.toLocaleString()
-  document.getElementById('tbl-target').textContent=data.target
-  const tv=document.getElementById('stat-total')
-  tv.className='stat-val '+(data.results_found>0?'breach':'clean')
-  const tbody=document.getElementById('results-tbody')
-  if(!data.items||data.items.length===0){
-    tbody.innerHTML='<tr class="empty-row"><td colspan="5">No breach records returned for this target.</td></tr>'
-  }else{
-    tbody.innerHTML=data.items.map(row=>{
-      const pwClass=row.password?'td-password':'td-redacted'
-      const pwText=row.password?esc(row.password):'—'
-      return `<tr>
-        <td class="td-username" title="${esc(row.username)}">${esc(row.username||'—')}</td>
-        <td class="${pwClass}">${pwText}</td>
-        <td class="td-domain" title="${esc(row.domain)}">${esc(row.domain||'—')}</td>
-        <td class="td-date">${esc(row.date||'—')}</td>
-        <td class="td-source" title="${esc(row.dbname)}">${esc(row.dbname||'—')}</td>
-      </tr>`
-    }).join('')
+  const b = data.breach
+  const s = data.stealer
+
+  document.getElementById('stat-breach-total').textContent  = b.total.toLocaleString()
+  document.getElementById('stat-breach-unique').textContent = b.unique.toLocaleString()
+  document.getElementById('stat-stealer-total').textContent  = s.total.toLocaleString()
+  document.getElementById('stat-stealer-unique').textContent = s.unique.toLocaleString()
+
+  setStatColor('stat-breach-total',  b.total  > 0 ? 'breach-col' : 'clean')
+  setStatColor('stat-breach-unique', b.unique > 0 ? 'breach-col' : 'clean')
+  setStatColor('stat-stealer-total',  s.total  > 0 ? 'stealer-col' : 'clean')
+  setStatColor('stat-stealer-unique', s.unique > 0 ? 'stealer-col' : 'clean')
+
+  // Breach table — email, username, full_name, email_domain, dbname
+  document.getElementById('breach-target').textContent = data.target
+  document.getElementById('breach-sub').textContent    = b.sources.length ? `Sources: ${b.sources.slice(0,5).join(', ')}${b.sources.length>5?' …':''}` : ''
+  const bTbody = document.getElementById('breach-tbody')
+  if(b.error){
+    bTbody.innerHTML = `<tr class="error-row"><td colspan="5">⚠ ${esc(b.error)}</td></tr>`
+  } else if(!b.items.length){
+    bTbody.innerHTML = '<tr class="empty-row"><td colspan="5">No breach records found for this target.</td></tr>'
+  } else {
+    bTbody.innerHTML = b.items.map(r=>`<tr>
+      <td class="td-email"  title="${esc(r.email)}">${esc(r.email||'—')}</td>
+      <td class="td-user"   title="${esc(r.username)}">${esc(r.username||'—')}</td>
+      <td class="td-name"   title="${esc(r.full_name)}">${esc(r.full_name||'—')}</td>
+      <td class="td-domain">${esc(r.email_domain||'—')}</td>
+      <td class="td-source" title="${esc(r.dbname)}">${esc(r.dbname||'—')}</td>
+    </tr>`).join('')
   }
-  document.getElementById('results-section').style.display='block'
+
+  // Stealer table — username, password (blacked out), pwned_at, dbname
+  document.getElementById('stealer-target').textContent = data.target
+  document.getElementById('stealer-sub').textContent    = s.sources.length ? `Sources: ${s.sources.slice(0,5).join(', ')}${s.sources.length>5?' …':''}` : ''
+  const sTbody = document.getElementById('stealer-tbody')
+  if(s.error){
+    sTbody.innerHTML = `<tr class="error-row"><td colspan="4">⚠ ${esc(s.error)}</td></tr>`
+  } else if(!s.items.length){
+    sTbody.innerHTML = '<tr class="empty-row"><td colspan="4">No stealer log records found for this target.</td></tr>'
+  } else {
+    sTbody.innerHTML = s.items.map(r=>`<tr>
+      <td class="td-user"   title="${esc(r.username)}">${esc(r.username||'—')}</td>
+      <td class="td-pass-hidden" title="Export CSV to view">${r.password ? '●'.repeat(Math.min(r.password.length,12)) : '—'}</td>
+      <td class="td-date">${esc(r.pwned_at||'—')}</td>
+      <td class="td-source" title="${esc(r.dbname)}">${esc(r.dbname||'—')}</td>
+    </tr>`).join('')
+  }
+
+  document.getElementById('results-section').style.display = 'block'
 }
-function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
-function exportCSV(){
-  if(!currentData)return
-  const target=document.getElementById('target-input').value.trim().replace(/[^a-zA-Z0-9@._\-]/g,'')
-  const fname=`${target}_breachScan.csv`
-  const headers=['Username','Password','Domain','Date of Breach','Source Database']
-  const rows=(currentData.items||[]).map(r=>[csvCell(r.username||''),csvCell(r.password||''),csvCell(r.domain||''),csvCell(r.date||''),csvCell(r.dbname||'')])
-  const csv=[headers,...rows].map(r=>r.join(',')).join('\n')
-  const blob=new Blob([csv],{type:'text/csv'})
-  const url=URL.createObjectURL(blob)
-  const a=document.createElement('a')
-  a.href=url;a.download=fname;a.click()
+
+function setStatColor(id, cls){ document.getElementById(id).className = 'stat-val ' + cls }
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') }
+
+function exportCSV(type){
+  if(!currentData) return
+  const target = document.getElementById('target-input').value.trim().replace(/[^a-zA-Z0-9@._\-]/g,'')
+  const data   = currentData[type]
+  const fname  = `${target}_${type}Scan.csv`
+  let headers, rows
+  if(type === 'breach'){
+    headers = ['Email','Username','Full Name','Email Domain','Source Database']
+    rows    = data.items.map(r=>[csvCell(r.email||''),csvCell(r.username||''),csvCell(r.full_name||''),csvCell(r.email_domain||''),csvCell(r.dbname||'')])
+  } else {
+    headers = ['Username','Password','Date Pwned','Source']
+    rows    = data.items.map(r=>[csvCell(r.username||''),csvCell(r.password||''),csvCell(r.pwned_at||''),csvCell(r.dbname||'')])
+  }
+  const csv  = [headers,...rows].map(r=>r.join(',')).join('\n')
+  const blob = new Blob([csv],{type:'text/csv'})
+  const url  = URL.createObjectURL(blob)
+  const a    = document.createElement('a')
+  a.href=url; a.download=fname; a.click()
   URL.revokeObjectURL(url)
 }
-function csvCell(v){const s=String(v);if(s.includes(',')||s.includes('"')||s.includes('\n'))return '"'+s.replace(/"/g,'""')+'"';return s}
-function showError(msg){const el=document.getElementById('error-box');el.textContent='✗ '+msg;el.style.display='block'}
+
+function csvCell(v){ const s=String(v); if(s.includes(',')||s.includes('"')||s.includes('\n')) return '"'+s.replace(/"/g,'""')+'"'; return s }
+function showError(msg){ const el=document.getElementById('error-box'); el.textContent='✗ '+msg; el.style.display='block' }
 </script>
 </body>
 </html>
