@@ -109,6 +109,7 @@
     </div>
   </div>
   <div class="error-box" id="error-box"></div>
+  <div id="lookups-remaining" style="display:none;font-size:0.75rem;font-weight:600;margin-bottom:14px;padding:6px 14px;background:var(--surface);border:1px solid var(--border);border-radius:8px"></div>
   <div id="results-section">
     <div class="summary-row">
       <div class="stat-card">
@@ -225,6 +226,16 @@ function renderResults(data){
   document.getElementById('stat-breach-unique').textContent = b.unique.toLocaleString()
   document.getElementById('stat-stealer-total').textContent  = s.total.toLocaleString()
   document.getElementById('stat-stealer-unique').textContent = s.unique.toLocaleString()
+
+  // Lookups remaining
+  const luEl = document.getElementById('lookups-remaining')
+  if(data.lookups_left !== null && data.lookups_left !== undefined){
+    luEl.textContent = `API lookups remaining: ${data.lookups_left.toLocaleString()}`
+    luEl.style.color = data.lookups_left < 50 ? '#f08090' : data.lookups_left < 200 ? '#e8c860' : '#4aaa6a'
+    luEl.style.display = 'inline'
+  } else {
+    luEl.style.display = 'none'
+  }
 
   setStatColor('stat-breach-total',  b.total  > 0 ? 'breach-col' : 'clean')
   setStatColor('stat-breach-unique', b.unique > 0 ? 'breach-col' : 'clean')
