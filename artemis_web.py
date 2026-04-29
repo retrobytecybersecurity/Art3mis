@@ -137,6 +137,9 @@ def audit_log(event: str, username: str = "", detail: str = ""):
             f.write(line)
     except Exception:
         pass
+
+
+def load_history() -> list:
     if HISTORY_FILE.exists():
         try:
             return json.loads(HISTORY_FILE.read_text())
