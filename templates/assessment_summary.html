@@ -313,12 +313,319 @@
   </div>
   {% endif %}
 
+  <!-- Assessment Notes -->
+  <div class="card full" style="margin-top:16px">
+    <div class="card-hdr">
+      <span>Assessment Notes</span>
+      <button class="card-action-btn" onclick="toggleEdit('notes')">✎ Edit</button>
+    </div>
+    <div class="card-body">
+      <div id="notes-view" style="font-size:0.83rem;color:var(--text);white-space:pre-wrap;line-height:1.7;min-height:40px">{{ data.notes or 'No notes added yet. Click Edit to add notes for this assessment.' }}</div>
+      <div id="notes-edit" style="display:none">
+        <textarea id="notes-input" rows="6" style="width:100%;background:#ffffff;border:1px solid #c8d8e8;border-radius:8px;color:#0f1826;font-family:'Inter',sans-serif;font-size:0.83rem;padding:10px 12px;outline:none;resize:vertical">{{ data.notes or '' }}</textarea>
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <button class="save-btn" onclick="saveField('notes')">Save</button>
+          <button class="cancel-btn" onclick="toggleEdit('notes')">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Executive Summary -->
+  <div class="card full" style="margin-top:16px">
+    <div class="card-hdr">
+      <span>Executive Summary</span>
+      <button class="card-action-btn" onclick="toggleEdit('exec')">✎ Edit</button>
+    </div>
+    <div class="card-body">
+      <div id="exec-view" style="font-size:0.83rem;color:var(--text);white-space:pre-wrap;line-height:1.7;min-height:60px">{{ data.executive_summary or 'No executive summary written yet. Click Edit to write a plain-English summary of the risk posture for this assessment.' }}</div>
+      <div id="exec-edit" style="display:none">
+        <textarea id="exec-input" rows="8" style="width:100%;background:#ffffff;border:1px solid #c8d8e8;border-radius:8px;color:#0f1826;font-family:'Inter',sans-serif;font-size:0.83rem;padding:10px 12px;outline:none;resize:vertical">{{ data.executive_summary or '' }}</textarea>
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <button class="save-btn" onclick="saveField('exec')">Save</button>
+          <button class="cancel-btn" onclick="toggleEdit('exec')">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Risk Register -->
+  <div class="card full" style="margin-top:16px;margin-bottom:16px">
+    <div class="card-hdr">
+      <span>Risk Register</span>
+      <div style="display:flex;gap:8px">
+        <button class="card-action-btn" onclick="openFindingsPicker()">+ Add from Repository</button>
+        <button class="card-action-btn" onclick="addBlankRow()">+ Add Blank</button>
+      </div>
+    </div>
+    <div class="card-body" style="padding:0">
+      <div style="overflow-x:auto">
+        <table class="risk-table" id="risk-table">
+          <thead>
+            <tr>
+              <th style="width:20%">Finding</th>
+              <th style="width:9%">Severity</th>
+              <th style="width:16%">Affected Systems</th>
+              <th style="width:16%">Mitigating Controls</th>
+              <th style="width:16%">Recommended Fix</th>
+              <th style="width:14%">Remediation Owner</th>
+              <th style="width:5%"></th>
+            </tr>
+          </thead>
+          <tbody id="risk-tbody">
+            {% if data.risk_register %}
+              {% for row in data.risk_register %}
+              <tr data-idx="{{ loop.index0 }}">
+                <td><div class="rr-cell" contenteditable="true" onblur="saveRiskRegister()">{{ row.finding }}</div></td>
+                <td>
+                  <select class="sev-select sev-{{ row.severity }}" onchange="this.className='sev-select sev-'+this.value; saveRiskRegister()">
+                    {% for s in ['Critical','High','Medium','Low','Informational'] %}
+                    <option value="{{ s }}" {{ 'selected' if row.severity == s else '' }}>{{ s }}</option>
+                    {% endfor %}
+                  </select>
+                </td>
+                <td><div class="rr-cell" contenteditable="true" onblur="saveRiskRegister()">{{ row.affected_systems }}</div></td>
+                <td><div class="rr-cell" contenteditable="true" onblur="saveRiskRegister()">{{ row.mitigating_controls }}</div></td>
+                <td><div class="rr-cell" contenteditable="true" onblur="saveRiskRegister()">{{ row.recommended_fix }}</div></td>
+                <td><div class="rr-cell" contenteditable="true" onblur="saveRiskRegister()">{{ row.remediation_owner }}</div></td>
+                <td><button class="del-row-btn" onclick="deleteRiskRow(this)" title="Remove row">✕</button></td>
+              </tr>
+              {% endfor %}
+            {% else %}
+              <tr id="rr-empty"><td colspan="7" style="text-align:center;color:var(--dim);padding:20px;font-size:0.82rem">No findings added yet. Use the buttons above to add from the repository or add a blank row.</td></tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
 </main>
+
+<!-- Findings picker modal -->
+<div id="picker-bg" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:200;align-items:flex-start;justify-content:center;padding:40px 20px;overflow-y:auto">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;width:700px;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 8px 32px rgba(0,0,0,0.5)">
+    <div style="padding:13px 20px;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-shrink:0">
+      <span style="font-size:0.84rem;font-weight:600;color:var(--text)">Add Finding from Repository</span>
+      <button onclick="closePickerModal()" style="background:none;border:none;color:var(--dim);cursor:pointer;font-size:1rem">✕</button>
+    </div>
+    <div style="padding:14px 20px;border-bottom:1px solid var(--border);flex-shrink:0">
+      <input type="text" id="picker-search" placeholder="Search findings..."
+             oninput="filterPicker(this.value)"
+             style="width:100%;background:#ffffff;border:1px solid #c8d8e8;border-radius:8px;color:#0f1826;font-family:'Inter',sans-serif;font-size:0.83rem;padding:8px 12px;outline:none">
+    </div>
+    <div style="overflow-y:auto;flex:1" id="picker-list"></div>
+  </div>
+</div>
 
 <footer>
   <span>Artemis // Assessment Summary</span>
   <span>Confidential — Authorized Use Only</span>
 </footer>
+
+<style>
+.card-action-btn{font-size:0.7rem;padding:3px 10px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--dim);cursor:pointer;transition:all 0.15s;font-family:'Inter',sans-serif}
+.card-action-btn:hover{border-color:#2a4a6a;color:var(--text)}
+.save-btn{padding:7px 18px;background:var(--accent);border:none;border-radius:8px;color:#e8f4ff;font-family:'Inter',sans-serif;font-size:0.82rem;font-weight:600;cursor:pointer;transition:filter 0.15s}
+.save-btn:hover{filter:brightness(1.15)}
+.cancel-btn{padding:7px 16px;background:transparent;border:1px solid var(--border);border-radius:8px;color:var(--dim);font-family:'Inter',sans-serif;font-size:0.82rem;cursor:pointer}
+.cancel-btn:hover{border-color:#2a4a6a;color:var(--text)}
+.risk-table{width:100%;border-collapse:collapse;font-size:0.76rem}
+.risk-table thead th{text-align:left;color:var(--dim);font-size:0.63rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;padding:7px 10px;border-bottom:1px solid var(--border);background:var(--surface2);white-space:nowrap}
+.risk-table tbody tr{border-bottom:1px solid rgba(30,45,69,0.4)}
+.risk-table tbody tr:last-child{border-bottom:none}
+.rr-cell{padding:4px 6px;min-height:28px;color:var(--text);border-radius:4px;line-height:1.5;outline:none;white-space:pre-wrap;word-break:break-word}
+.rr-cell:focus{background:rgba(26,74,122,0.08);box-shadow:inset 0 0 0 1px #2a4a7a}
+.sev-select{border:none;border-radius:4px;padding:3px 6px;font-size:0.68rem;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;text-transform:uppercase;letter-spacing:.05em;outline:none}
+.sev-Critical{background:rgba(180,30,50,0.18);color:#f08090}
+.sev-High    {background:rgba(200,80,30,0.18);color:#f0a070}
+.sev-Medium  {background:rgba(200,160,30,0.15);color:#e8c860}
+.sev-Low     {background:rgba(30,120,80,0.18);color:#60c890}
+.sev-Informational{background:rgba(60,100,180,0.18);color:#80a8e8}
+.del-row-btn{background:none;border:none;color:var(--dim);cursor:pointer;font-size:0.8rem;padding:4px 6px;border-radius:4px;transition:color 0.15s}
+.del-row-btn:hover{color:#c06070}
+.picker-item{padding:12px 16px;border-bottom:1px solid rgba(30,45,69,0.4);cursor:pointer;transition:background 0.1s;display:flex;align-items:center;gap:12px}
+.picker-item:hover{background:rgba(26,74,122,0.08)}
+.picker-item:last-child{border-bottom:none}
+.sev-badge{font-size:0.62rem;font-weight:700;padding:2px 7px;border-radius:4px;text-transform:uppercase;letter-spacing:.05em;flex-shrink:0}
+</style>
+
+<script>
+const SCAN_FOLDER = '{{ data.folder.split("/")[-1] }}';
+let repoFindings = [];
+
+// ── Toggle edit fields ────────────────────────────────────────────────────
+function toggleEdit(field){
+  const view = document.getElementById(`${field}-view`)
+  const edit = document.getElementById(`${field}-edit`)
+  const input = document.getElementById(`${field}-input`)
+  if(edit.style.display==='none'){
+    edit.style.display='block'
+    view.style.display='none'
+    if(input) input.focus()
+  } else {
+    edit.style.display='none'
+    view.style.display='block'
+  }
+}
+
+// ── Save text fields to meta.json ─────────────────────────────────────────
+async function saveField(field){
+  const fieldMap = { notes:'notes', exec:'executive_summary' }
+  const key      = fieldMap[field]
+  const value    = document.getElementById(`${field}-input`).value
+  const res  = await fetch(`/api/assessment/${SCAN_FOLDER}/meta`, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({[key]: value})
+  })
+  const data = await res.json()
+  if(data.ok){
+    document.getElementById(`${field}-view`).textContent = value || `No ${field === 'notes' ? 'notes' : 'executive summary'} yet.`
+    toggleEdit(field)
+  } else {
+    alert('Error saving: ' + data.error)
+  }
+}
+
+// ── Risk register ─────────────────────────────────────────────────────────
+function getRiskRows(){
+  const rows = []
+  document.querySelectorAll('#risk-tbody tr[data-idx]').forEach(tr=>{
+    const cells  = tr.querySelectorAll('.rr-cell')
+    const sevSel = tr.querySelector('.sev-select')
+    rows.push({
+      finding:           cells[0]?.textContent.trim()||'',
+      severity:          sevSel?.value||'Medium',
+      affected_systems:  cells[1]?.textContent.trim()||'',
+      mitigating_controls: cells[2]?.textContent.trim()||'',
+      recommended_fix:   cells[3]?.textContent.trim()||'',
+      remediation_owner: cells[4]?.textContent.trim()||'',
+    })
+  })
+  return rows
+}
+
+async function saveRiskRegister(){
+  const rows = getRiskRows()
+  await fetch(`/api/assessment/${SCAN_FOLDER}/meta`, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({risk_register: rows})
+  })
+}
+
+function addBlankRow(){
+  removeEmptyState()
+  const tbody = document.getElementById('risk-tbody')
+  const idx   = tbody.querySelectorAll('tr[data-idx]').length
+  const tr    = document.createElement('tr')
+  tr.setAttribute('data-idx', idx)
+  tr.innerHTML = `
+    <td><div class="rr-cell" contenteditable="true" onblur="saveRiskRegister()"></div></td>
+    <td><select class="sev-select sev-Medium" onchange="this.className='sev-select sev-'+this.value; saveRiskRegister()">
+      ${['Critical','High','Medium','Low','Informational'].map(s=>`<option value="${s}"${s==='Medium'?' selected':''}>${s}</option>`).join('')}
+    </select></td>
+    <td><div class="rr-cell" contenteditable="true" onblur="saveRiskRegister()"></div></td>
+    <td><div class="rr-cell" contenteditable="true" onblur="saveRiskRegister()"></div></td>
+    <td><div class="rr-cell" contenteditable="true" onblur="saveRiskRegister()"></div></td>
+    <td><div class="rr-cell" contenteditable="true" onblur="saveRiskRegister()"></div></td>
+    <td><button class="del-row-btn" onclick="deleteRiskRow(this)" title="Remove">✕</button></td>`
+  tbody.appendChild(tr)
+  tr.querySelector('.rr-cell').focus()
+}
+
+function addFindingRow(f){
+  removeEmptyState()
+  const tbody = document.getElementById('risk-tbody')
+  const idx   = tbody.querySelectorAll('tr[data-idx]').length
+  const tr    = document.createElement('tr')
+  tr.setAttribute('data-idx', idx)
+  const sevOpts = ['Critical','High','Medium','Low','Informational']
+    .map(s=>`<option value="${s}"${s===f.severity?' selected':''}>${s}</option>`).join('')
+  tr.innerHTML = `
+    <td><div class="rr-cell" contenteditable="true" onblur="saveRiskRegister()">${esc(f.title)}</div></td>
+    <td><select class="sev-select sev-${f.severity}" onchange="this.className='sev-select sev-'+this.value; saveRiskRegister()">${sevOpts}</select></td>
+    <td><div class="rr-cell" contenteditable="true" onblur="saveRiskRegister()">${esc(f.affected_resource||'')}</div></td>
+    <td><div class="rr-cell" contenteditable="true" onblur="saveRiskRegister()"></div></td>
+    <td><div class="rr-cell" contenteditable="true" onblur="saveRiskRegister()">${esc(f.remediation||'')}</div></td>
+    <td><div class="rr-cell" contenteditable="true" onblur="saveRiskRegister()"></div></td>
+    <td><button class="del-row-btn" onclick="deleteRiskRow(this)" title="Remove">✕</button></td>`
+  tbody.appendChild(tr)
+  saveRiskRegister()
+}
+
+function deleteRiskRow(btn){
+  const tr = btn.closest('tr')
+  tr.remove()
+  // Re-index
+  document.querySelectorAll('#risk-tbody tr[data-idx]').forEach((r,i)=>r.setAttribute('data-idx',i))
+  saveRiskRegister()
+  if(!document.querySelector('#risk-tbody tr[data-idx]')){
+    const empty = document.createElement('tr')
+    empty.id = 'rr-empty'
+    empty.innerHTML = '<td colspan="7" style="text-align:center;color:var(--dim);padding:20px;font-size:0.82rem">No findings added yet.</td>'
+    document.getElementById('risk-tbody').appendChild(empty)
+  }
+}
+
+function removeEmptyState(){
+  const e = document.getElementById('rr-empty')
+  if(e) e.remove()
+}
+
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') }
+
+// ── Findings picker ───────────────────────────────────────────────────────
+async function openFindingsPicker(){
+  if(!repoFindings.length){
+    const res  = await fetch('/api/findings/list')
+    const data = await res.json()
+    repoFindings = data.ok ? data.findings : []
+  }
+  renderPicker(repoFindings)
+  document.getElementById('picker-bg').style.display='flex'
+  document.getElementById('picker-search').value=''
+  document.getElementById('picker-search').focus()
+}
+
+function closePickerModal(){
+  document.getElementById('picker-bg').style.display='none'
+}
+
+document.getElementById('picker-bg').addEventListener('click',function(e){if(e.target===this)closePickerModal()})
+
+const SEV_COLORS = {Critical:'#f08090',High:'#f0a070',Medium:'#e8c860',Low:'#60c890',Informational:'#80a8e8'}
+const SEV_BG     = {Critical:'rgba(180,30,50,0.18)',High:'rgba(200,80,30,0.18)',Medium:'rgba(200,160,30,0.15)',Low:'rgba(30,120,80,0.18)',Informational:'rgba(60,100,180,0.18)'}
+
+function renderPicker(findings){
+  const list = document.getElementById('picker-list')
+  if(!findings.length){
+    list.innerHTML = '<div style="padding:24px;text-align:center;color:var(--dim);font-size:0.82rem">No findings in repository.</div>'
+    return
+  }
+  list.innerHTML = findings.map(f=>`
+    <div class="picker-item" onclick="selectFinding('${f.finding_id}')">
+      <span class="sev-badge" style="background:${SEV_BG[f.severity]};color:${SEV_COLORS[f.severity]}">${f.severity}</span>
+      <div>
+        <div style="font-size:0.83rem;font-weight:600;color:var(--text)">${esc(f.title)}</div>
+        ${f.description ? `<div style="font-size:0.72rem;color:var(--dim);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:580px">${esc(f.description.substring(0,120))}${f.description.length>120?'…':''}</div>` : ''}
+      </div>
+    </div>`).join('')
+}
+
+function filterPicker(q){
+  const clean = q.toLowerCase()
+  const filtered = repoFindings.filter(f=>
+    f.title.toLowerCase().includes(clean) ||
+    (f.description||'').toLowerCase().includes(clean)
+  )
+  renderPicker(filtered)
+}
+
+function selectFinding(id){
+  const f = repoFindings.find(x=>x.finding_id===id)
+  if(f){ addFindingRow(f); closePickerModal() }
+}
+</script>
 
 </body>
 </html>
