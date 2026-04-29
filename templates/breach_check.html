@@ -16,15 +16,15 @@
   .nav-btn:hover{border-color:#2a4a6a;color:var(--text)}
   .nav-btn.logout{border-color:#5a1a2a;color:#c06070;background:rgba(180,60,80,0.08)}
 
-  main{flex:1;max-width:680px;width:100%;margin:0 auto;padding:40px 28px}
+  main{flex:1;max-width:1100px;width:100%;margin:0 auto;padding:32px 28px}
   .page-label{font-size:11px;color:var(--dim);letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px}
   .page-title{font-size:1.4rem;font-weight:700;color:var(--text);margin-bottom:6px}
-  .page-sub{font-size:0.8rem;color:var(--dim);margin-bottom:28px;line-height:1.6}
+  .page-sub{font-size:0.8rem;color:var(--dim);margin-bottom:24px;line-height:1.6}
 
   /* Search card */
   .search-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden;margin-bottom:20px;box-shadow:var(--shadow)}
   .accent-line{height:2px;background:linear-gradient(90deg,transparent,#1a4a7a,#2a6aaa,#1a4a7a,transparent)}
-  .search-body{padding:22px}
+  .search-body{padding:20px}
   .input-row{display:flex;gap:10px}
   .input-wrap{flex:1;position:relative}
   .input-wrap input{width:100%;background:#ffffff;border:1px solid #c8d8e8;border-radius:10px;color:#0f1826;font-family:'Inter',sans-serif;font-size:0.9rem;padding:11px 14px;outline:none;transition:border-color 0.2s,box-shadow 0.2s}
@@ -35,41 +35,49 @@
   .btn-check:disabled{opacity:0.5;cursor:not-allowed;filter:none}
   .input-hint{font-size:0.72rem;color:var(--dim);margin-top:8px}
 
-  /* History */
-  .history-wrap{margin-top:14px;border-top:1px solid var(--border);padding-top:14px}
-  .history-label{font-size:0.68rem;color:var(--dim);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;font-weight:600}
-  .history-pills{display:flex;flex-wrap:wrap;gap:6px}
-  .hist-pill{font-size:0.72rem;padding:3px 10px;border-radius:20px;border:0.5px solid var(--border);color:var(--dim);background:var(--surface2);cursor:pointer;transition:all 0.15s}
-  .hist-pill:hover{border-color:#2a4a6a;color:var(--text)}
-
-  /* Results */
-  #result-area{display:none}
-  .result-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden;box-shadow:var(--shadow)}
-  .result-hdr{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
-  .result-target{font-family:'JetBrains Mono',monospace;font-size:0.88rem;color:var(--text);font-weight:500}
-  .result-body{padding:20px}
-
-  /* Clean state */
-  .state-clean{display:flex;flex-direction:column;align-items:center;padding:28px 0;text-align:center}
-  .state-clean .icon{font-size:2.5rem;margin-bottom:10px}
-  .state-clean .label{font-size:1rem;font-weight:600;color:#4aaa6a}
-  .state-clean .sub{font-size:0.78rem;color:var(--dim);margin-top:4px}
-
-  /* Breach state */
-  .state-breach .breach-count{font-size:2.8rem;font-weight:700;color:#e88a9a;margin-bottom:4px;text-align:center}
-  .state-breach .breach-label{font-size:0.78rem;color:var(--dim);text-align:center;text-transform:uppercase;letter-spacing:.08em;margin-bottom:20px}
-  .sources-label{font-size:0.7rem;color:var(--dim);text-transform:uppercase;letter-spacing:.08em;font-weight:600;margin-bottom:8px}
-  .source-grid{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px}
-  .source-pill{font-size:0.72rem;padding:3px 10px;border-radius:20px;background:rgba(138,42,58,0.12);border:0.5px solid #5a1a2a;color:#e88a9a}
-  .lookups-note{font-size:0.72rem;color:var(--dim);padding-top:12px;border-top:1px solid var(--border)}
-
   /* Loading */
-  .loading{display:none;align-items:center;gap:10px;padding:20px;color:var(--dim);font-size:0.82rem}
-  .spinner{width:18px;height:18px;border:2px solid var(--border);border-top-color:#5a9acc;border-radius:50%;animation:spin 0.7s linear infinite}
+  .loading{display:none;align-items:center;gap:10px;padding:16px 0;color:var(--dim);font-size:0.82rem}
+  .spinner{width:16px;height:16px;border:2px solid var(--border);border-top-color:#5a9acc;border-radius:50%;animation:spin 0.7s linear infinite;flex-shrink:0}
   @keyframes spin{to{transform:rotate(360deg)}}
 
   /* Error */
-  .error-box{background:rgba(138,42,58,0.12);border:1px solid #5a1a2a;border-radius:10px;padding:12px 16px;color:#e88a9a;font-size:0.82rem;display:none}
+  .error-box{background:rgba(138,42,58,0.12);border:1px solid #5a1a2a;border-radius:10px;padding:12px 16px;color:#e88a9a;font-size:0.82rem;display:none;margin-bottom:16px}
+
+  /* Results section */
+  #results-section{display:none}
+
+  /* Summary stats */
+  .summary-row{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px}
+  .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 18px;text-align:center}
+  .stat-val{font-size:1.9rem;font-weight:700;margin-bottom:4px}
+  .stat-val.breach{color:#e88a9a}
+  .stat-val.clean{color:#4aaa6a}
+  .stat-val.info{color:#5a9acc}
+  .stat-lbl{font-size:0.68rem;color:var(--dim);text-transform:uppercase;letter-spacing:.08em}
+
+  /* Results table card */
+  .results-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:var(--shadow)}
+  .results-hdr{padding:12px 18px;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+  .results-hdr-left{font-size:0.74rem;font-weight:600;color:var(--dim);letter-spacing:.09em;text-transform:uppercase}
+  .results-hdr-right{display:flex;gap:8px}
+  .btn-export{padding:5px 14px;font-family:'Inter',sans-serif;font-size:0.72rem;font-weight:600;border-radius:7px;cursor:pointer;transition:all 0.15s;border:1px solid #2a5a3a;color:#4aaa6a;background:rgba(42,122,74,0.1)}
+  .btn-export:hover{background:rgba(42,122,74,0.2)}
+
+  /* Table */
+  .tbl-wrap{overflow-x:auto}
+  table{width:100%;border-collapse:collapse;font-size:0.78rem}
+  thead th{text-align:left;color:var(--dim);font-size:0.67rem;font-weight:600;letter-spacing:.07em;text-transform:uppercase;padding:8px 14px;border-bottom:1px solid var(--border);background:var(--surface2);white-space:nowrap}
+  tbody tr{border-bottom:1px solid rgba(30,45,69,0.5)}
+  tbody tr:last-child{border-bottom:none}
+  tbody tr:hover td{background:rgba(255,255,255,0.02)}
+  td{padding:9px 14px;vertical-align:middle;font-family:'JetBrains Mono',monospace;font-size:0.75rem}
+  .td-username{color:#8ab8d8;font-weight:500}
+  .td-password{color:#e8944a}
+  .td-domain{color:var(--dim)}
+  .td-date{color:var(--dim);white-space:nowrap}
+  .td-source{color:var(--dim)}
+  .td-redacted{color:rgba(232,148,74,0.35);font-style:italic;font-size:0.7rem;font-family:'Inter',sans-serif}
+  .empty-row td{padding:28px;text-align:center;color:var(--dim);font-size:0.82rem;font-family:'Inter',sans-serif}
 
   footer{background:var(--surface);border-top:1px solid var(--border);padding:11px 28px;display:flex;justify-content:space-between;font-size:0.7rem;color:var(--dim)}
 </style>
@@ -88,7 +96,7 @@
   <div class="page-title">Breach Credential Check</div>
   <div class="page-sub">
     Check if a domain or email address appears in known breach databases.<br>
-    Powered by OathNet — results show breach count and source databases only. Passwords are never returned.
+    Powered by OathNet — passwords shown are from public breach data. Only non-duplicate credentials are counted.
   </div>
 
   <!-- Search -->
@@ -102,141 +110,162 @@
                  maxlength="120"
                  onkeydown="if(event.key==='Enter')runCheck()">
         </div>
-        <button class="btn-check" id="check-btn" onclick="runCheck()">Check</button>
+        <button class="btn-check" id="check-btn" onclick="runCheck()">Check Breaches</button>
       </div>
       <div class="input-hint">Enter a domain to check all breached accounts, or a specific email address.</div>
-
-      <div class="history-wrap" id="history-wrap" style="display:none">
-        <div class="history-label">Recent searches</div>
-        <div class="history-pills" id="history-pills"></div>
+      <div class="loading" id="loading">
+        <div class="spinner"></div>
+        <span>Querying OathNet breach database...</span>
       </div>
     </div>
-  </div>
-
-  <!-- Loading -->
-  <div class="loading" id="loading">
-    <div class="spinner"></div>
-    <span>Querying OathNet breach database...</span>
   </div>
 
   <!-- Error -->
   <div class="error-box" id="error-box"></div>
 
-  <!-- Result -->
-  <div id="result-area">
-    <div class="result-card">
-      <div class="result-hdr">
-        <span class="result-target" id="result-target"></span>
-        <span style="font-size:0.72rem;color:var(--dim)" id="result-lookups"></span>
+  <!-- Results -->
+  <div id="results-section">
+
+    <!-- Summary stats -->
+    <div class="summary-row">
+      <div class="stat-card">
+        <div class="stat-val breach" id="stat-total">0</div>
+        <div class="stat-lbl">Security Breaches Found</div>
       </div>
-      <div class="result-body">
-
-        <!-- Clean -->
-        <div class="state-clean" id="state-clean" style="display:none">
-          <div class="icon">✓</div>
-          <div class="label">No breaches found</div>
-          <div class="sub">This target does not appear in OathNet's breach database.</div>
-        </div>
-
-        <!-- Breach -->
-        <div class="state-breach" id="state-breach" style="display:none">
-          <div class="breach-count" id="breach-count"></div>
-          <div class="breach-label">breach records found</div>
-          <div class="sources-label">Data sources</div>
-          <div class="source-grid" id="source-grid"></div>
-          <div class="lookups-note" id="lookups-note"></div>
-        </div>
-
+      <div class="stat-card">
+        <div class="stat-val info" id="stat-unique">0</div>
+        <div class="stat-lbl">Unique Stolen Credentials</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val info" id="stat-sources">0</div>
+        <div class="stat-lbl">Data Sources</div>
       </div>
     </div>
+
+    <!-- Table -->
+    <div class="results-card">
+      <div class="results-hdr">
+        <div class="results-hdr-left">Breach Records — <span id="tbl-target"></span></div>
+        <div class="results-hdr-right">
+          <button class="btn-export" onclick="exportCSV()">↓ Export CSV</button>
+        </div>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Username</th>
+              <th>Password</th>
+              <th>Domain</th>
+              <th>Date of Breach</th>
+              <th>Source Database</th>
+            </tr>
+          </thead>
+          <tbody id="results-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
   </div>
 </main>
 
 <footer>
-  <span>Artemis // Breach Check</span>
+  <span>Artemis // Breach Check — OathNet</span>
   <span>Confidential — Authorized Use Only</span>
 </footer>
 
 <script>
-const HISTORY_KEY = 'artemis_breach_history'
-
-function getHistory(){
-  try{ return JSON.parse(localStorage.getItem(HISTORY_KEY)||'[]') }
-  catch{ return [] }
-}
-function addHistory(target){
-  let h = getHistory().filter(x=>x!==target)
-  h.unshift(target)
-  h = h.slice(0,8)
-  try{ localStorage.setItem(HISTORY_KEY, JSON.stringify(h)) }catch{}
-  renderHistory()
-}
-function renderHistory(){
-  const h = getHistory()
-  const wrap = document.getElementById('history-wrap')
-  const pills = document.getElementById('history-pills')
-  if(!h.length){ wrap.style.display='none'; return }
-  wrap.style.display='block'
-  pills.innerHTML = h.map(t=>
-    `<span class="hist-pill" onclick="setTarget('${t}')">${t}</span>`
-  ).join('')
-}
-function setTarget(t){
-  document.getElementById('target-input').value = t
-  runCheck()
-}
+let currentData = null
 
 async function runCheck(){
-  const raw = document.getElementById('target-input').value.trim()
-  // Strip anything not alphanumeric, @, ., _, -
+  const raw    = document.getElementById('target-input').value.trim()
   const target = raw.replace(/[^a-zA-Z0-9@._\-]/g,'')
   if(!target){ showError('Enter a domain or email address.'); return }
 
-  // UI state — loading
-  document.getElementById('check-btn').disabled = true
+  document.getElementById('check-btn').disabled    = true
   document.getElementById('loading').style.display = 'flex'
-  document.getElementById('result-area').style.display = 'none'
-  document.getElementById('error-box').style.display = 'none'
+  document.getElementById('results-section').style.display = 'none'
+  document.getElementById('error-box').style.display      = 'none'
 
   try{
-    const res  = await fetch('/api/breach/check', {
+    const res  = await fetch('/api/breach/check',{
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({target})
     })
     const data = await res.json()
-
     document.getElementById('loading').style.display = 'none'
-    document.getElementById('check-btn').disabled = false
+    document.getElementById('check-btn').disabled    = false
 
     if(!data.ok){ showError(data.error); return }
 
-    addHistory(target)
-
-    // Populate result card
-    document.getElementById('result-target').textContent = data.target
-    document.getElementById('result-lookups').textContent =
-      data.lookups_left !== '?' ? `${data.lookups_left} lookups remaining` : ''
-    document.getElementById('result-area').style.display = 'block'
-
-    if(data.results_found > 0){
-      document.getElementById('state-clean').style.display  = 'none'
-      document.getElementById('state-breach').style.display = 'block'
-      document.getElementById('breach-count').textContent   = data.results_found.toLocaleString()
-      document.getElementById('source-grid').innerHTML      =
-        (data.sources.length ? data.sources : ['Unknown']).map(s=>
-          `<span class="source-pill">${s}</span>`).join('')
-      document.getElementById('lookups-note').textContent =
-        data.lookups_left !== '?' ? `${data.lookups_left} API lookups remaining on your account.` : ''
-    } else {
-      document.getElementById('state-breach').style.display = 'none'
-      document.getElementById('state-clean').style.display  = 'flex'
-    }
+    currentData = data
+    renderResults(data)
 
   } catch(err){
     document.getElementById('loading').style.display = 'none'
-    document.getElementById('check-btn').disabled = false
+    document.getElementById('check-btn').disabled    = false
     showError('Request failed — check your connection.')
   }
+}
+
+function renderResults(data){
+  // Stats
+  document.getElementById('stat-total').textContent   = data.results_found.toLocaleString()
+  document.getElementById('stat-unique').textContent  = data.unique_creds.toLocaleString()
+  document.getElementById('stat-sources').textContent = data.sources.length.toLocaleString()
+  document.getElementById('tbl-target').textContent   = data.target
+
+  // Color stat based on findings
+  const tv = document.getElementById('stat-total')
+  tv.className = 'stat-val ' + (data.results_found > 0 ? 'breach' : 'clean')
+
+  // Table rows
+  const tbody = document.getElementById('results-tbody')
+  if(!data.items || data.items.length === 0){
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="5">No breach records returned for this target.</td></tr>'
+  } else {
+    tbody.innerHTML = data.items.map(row => `
+      <tr>
+        <td class="td-username">${esc(row.username||'—')}</td>
+        <td class="${row.password ? 'td-password' : 'td-redacted'}">${row.password ? esc(row.password) : 'redacted'}</td>
+        <td class="td-domain">${esc(row.domain||'—')}</td>
+        <td class="td-date">${esc(row.date||'—')}</td>
+        <td class="td-source">${esc(row.dbname||'—')}</td>
+      </tr>`).join('')
+  }
+
+  document.getElementById('results-section').style.display = 'block'
+}
+
+function esc(s){
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+}
+
+function exportCSV(){
+  if(!currentData) return
+  const target  = document.getElementById('target-input').value.trim().replace(/[^a-zA-Z0-9@._\-]/g,'')
+  const fname   = `${target}_breachScan.csv`
+  const headers = ['Username','Password','Domain','Date of Breach','Source Database']
+  const rows    = (currentData.items||[]).map(r=>[
+    csvCell(r.username||''),
+    csvCell(r.password||'redacted'),
+    csvCell(r.domain||''),
+    csvCell(r.date||''),
+    csvCell(r.dbname||''),
+  ])
+  const csv = [headers, ...rows].map(r=>r.join(',')).join('\n')
+  const blob = new Blob([csv], {type:'text/csv'})
+  const url  = URL.createObjectURL(blob)
+  const a    = document.createElement('a')
+  a.href = url; a.download = fname; a.click()
+  URL.revokeObjectURL(url)
+}
+
+function csvCell(v){
+  const s = String(v)
+  if(s.includes(',') || s.includes('"') || s.includes('\n'))
+    return '"' + s.replace(/"/g,'""') + '"'
+  return s
 }
 
 function showError(msg){
@@ -244,9 +273,6 @@ function showError(msg){
   el.textContent = '✗ ' + msg
   el.style.display = 'block'
 }
-
-// Render history on load
-renderHistory()
 </script>
 </body>
 </html>
