@@ -39,45 +39,32 @@
   .dd-item:hover{background:rgba(26,74,122,0.12);color:var(--text)}
   .dd-item.danger{color:#c06070}
   .dd-item.danger:hover{background:rgba(180,60,80,0.1)}
+  .dd-item.active{color:#5a9acc;background:rgba(26,74,122,0.1)}
   .dd-divider{height:1px;background:var(--border);margin:2px 0}
+  .nav-active{border-color:#2a4a7a !important;color:#5a9acc !important;background:rgba(26,74,122,0.15) !important}
 
   /* Main */
   main{flex:1;max-width:1000px;width:100%;margin:0 auto;padding:28px 28px}
   .page-label{font-size:11px;color:var(--dim);letter-spacing:.1em;text-transform:uppercase;margin-bottom:3px}
   .page-title{font-size:1.3rem;font-weight:600;color:var(--text);margin-bottom:20px}
 
-  /* CTA bar */
-  .cta{background:rgba(26,74,122,0.15);border:1px solid #1e3a5a;border-radius:14px;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:24px}
-  .cta h2{font-size:0.95rem;font-weight:600;color:var(--text);margin-bottom:2px}
-  .cta p{font-size:0.78rem;color:var(--dim)}
-  .btn-cta{background:var(--accent);border:none;color:#e8f4ff;font-family:'Inter',sans-serif;font-size:0.82rem;font-weight:600;padding:9px 18px;border-radius:10px;cursor:pointer;white-space:nowrap;transition:filter 0.15s;text-decoration:none;display:inline-block}
-  .btn-cta:hover{filter:brightness(1.15)}
+  /* Feature cards */
+  .feature-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:28px}
+  .feature-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px;display:flex;flex-direction:column;gap:16px;box-shadow:var(--shadow);transition:border-color 0.15s}
+  .feature-card:hover{border-color:#2a4a6a}
+  .feature-icon{font-size:1.4rem;color:#5a9acc;line-height:1}
+  .feature-title{font-size:1rem;font-weight:700;color:var(--text);margin-bottom:8px}
+  .feature-desc{font-size:0.78rem;color:var(--dim);line-height:1.7}
+  .feature-body{flex:1}
+  .feature-btn{display:block;text-align:center;padding:10px 20px;background:var(--accent);border:none;border-radius:10px;color:#e8f4ff;font-family:'Inter',sans-serif;font-size:0.82rem;font-weight:600;cursor:pointer;text-decoration:none;transition:filter 0.15s}
+  .feature-btn:hover{filter:brightness(1.15)}
+  .feature-btn-secondary{background:transparent;border:1px solid var(--border);color:var(--dim)}
+  .feature-btn-secondary:hover{filter:none;border-color:#2a4a6a;color:var(--text)}
 
   /* Section header */
   .section-hdr{display:flex;align-items:center;gap:10px;margin-bottom:10px}
   .section-title{font-size:0.72rem;font-weight:600;color:var(--dim);letter-spacing:.1em;text-transform:uppercase}
   .count-pill{font-size:11px;padding:2px 8px;border-radius:10px;background:var(--surface2);color:var(--dim);border:0.5px solid var(--border)}
-
-  /* Client table */
-  .client-table-wrap{background:#ffffff;border:1px solid #dce8f2;border-radius:12px;overflow:hidden;margin-bottom:24px}
-  .client-search-row{padding:12px 16px;border-bottom:1px solid #dce8f2;display:flex;align-items:center;gap:10px}
-  .search-inner{position:relative;flex:1;max-width:360px}
-  .search-inner input{width:100%;background:#ffffff;border:1px solid #c8d8e8;border-radius:8px;color:#0f1826;font-family:'Inter',sans-serif;font-size:0.82rem;padding:7px 10px 7px 32px;outline:none;transition:border-color 0.2s}
-  .search-inner input:focus{border-color:#4a7aaa}
-  .search-inner input::placeholder{color:#8aaabb}
-  .search-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#8aaabb;font-size:0.8rem;pointer-events:none}
-  .tbl-link{font-size:0.75rem;color:#5a9acc;text-decoration:none;margin-left:auto}
-  .tbl-link:hover{text-decoration:underline}
-
-  table.ctbl{width:100%;border-collapse:collapse;font-size:0.8rem}
-  table.ctbl thead th{text-align:left;color:#6a8aaa;font-size:0.68rem;font-weight:600;letter-spacing:.07em;text-transform:uppercase;padding:7px 16px;border-bottom:1px solid #dce8f2;background:#f8fafc}
-  table.ctbl tbody tr{border-bottom:1px solid #eef3f8;cursor:pointer;transition:background 0.1s}
-  table.ctbl tbody tr:last-child{border-bottom:none}
-  table.ctbl tbody tr:hover td{background:#eef4fc}
-  table.ctbl td{padding:10px 16px;vertical-align:middle}
-  .tbl-name{font-weight:600;color:#1a2a3a}
-  .tbl-dim{color:#6a8aaa}
-  .empty-row td{padding:24px;text-align:center;color:#6a8aaa;font-size:0.82rem}
 
   /* Assessment cards */
   .assessment-grid{display:flex;flex-direction:column;gap:8px}
@@ -140,6 +127,7 @@
       <div class="dd-menu" id="dd-resources">
         <a href="/clients" class="dd-item">◈ Clients</a>
         <a href="/wiki" class="dd-item">📖 Wiki</a>
+        <a href="/findings" class="dd-item">🔍 Findings Repository</a>
         <a href="/breach" class="dd-item">⚠ Breach Check</a>
         <div class="dd-divider"></div>
         <a href="/change-password" class="dd-item">⚙ Change Password</a>
@@ -155,6 +143,7 @@
       <div class="dd-menu" id="dd-admin">
         <a href="/admin/users" class="dd-item">◈ Users</a>
         <a href="/admin/requests" class="dd-item">◈ Account Requests</a>
+        <a href="/admin/audit" class="dd-item">📋 Audit Log</a>
       </div>
     </div>
     {% endif %}
@@ -176,58 +165,47 @@
 
 <main>
   <div class="page-label">Overview</div>
-  <div class="page-title">Dashboard</div>
+  <div class="page-title">Welcome back, {{ username }}</div>
 
-  <div class="cta">
-    <div>
-      <h2>Start a New Assessment</h2>
-      <p>Configure targets, select phases, and launch the automated scan pipeline.</p>
-    </div>
-    <a href="/scan" class="btn-cta">▶ Begin Assessment</a>
-  </div>
+  <!-- Side by side feature cards -->
+  <div class="feature-row">
 
-  <!-- Client directory table -->
-  <div class="section-hdr"><span class="section-title">Clients</span></div>
-  <div class="client-table-wrap">
-    <div class="client-search-row">
-      <div class="search-inner">
-        <span class="search-icon">⌕</span>
-        <input type="text" id="client-search" placeholder="Search by name..."
-               maxlength="60" onkeypress="return /[a-zA-Z0-9 ]/.test(event.key)"
-               oninput="filterTable(this.value)">
+    <!-- New Assessment -->
+    <div class="feature-card">
+      <div class="feature-icon">▶</div>
+      <div class="feature-body">
+        <div class="feature-title">New Assessment</div>
+        <div class="feature-desc">Run an automated external penetration test against a target. Configure your scope, select which phases to run — recon, port scanning, and vulnerability analysis — and launch the scan pipeline. Results are saved to the dashboard when complete.</div>
       </div>
-      <a href="/clients" class="tbl-link">Manage clients →</a>
+      <a href="/scan" class="feature-btn">Begin Assessment</a>
     </div>
-    <table class="ctbl" id="client-tbl">
-      <thead>
-        <tr>
-          <th>Client Name</th>
-          <th>Industry</th>
-          <th>Contact</th>
-          <th>Created</th>
-        </tr>
-      </thead>
-      <tbody id="client-tbody">
-        {% if clients %}
-          {% for client in clients | sort(attribute='name') %}
-          <tr onclick="window.location='/clients/{{ client.client_id }}'">
-            <td class="tbl-name">{{ client.name }}</td>
-            <td class="tbl-dim">{{ client.industry or '—' }}</td>
-            <td class="tbl-dim">{{ client.contact_name or '—' }}</td>
-            <td class="tbl-dim">{{ client.created_at or '—' }}</td>
-          </tr>
-          {% endfor %}
-        {% else %}
-          <tr class="empty-row"><td colspan="4">No clients assigned yet.</td></tr>
-        {% endif %}
-      </tbody>
-    </table>
+
+    <!-- Clients -->
+    <div class="feature-card">
+      <div class="feature-icon">◈</div>
+      <div class="feature-body">
+        <div class="feature-title">Client Directory</div>
+        <div class="feature-desc">Manage your client engagements. View assessment history per client, track total findings over time, and assign team members. All scans can be linked to a client so results are organized by engagement rather than scattered across the dashboard.</div>
+      </div>
+      <a href="/clients" class="feature-btn feature-btn-secondary">View Clients</a>
+    </div>
+
   </div>
 
   <!-- Recent assessments -->
   <div class="section-hdr">
     <span class="section-title">Recent Assessments</span>
-    <span class="count-pill">{{ history|length }} / 5</span>
+    <span class="count-pill">{{ history|length }} most recent</span>
+    <a href="/history" style="font-size:0.73rem;color:#5a9acc;text-decoration:none;margin-left:auto">View all →</a>
+  </div>
+
+  <!-- Phase legend -->
+  <div style="display:flex;gap:14px;margin-bottom:10px;align-items:center">
+    <span style="font-size:0.67rem;color:var(--dim);text-transform:uppercase;letter-spacing:.07em">Phases:</span>
+    <span style="display:flex;align-items:center;gap:5px;font-size:0.7rem;color:var(--dim)"><span class="pbadge on">P1</span> Recon &amp; OSINT</span>
+    <span style="display:flex;align-items:center;gap:5px;font-size:0.7rem;color:var(--dim)"><span class="pbadge on">P2</span> Port Scanning</span>
+    <span style="display:flex;align-items:center;gap:5px;font-size:0.7rem;color:var(--dim)"><span class="pbadge on">P3</span> Vuln Scanning</span>
+    <span style="display:flex;align-items:center;gap:5px;font-size:0.7rem;color:var(--dim)"><span class="pbadge off">P1</span> Not run</span>
   </div>
   <div class="assessment-grid">
     {% if history %}
@@ -283,6 +261,20 @@
 </div>
 
 <script>
+// ── Active nav highlighting ───────────────────────────────────────────────
+(function(){
+  const path = window.location.pathname
+  document.querySelectorAll('.dd-item').forEach(a => {
+    const href = a.getAttribute('href')
+    if(href && path.startsWith(href) && href !== '/') {
+      a.classList.add('active')
+      // Also open/highlight the parent dropdown button
+      const menu = a.closest('.dd-menu')
+      if(menu) menu.previousElementSibling.classList.add('open')
+    }
+  })
+})()
+
 // ── Dropdown logic ────────────────────────────────────────────────────────
 function toggleDd(id){
   document.querySelectorAll('.dd-menu').forEach(m=>{
@@ -300,33 +292,6 @@ document.addEventListener('click',e=>{
     document.querySelectorAll('.dd-btn').forEach(b=>b.classList.remove('open'))
   }
 })
-
-// ── Client table filter ───────────────────────────────────────────────────
-function filterTable(q){
-  const clean=q.replace(/[^a-zA-Z0-9 ]/g,'').toLowerCase()
-  const rows=document.querySelectorAll('#client-tbody tr:not(.empty-row)')
-  let visible=0
-  rows.forEach(r=>{
-    const name=r.querySelector('.tbl-name')?.textContent.toLowerCase()||''
-    const show=!clean||name.includes(clean)
-    r.style.display=show?'':'none'
-    if(show)visible++
-  })
-  // Show empty message if nothing matches
-  let noMatch=document.getElementById('no-match-row')
-  if(visible===0&&rows.length>0){
-    if(!noMatch){
-      noMatch=document.createElement('tr')
-      noMatch.id='no-match-row'
-      noMatch.className='empty-row'
-      noMatch.innerHTML='<td colspan="4">No clients match your search.</td>'
-      document.getElementById('client-tbody').appendChild(noMatch)
-    }
-    noMatch.style.display=''
-  } else if(noMatch){
-    noMatch.style.display='none'
-  }
-}
 
 // ── Assessment delete ─────────────────────────────────────────────────────
 let pendingFolder=null
