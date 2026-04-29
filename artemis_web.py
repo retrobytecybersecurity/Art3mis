@@ -48,6 +48,7 @@ HISTORY_FILE   = Path("/opt/artemis/history.json")
 USERS_FILE     = Path("/opt/artemis/users.json")
 REQUESTS_FILE  = Path("/opt/artemis/requests.json")
 WIKI_FILE      = Path("/opt/artemis/wiki.json")
+CLIENTS_FILE   = Path("/opt/artemis/clients.json")
 RESULTS_BASE.mkdir(parents=True, exist_ok=True)
 
 app.secret_key        = os.environ.get("ARTEMIS_SECRET", "artemis-secret-key-change-me")
@@ -132,18 +133,22 @@ def save_assessment(client: str, date: str, domain: str,
                     folder: str, phases: dict,
                     username: str = "",
                     started: str = "",
-                    completed: str = ""):
+                    completed: str = "",
+                    client_id: str = "",
+                    findings_count: int = 0):
     """Append assessment to history, keep only the last 5 per user."""
     history = load_history()
     entry = {
-        "client":    client,
-        "date":      date,
-        "domain":    domain or "—",
-        "folder":    folder,
-        "phases":    phases,
-        "username":  username,
-        "started":   started,
-        "completed": completed or datetime.now().strftime("%Y-%m-%d %H:%M"),
+        "client":         client,
+        "date":           date,
+        "domain":         domain or "—",
+        "folder":         folder,
+        "phases":         phases,
+        "username":       username,
+        "started":        started,
+        "completed":      completed or datetime.now().strftime("%Y-%m-%d %H:%M"),
+        "client_id":      client_id,
+        "findings_count": findings_count,
     }
     # Remove any existing entry for this folder, prepend new, keep 5 per user
     history = [h for h in history if h.get("folder") != folder]
@@ -157,6 +162,17 @@ def save_assessment(client: str, date: str, domain: str,
         if seen[u] <= 5:
             filtered.append(h)
     HISTORY_FILE.write_text(json.dumps(filtered, indent=2))
+
+    # Link assessment to client record
+    if client_id:
+        clients = load_clients()
+        if client_id in clients:
+            existing = clients[client_id].get("assessments", [])
+            if folder not in existing:
+                existing.append(folder)
+            clients[client_id]["assessments"] = existing
+            clients[client_id]["last_tested"] = date
+            save_clients(clients)
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -1336,6 +1352,55 @@ def load_requests() -> list:
 
 def save_requests(requests: list):
     REQUESTS_FILE.write_text(json.dumps(requests, indent=2))
+
+
+# ── Client database ───────────────────────────────────────────────────────
+
+def load_clients() -> dict:
+    if CLIENTS_FILE.exists():
+        try:
+            return json.loads(CLIENTS_FILE.read_text())
+        except Exception:
+            pass
+    return {}
+
+
+def save_clients(clients: dict):
+    CLIENTS_FILE.write_text(json.dumps(clients, indent=2))
+
+
+def get_client(client_id: str) -> dict | None:
+    return load_clients().get(client_id)
+
+
+def clients_for_user(username: str, role: str) -> list:
+    """Return clients visible to this user based on role."""
+    clients = load_clients()
+    if role == "Administrator":
+        return list(clients.values())
+    # Managers and Junior Testers only see assigned clients
+    return [c for c in clients.values()
+            if username in c.get("assigned_users", [])]
+
+
+def client_summary(client: dict, history: list) -> dict:
+    """Compute summary stats for a client from assessment history."""
+    assessments = [h for h in history
+                   if h.get("client_id") == client["client_id"]]
+    total_findings = 0
+    last_tested    = None
+    for a in assessments:
+        total_findings += a.get("findings_count", 0)
+        if not last_tested or a.get("date", "") > last_tested:
+            last_tested = a.get("date", "")
+    return {
+        "total_assessments": len(assessments),
+        "last_tested":        last_tested or "Never",
+        "total_findings":     total_findings,
+        "assessments":        sorted(assessments,
+                                     key=lambda x: x.get("date", ""),
+                                     reverse=True),
+    }
 
 
 # ── Wiki storage ──────────────────────────────────────────────────────────
@@ -2735,11 +2800,14 @@ def dashboard():
     if session.get("role") == "Representative":
         return redirect(url_for("rep_portal"))
     username = session.get("username", "")
+    role     = session.get("role", "")
     history  = load_history_for_user(username)
+    clients  = clients_for_user(username, role)
     return render_template("dashboard.html",
                            history=history,
+                           clients=clients,
                            username=username,
-                           role=session.get("role", ""))
+                           role=role)
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -2970,18 +3038,22 @@ def save_assessment_route():
     if not results.get("client"):
         return jsonify({"ok": False, "error": "No assessment to save."}), 400
 
-    data   = request.get_json() or {}
-    phases = data.get("phases", {"recon": True, "scan": True, "vuln": True})
+    data           = request.get_json() or {}
+    phases         = data.get("phases", {"recon": True, "scan": True, "vuln": True})
+    client_id      = data.get("client_id", "")
+    findings_count = sum(len(v) for v in results.get("vulnerabilities", {}).values())
 
     save_assessment(
-        client    = results.get("client", "Unknown"),
-        date      = results.get("date",   ""),
-        domain    = results.get("domain", ""),
-        folder    = str(folder) if folder else "",
-        phases    = phases,
-        username  = session.get("username", ""),
-        started   = scan_state.get("started",   ""),
-        completed = scan_state.get("completed", datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
+        client         = results.get("client", "Unknown"),
+        date           = results.get("date",   ""),
+        domain         = results.get("domain", ""),
+        folder         = str(folder) if folder else "",
+        phases         = phases,
+        username       = session.get("username", ""),
+        started        = scan_state.get("started",   ""),
+        completed      = scan_state.get("completed", datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
+        client_id      = client_id,
+        findings_count = findings_count,
     )
 
     # Reset state
@@ -3580,6 +3652,156 @@ def admin_requests():
                            pending=pending, decided=decided,
                            username=session.get("username", ""),
                            role=session.get("role", ""))
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# FLASK ROUTES — CLIENT MANAGEMENT
+# ══════════════════════════════════════════════════════════════════════════
+
+@app.route("/clients")
+@login_required
+def client_list():
+    role     = session.get("role", "")
+    username = session.get("username", "")
+    if role == "Representative":
+        return redirect(url_for("rep_portal"))
+    visible = clients_for_user(username, role)
+    return render_template("client_list.html",
+                           clients=visible,
+                           role=role,
+                           username=username)
+
+
+@app.route("/clients/<client_id>")
+@login_required
+def client_profile(client_id):
+    role     = session.get("role", "")
+    username = session.get("username", "")
+    if role == "Representative":
+        return redirect(url_for("rep_portal"))
+
+    client = get_client(client_id)
+    if not client:
+        return "Client not found.", 404
+
+    # Access control — non-admins must be assigned
+    if role != "Administrator" and username not in client.get("assigned_users", []):
+        return "Access denied.", 403
+
+    # Build summary from full history
+    all_history = load_history()
+    summary     = client_summary(client, all_history)
+
+    # Load users for admin assignment panel
+    users = load_users() if role == "Administrator" else {}
+    safe_users = {u: d["role"] for u, d in users.items()
+                  if d["role"] != "Representative"}
+
+    return render_template("client_profile.html",
+                           client=client,
+                           summary=summary,
+                           role=role,
+                           username=username,
+                           all_users=safe_users)
+
+
+@app.route("/api/clients/create", methods=["POST"])
+@login_required
+@admin_required
+def create_client():
+    data = request.get_json()
+    name = re.sub(r"[^a-zA-Z0-9 ]", "", data.get("name", "").strip())
+    if not name:
+        return jsonify({"ok": False, "error": "Client name is required (letters and numbers only)."}), 400
+
+    clients = load_clients()
+    # Check for duplicate name
+    if any(c["name"].lower() == name.lower() for c in clients.values()):
+        return jsonify({"ok": False, "error": "A client with that name already exists."}), 400
+
+    import uuid
+    client_id = str(uuid.uuid4())
+    clients[client_id] = {
+        "client_id":      client_id,
+        "name":           name,
+        "industry":       re.sub(r"[^a-zA-Z0-9 ]", "", data.get("industry", "").strip()),
+        "contact_name":   re.sub(r"[^a-zA-Z0-9 ]", "", data.get("contact_name", "").strip()),
+        "contact_email":  data.get("contact_email", "").strip(),
+        "notes":          data.get("notes", "").strip()[:500],
+        "created_at":     datetime.now().strftime("%Y-%m-%d"),
+        "created_by":     session.get("username", ""),
+        "assigned_users": [],
+        "assessments":    [],
+        "last_tested":    None,
+    }
+    save_clients(clients)
+    return jsonify({"ok": True, "client_id": client_id, "name": name})
+
+
+@app.route("/api/clients/update", methods=["POST"])
+@login_required
+@admin_required
+def update_client():
+    data      = request.get_json()
+    client_id = data.get("client_id", "")
+    clients   = load_clients()
+    if client_id not in clients:
+        return jsonify({"ok": False, "error": "Client not found."}), 404
+
+    if "name" in data:
+        name = re.sub(r"[^a-zA-Z0-9 ]", "", data["name"].strip())
+        if not name:
+            return jsonify({"ok": False, "error": "Name cannot be empty."}), 400
+        clients[client_id]["name"] = name
+    if "industry"      in data: clients[client_id]["industry"]      = re.sub(r"[^a-zA-Z0-9 ]", "", data["industry"].strip())
+    if "contact_name"  in data: clients[client_id]["contact_name"]  = re.sub(r"[^a-zA-Z0-9 ]", "", data["contact_name"].strip())
+    if "contact_email" in data: clients[client_id]["contact_email"] = data["contact_email"].strip()
+    if "notes"         in data: clients[client_id]["notes"]         = data["notes"].strip()[:500]
+
+    save_clients(clients)
+    return jsonify({"ok": True})
+
+
+@app.route("/api/clients/assign", methods=["POST"])
+@login_required
+@admin_required
+def assign_client_users():
+    data      = request.get_json()
+    client_id = data.get("client_id", "")
+    users_list = data.get("users", [])
+    clients   = load_clients()
+    if client_id not in clients:
+        return jsonify({"ok": False, "error": "Client not found."}), 404
+    clients[client_id]["assigned_users"] = users_list
+    save_clients(clients)
+    return jsonify({"ok": True})
+
+
+@app.route("/api/clients/delete", methods=["POST"])
+@login_required
+@admin_required
+def delete_client():
+    data      = request.get_json()
+    client_id = data.get("client_id", "")
+    clients   = load_clients()
+    if client_id not in clients:
+        return jsonify({"ok": False, "error": "Client not found."}), 404
+    del clients[client_id]
+    save_clients(clients)
+    return jsonify({"ok": True})
+
+
+@app.route("/api/clients/search")
+@login_required
+def search_clients():
+    """Search clients by name — alphanumeric only."""
+    role     = session.get("role", "")
+    username = session.get("username", "")
+    query    = re.sub(r"[^a-zA-Z0-9 ]", "", request.args.get("q", "")).strip().lower()
+    visible  = clients_for_user(username, role)
+    if query:
+        visible = [c for c in visible if query in c["name"].lower()]
+    return jsonify({"ok": True, "clients": visible[:20]})
 
 
 # ══════════════════════════════════════════════════════════════════════════
