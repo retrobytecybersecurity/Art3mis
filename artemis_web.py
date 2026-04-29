@@ -3813,6 +3813,73 @@ def search_clients():
 
 
 # ══════════════════════════════════════════════════════════════════════════
+# FLASK ROUTES — BREACH CHECK
+# ══════════════════════════════════════════════════════════════════════════
+
+@app.route("/breach")
+@login_required
+def breach_page():
+    return render_template("breach_check.html",
+                           role=session.get("role", ""),
+                           username=session.get("username", ""))
+
+
+@app.route("/api/breach/check", methods=["POST"])
+@login_required
+def breach_check_api():
+    data   = request.get_json()
+    target = data.get("target", "").strip().lower()
+    target = re.sub(r"[^a-zA-Z0-9@._\-]", "", target)
+
+    if not target:
+        return jsonify({"ok": False, "error": "Enter a domain or email address."}), 400
+
+    api_key = OATHNET_API_KEY
+    if not api_key:
+        return jsonify({"ok": False,
+                        "error": "OATHNET_API_KEY not configured in service file."}), 500
+
+    try:
+        url_req = (
+            f"https://oathnet.org/api/service/v2/breach/search"
+            f"?q={urllib.parse.quote(target, safe='@._-')}"
+        )
+        req = urllib.request.Request(
+            url_req,
+            headers={"x-api-key": api_key,
+                     "User-Agent": "Artemis-PenTest/1.0"}
+        )
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            body = json.loads(resp.read().decode())
+
+        results_found = body.get("data", {}).get("results_found", 0)
+        api_results   = body.get("data", {}).get("results", [])
+        lookups_left  = body.get("data", {}).get("lookups_left",
+                        body.get("lookups_left", "?"))
+
+        sources = list({r.get("source", r.get("dbname", "unknown"))
+                        for r in api_results if isinstance(r, dict)})
+
+        return jsonify({
+            "ok":            True,
+            "target":        target,
+            "results_found": results_found,
+            "sources":       sources,
+            "lookups_left":  lookups_left,
+        })
+
+    except urllib.error.HTTPError as e:
+        if e.code == 401:
+            return jsonify({"ok": False, "error": "API key invalid or expired."}), 401
+        elif e.code == 429:
+            return jsonify({"ok": False, "error": "Rate limit hit — try again shortly."}), 429
+        else:
+            return jsonify({"ok": False, "error": f"API error: HTTP {e.code}"}), 500
+    except Exception as ex:
+        return jsonify({"ok": False, "error": str(ex)}), 500
+
+
+# ══════════════════════════════════════════════════════════════════════════
 # FLASK ROUTES — WIKI
 # ══════════════════════════════════════════════════════════════════════════
 
