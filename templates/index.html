@@ -188,6 +188,25 @@
   }
   #complete-banner.visible { display: block; }
 
+  /* ── New Scan top banner ── */
+  #new-scan-banner {
+    display: none; position: sticky; top: 0; z-index: 50;
+    background: #0a0d14; border-bottom: 1px solid #2a5a3a;
+    padding: 10px 20px; align-items: center;
+    justify-content: space-between; gap: 16px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+  }
+  #new-scan-banner.visible { display: flex; }
+  .new-scan-msg { font-size: 0.82rem; color: #4aaa6a; font-weight: 600; }
+  .new-scan-msg span { color: var(--dim); font-weight: 400; margin-left: 10px; font-size: 0.78rem; }
+  .btn-new-scan {
+    padding: 8px 22px; background: var(--accent); border: none;
+    border-radius: 9px; color: #e8f4ff; font-family: 'Inter', sans-serif;
+    font-size: 0.82rem; font-weight: 600; cursor: pointer;
+    transition: filter 0.15s; white-space: nowrap; flex-shrink: 0;
+  }
+  .btn-new-scan:hover { filter: brightness(1.15); }
+
   /* ── Report links ── */
   #report-links { display: none; gap: 8px; margin-bottom: 10px; }
   #report-links a {
@@ -231,6 +250,15 @@
 </head>
 <body>
 
+<!-- ── New Scan sticky banner — shown on scan complete ── -->
+<div id="new-scan-banner">
+  <div class="new-scan-msg">
+    ✓ Scan complete
+    <span>Results saved. Start a new scan or exit to dashboard.</span>
+  </div>
+  <button class="btn-new-scan" onclick="newScan()">▶ New Scan</button>
+</div>
+
 <header>
   <div class="logo">◈ ART3MIS</div>
   <div id="status-badge">● Ready</div>
@@ -249,6 +277,14 @@
         <div class="section-body">
           <label>Client Name</label>
           <input type="text" id="client" placeholder="Acme Corp">
+          <label>Link to Client <span style="color:var(--dim);font-weight:400;font-size:0.68rem">(optional — leave blank for Quick Scan)</span></label>
+          <select id="client-select" style="background:#ffffff;border:1px solid #c8d8e8;border-radius:8px;color:#0f1826;font-family:'Inter',sans-serif;font-size:0.82rem;padding:7px 10px;outline:none;width:100%"
+                  onchange="clientSelectChanged(this.value)">
+            <option value="">— Quick Scan (no client) —</option>
+            {% for c in clients %}
+            <option value="{{ c.client_id }}">{{ c.name }}</option>
+            {% endfor %}
+          </select>
           <label>Date</label>
           <input type="text" id="date" placeholder="YYYY-MM-DD">
         </div>
@@ -361,7 +397,6 @@
           <span class="info-label">Domain</span>  <span class="info-value accent2" id="cf-domain"></span>
           <span class="info-label">Scope</span>   <span class="info-value success" id="cf-scope"></span>
           <span class="info-label">URLs</span>    <span class="info-value success" id="cf-urls"></span>
-          <span class="info-label">Folder</span>  <span class="info-value" style="font-size:0.65rem;color:var(--dim)" id="cf-folder"></span>
         </div>
       </div>
 
@@ -450,13 +485,14 @@ async function submitForm() {
   const client = document.getElementById('client').value.trim();
   const date   = document.getElementById('date').value.trim();
   const domain = document.getElementById('domain').value.trim();
-  const scope  = document.getElementById('scope').value.trim();
-  const urls   = document.getElementById('urls').value.trim();
+  const scope     = document.getElementById('scope').value.trim();
+  const urls      = document.getElementById('urls').value.trim();
+  const clientId  = document.getElementById('client-select')?.value || '';
   if (!client)                    { alert('Client name is required.'); return; }
   if (!scope && !urls && !domain) { alert('Enter at least one target.'); return; }
   const res  = await fetch('/api/submit', {
     method: 'POST', headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({client, date, domain, scope, urls}),
+    body: JSON.stringify({client, date, domain, scope, urls, client_id: clientId}),
   });
   const data = await res.json();
   if (!data.ok) { alert(data.error); return; }
@@ -465,7 +501,6 @@ async function submitForm() {
   document.getElementById('cf-domain').textContent = domain || '—';
   document.getElementById('cf-scope').textContent  = `${data.scope_count} host(s)`;
   document.getElementById('cf-urls').textContent   = `${data.url_count} URL(s)`;
-  document.getElementById('cf-folder').textContent = data.folder;
   const phasesEl = document.getElementById('cf-phases');
   phasesEl.innerHTML = '';
   [['ph-recon','Phase 1 — Recon / OSINT'],['ph-scan','Phase 2 — Port Scanning'],['ph-vuln','Phase 3 — Vuln Scanning']].forEach(([id,label]) => {
@@ -480,9 +515,15 @@ async function submitForm() {
   document.getElementById('btn-run').disabled    = false;
   document.getElementById('btn-report').disabled = true;
   submitted = true;
-  appendLog(`✓ Folder created: ${data.folder}`, 'success');
-  appendLog(`  Scope: ${data.scope_count} host(s) | URLs: ${data.url_count} | Domain: ${domain || '—'}`, 'info');
+  appendLog(`✓ Engagement confirmed — ${data.scope_count} host(s) | ${data.url_count} URL(s) | Domain: ${domain || '—'}`, 'success');
   setStatus('Ready to scan');
+}
+
+function clientSelectChanged(clientId) {
+  if (!clientId) return;
+  const sel = document.getElementById('client-select');
+  const name = sel.options[sel.selectedIndex].text;
+  document.getElementById('client').value = name;
 }
 
 function togglePhase(id) {
@@ -605,6 +646,8 @@ function onScanComplete() {
   document.getElementById('btn-report').disabled = false;
   document.getElementById('btn-reset').style.display = 'inline-block';
   document.getElementById('complete-banner').classList.add('visible');
+  document.getElementById('new-scan-banner').classList.add('visible');
+  window.scrollTo({top: 0, behavior: 'smooth'});
   appendLog('All phases complete. Generate report or start a new scan.', 'success');
 }
 
@@ -622,6 +665,50 @@ async function generateReport() {
   document.getElementById('pdf-link').href  = data.pdf;
   document.getElementById('docx-link').href = data.docx;
   document.getElementById('report-links').classList.add('visible');
+}
+
+async function newScan() {
+  // Save current assessment first if scan ran
+  if (submitted) {
+    try {
+      await fetch('/api/save-assessment', {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ phases: {
+          recon: document.getElementById('ph-recon')?.checked ?? true,
+          scan:  document.getElementById('ph-scan')?.checked  ?? true,
+          vuln:  document.getElementById('ph-vuln')?.checked  ?? true,
+        }}),
+      });
+    } catch(e) {}
+  }
+  // Reset server state
+  await fetch('/api/reset', { method: 'POST' });
+  // Reset UI — hide banner, clear log, go back to setup panel
+  document.getElementById('new-scan-banner').classList.remove('visible');
+  document.getElementById('complete-banner').classList.remove('visible');
+  document.getElementById('new-scan-banner').classList.remove('visible');
+  document.getElementById('btn-reset').style.display = 'none';
+  document.getElementById('btn-run').disabled    = true;
+  document.getElementById('btn-report').disabled = true;
+  document.getElementById('report-links').style.display = 'none';
+  document.getElementById('log-box').innerHTML = '';
+  document.getElementById('confirmed-panel').style.display = 'none';
+  document.getElementById('setup-panel').style.display     = 'block';
+  // Clear form fields
+  ['client','date','domain','scope','urls'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = id === 'date' ? new Date().toISOString().split('T')[0] : '';
+  });
+  submitted = false;
+  window.scrollTo({top: 0, behavior: 'smooth'});
+}
+
+function currentPhases() {
+  return {
+    recon: document.getElementById('ph-recon')?.checked ?? true,
+    scan:  document.getElementById('ph-scan')?.checked  ?? true,
+    vuln:  document.getElementById('ph-vuln')?.checked  ?? true,
+  };
 }
 
 async function saveAndExit() {
