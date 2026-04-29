@@ -3,348 +3,264 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ARTEMIS // Dashboard</title>
+<title>ARTEMIS // Breach Check</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-  :root {
-    --bg:#0a0d14;--surface:#0f1420;--surface2:#141926;
-    --accent:#1a4a7a;--accent2:#e8944a;--success:#2a7a4a;
-    --text:#e8eaf0;--dim:#4a6a8a;--border:#1e2d45;--shadow:0 2px 12px rgba(0,0,0,0.3);
-  }
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+  :root{--bg:#0a0d14;--surface:#0f1420;--surface2:#141926;--accent:#1a4a7a;--text:#e8eaf0;--dim:#4a6a8a;--border:#1e2d45;--shadow:0 2px 12px rgba(0,0,0,0.3);}
   *{box-sizing:border-box;margin:0;padding:0}
   body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-height:100vh;display:flex;flex-direction:column}
+  header{background:var(--surface);border-bottom:1px solid var(--border);padding:13px 28px;display:flex;align-items:center;justify-content:space-between;box-shadow:var(--shadow)}
+  .logo{font-size:1.05rem;font-weight:700;color:var(--text);letter-spacing:.1em}
+  .nav-btn{font-size:12px;padding:6px 14px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--dim);cursor:pointer;text-decoration:none;transition:all 0.15s;display:inline-block}
+  .nav-btn:hover{border-color:#2a4a6a;color:var(--text)}
+  .nav-btn.logout{border-color:#5a1a2a;color:#c06070;background:rgba(180,60,80,0.08)}
+  main{flex:1;max-width:1200px;width:100%;margin:0 auto;padding:32px 28px}
+  .page-label{font-size:11px;color:var(--dim);letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px}
+  .page-title{font-size:1.4rem;font-weight:700;color:var(--text);margin-bottom:6px}
+  .page-sub{font-size:0.8rem;color:var(--dim);margin-bottom:24px;line-height:1.6}
 
-  /* ── Header ── */
-  header{background:var(--surface);border-bottom:1px solid var(--border);padding:12px 28px;display:flex;align-items:center;gap:12px;box-shadow:var(--shadow);position:relative;z-index:100}
-  .logo{font-size:1.1rem;font-weight:700;color:#e8eaf0;letter-spacing:.12em}
-  .header-mid{flex:1;display:flex;align-items:center;gap:10px}
-  .role-pill{font-size:11px;padding:3px 10px;border-radius:20px;border:0.5px solid var(--border);color:var(--dim);background:var(--surface2)}
-  .role-pill.admin{border-color:#3a5a7a;color:#5a9acc;background:rgba(26,74,122,0.2)}
-  .header-right{display:flex;align-items:center;gap:6px}
+  .search-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden;margin-bottom:20px;box-shadow:var(--shadow)}
+  .accent-line{height:2px;background:linear-gradient(90deg,transparent,#1a4a7a,#2a6aaa,#1a4a7a,transparent)}
+  .search-body{padding:20px}
+  .input-row{display:flex;gap:10px}
+  .input-wrap{flex:1}
+  .input-wrap input{width:100%;background:#ffffff;border:1px solid #c8d8e8;border-radius:10px;color:#0f1826;font-family:'Inter',sans-serif;font-size:0.9rem;padding:11px 14px;outline:none;transition:border-color 0.2s,box-shadow 0.2s}
+  .input-wrap input:focus{border-color:#4a7aaa;box-shadow:0 0 0 3px rgba(74,122,170,0.15)}
+  .input-wrap input::placeholder{color:#8aaabb}
+  .btn-check{padding:11px 24px;background:var(--accent);border:none;border-radius:10px;color:#e8f4ff;font-family:'Inter',sans-serif;font-size:0.88rem;font-weight:600;cursor:pointer;transition:filter 0.15s;white-space:nowrap}
+  .btn-check:hover{filter:brightness(1.15)}
+  .btn-check:disabled{opacity:0.5;cursor:not-allowed;filter:none}
+  .input-hint{font-size:0.72rem;color:var(--dim);margin-top:8px}
+  .loading{display:none;align-items:center;gap:10px;padding:14px 0;color:var(--dim);font-size:0.82rem}
+  .spinner{width:16px;height:16px;border:2px solid var(--border);border-top-color:#5a9acc;border-radius:50%;animation:spin 0.7s linear infinite;flex-shrink:0}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .error-box{background:rgba(138,42,58,0.12);border:1px solid #5a1a2a;border-radius:10px;padding:12px 16px;color:#e88a9a;font-size:0.82rem;display:none;margin-bottom:16px}
 
-  /* Scan button */
-  .btn-scan{font-size:12px;padding:6px 16px;border-radius:8px;border:1px solid #1e4a7a;background:rgba(26,74,122,0.15);color:#5a9acc;cursor:pointer;text-decoration:none;transition:all 0.15s;font-weight:600}
-  .btn-scan:hover{background:rgba(26,74,122,0.3)}
+  #results-section{display:none}
 
-  /* Dropdown menus */
-  .dd-wrap{position:relative}
-  .dd-btn{font-size:12px;padding:6px 14px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--dim);cursor:pointer;transition:all 0.15s;display:flex;align-items:center;gap:5px;white-space:nowrap;user-select:none}
-  .dd-btn:hover,.dd-btn.open{border-color:#2a4a6a;color:var(--text)}
-  .dd-caret{font-size:0.6rem;transition:transform 0.15s}
-  .dd-btn.open .dd-caret{transform:rotate(180deg)}
-  .dd-menu{display:none;position:absolute;right:0;top:calc(100% + 6px);background:var(--surface);border:1px solid var(--border);border-radius:10px;min-width:160px;box-shadow:0 8px 24px rgba(0,0,0,0.4);overflow:hidden;z-index:200}
-  .dd-menu.show{display:block}
-  .dd-item{display:block;padding:9px 16px;font-size:0.8rem;color:var(--dim);text-decoration:none;transition:all 0.12s;border-bottom:1px solid rgba(30,45,69,0.5)}
-  .dd-item:last-child{border-bottom:none}
-  .dd-item:hover{background:rgba(26,74,122,0.12);color:var(--text)}
-  .dd-item.danger{color:#c06070}
-  .dd-item.danger:hover{background:rgba(180,60,80,0.1)}
-  .dd-divider{height:1px;background:var(--border);margin:2px 0}
+  .summary-row{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px}
+  .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 18px;text-align:center}
+  .stat-val{font-size:1.9rem;font-weight:700;margin-bottom:4px}
+  .stat-val.breach{color:#e88a9a}
+  .stat-val.clean{color:#4aaa6a}
+  .stat-val.info{color:#5a9acc}
+  .stat-lbl{font-size:0.68rem;color:var(--dim);text-transform:uppercase;letter-spacing:.08em}
 
-  /* Main */
-  main{flex:1;max-width:1000px;width:100%;margin:0 auto;padding:28px 28px}
-  .page-label{font-size:11px;color:var(--dim);letter-spacing:.1em;text-transform:uppercase;margin-bottom:3px}
-  .page-title{font-size:1.3rem;font-weight:600;color:var(--text);margin-bottom:20px}
+  .results-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:var(--shadow)}
+  .results-hdr{padding:12px 18px;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+  .results-hdr-left{font-size:0.74rem;font-weight:600;color:var(--dim);letter-spacing:.09em;text-transform:uppercase}
+  .btn-export{padding:5px 14px;font-family:'Inter',sans-serif;font-size:0.72rem;font-weight:600;border-radius:7px;cursor:pointer;transition:all 0.15s;border:1px solid #2a5a3a;color:#4aaa6a;background:rgba(42,122,74,0.1)}
+  .btn-export:hover{background:rgba(42,122,74,0.2)}
 
-  /* CTA bar */
-  .cta{background:rgba(26,74,122,0.15);border:1px solid #1e3a5a;border-radius:14px;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:24px}
-  .cta h2{font-size:0.95rem;font-weight:600;color:var(--text);margin-bottom:2px}
-  .cta p{font-size:0.78rem;color:var(--dim)}
-  .btn-cta{background:var(--accent);border:none;color:#e8f4ff;font-family:'Inter',sans-serif;font-size:0.82rem;font-weight:600;padding:9px 18px;border-radius:10px;cursor:pointer;white-space:nowrap;transition:filter 0.15s;text-decoration:none;display:inline-block}
-  .btn-cta:hover{filter:brightness(1.15)}
+  .tbl-wrap{overflow-x:auto;max-height:600px;overflow-y:auto}
+  table{width:100%;border-collapse:collapse;font-size:0.76rem}
+  thead th{text-align:left;color:var(--dim);font-size:0.65rem;font-weight:600;letter-spacing:.07em;text-transform:uppercase;padding:8px 12px;border-bottom:1px solid var(--border);background:var(--surface2);position:sticky;top:0;white-space:nowrap;z-index:1}
+  tbody tr{border-bottom:1px solid rgba(30,45,69,0.5)}
+  tbody tr:last-child{border-bottom:none}
+  tbody tr:hover td{background:rgba(255,255,255,0.02)}
+  td{padding:8px 12px;vertical-align:middle;font-family:'JetBrains Mono',monospace;font-size:0.73rem;white-space:nowrap;max-width:220px;overflow:hidden;text-overflow:ellipsis}
+  .td-email{color:#8ab8d8}
+  .td-username{color:#c8d4e0}
+  .td-password{color:#e8944a;font-weight:500}
+  .td-domain{color:var(--dim)}
+  .td-date{color:var(--dim)}
+  .td-source{color:var(--dim)}
+  .td-redacted{color:rgba(200,200,200,0.25);font-style:italic;font-size:0.68rem;font-family:'Inter',sans-serif}
+  .type-stealer{font-size:0.6rem;padding:1px 5px;border-radius:4px;background:rgba(232,148,74,0.15);border:0.5px solid #6a3a1a;color:#e8944a;font-family:'Inter',sans-serif;margin-left:4px;vertical-align:middle}
+  .type-breach{font-size:0.6rem;padding:1px 5px;border-radius:4px;background:rgba(138,42,58,0.15);border:0.5px solid #5a1a2a;color:#e88a9a;font-family:'Inter',sans-serif;margin-left:4px;vertical-align:middle}
+  .empty-row td{padding:28px;text-align:center;color:var(--dim);font-size:0.82rem;font-family:'Inter',sans-serif;white-space:normal}
 
-  /* Section header */
-  .section-hdr{display:flex;align-items:center;gap:10px;margin-bottom:10px}
-  .section-title{font-size:0.72rem;font-weight:600;color:var(--dim);letter-spacing:.1em;text-transform:uppercase}
-  .count-pill{font-size:11px;padding:2px 8px;border-radius:10px;background:var(--surface2);color:var(--dim);border:0.5px solid var(--border)}
-
-  /* Client table */
-  .client-table-wrap{background:#ffffff;border:1px solid #dce8f2;border-radius:12px;overflow:hidden;margin-bottom:24px}
-  .client-search-row{padding:12px 16px;border-bottom:1px solid #dce8f2;display:flex;align-items:center;gap:10px}
-  .search-inner{position:relative;flex:1;max-width:360px}
-  .search-inner input{width:100%;background:#ffffff;border:1px solid #c8d8e8;border-radius:8px;color:#0f1826;font-family:'Inter',sans-serif;font-size:0.82rem;padding:7px 10px 7px 32px;outline:none;transition:border-color 0.2s}
-  .search-inner input:focus{border-color:#4a7aaa}
-  .search-inner input::placeholder{color:#8aaabb}
-  .search-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#8aaabb;font-size:0.8rem;pointer-events:none}
-  .tbl-link{font-size:0.75rem;color:#5a9acc;text-decoration:none;margin-left:auto}
-  .tbl-link:hover{text-decoration:underline}
-
-  table.ctbl{width:100%;border-collapse:collapse;font-size:0.8rem}
-  table.ctbl thead th{text-align:left;color:#6a8aaa;font-size:0.68rem;font-weight:600;letter-spacing:.07em;text-transform:uppercase;padding:7px 16px;border-bottom:1px solid #dce8f2;background:#f8fafc}
-  table.ctbl tbody tr{border-bottom:1px solid #eef3f8;cursor:pointer;transition:background 0.1s}
-  table.ctbl tbody tr:last-child{border-bottom:none}
-  table.ctbl tbody tr:hover td{background:#eef4fc}
-  table.ctbl td{padding:10px 16px;vertical-align:middle}
-  .tbl-name{font-weight:600;color:#1a2a3a}
-  .tbl-dim{color:#6a8aaa}
-  .empty-row td{padding:24px;text-align:center;color:#6a8aaa;font-size:0.82rem}
-
-  /* Assessment cards */
-  .assessment-grid{display:flex;flex-direction:column;gap:8px}
-  .acard{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:13px 18px;display:flex;align-items:center;gap:14px;position:relative;overflow:hidden;transition:border-color 0.15s;cursor:pointer}
-  .acard::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:3px 0 0 3px}
-  .acard:nth-child(1)::before{background:#2a6a9a}.acard:nth-child(2)::before{background:#2a7a5a}
-  .acard:nth-child(3)::before{background:#6a4a9a}.acard:nth-child(4)::before{background:#8a5a2a}
-  .acard:nth-child(5)::before{background:#7a2a4a}
-  .acard:hover{border-color:#2a4a6a}
-  .card-rank{font-size:1.2rem;font-weight:600;color:#1e3050;min-width:26px;text-align:center}
-  .acard:first-child .card-rank{color:#6a4a2a}
-  .card-main{flex:1;min-width:0}
-  .card-client{font-size:0.88rem;font-weight:600;color:var(--text);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .card-meta{display:flex;gap:14px;flex-wrap:wrap}
-  .card-meta span{font-size:0.7rem;color:var(--dim)}
-  .card-meta .val{color:#8ab8d8}
-  .card-phases{display:flex;gap:5px;flex-shrink:0}
-  .pbadge{font-size:0.63rem;padding:2px 7px;border-radius:4px;border:0.5px solid;letter-spacing:.04em}
-  .pbadge.on{background:rgba(42,122,74,0.15);border-color:#2a5a3a;color:#4aaa6a}
-  .pbadge.off{background:transparent;border-color:var(--border);color:var(--dim);opacity:0.4}
-  .card-completed{font-size:0.67rem;color:var(--dim);text-align:right;flex-shrink:0;white-space:nowrap;line-height:1.5}
-  .btn-del{background:transparent;border:1px solid var(--border);border-radius:6px;color:var(--dim);font-size:0.7rem;padding:3px 8px;cursor:pointer;flex-shrink:0;transition:all 0.15s}
-  .btn-del:hover{border-color:#5a1a2a;color:#c06070;background:rgba(180,60,80,0.08)}
-  .empty-state{background:var(--surface);border:1px dashed var(--border);border-radius:12px;padding:40px 24px;text-align:center}
-  .empty-state p{color:var(--dim);font-size:0.82rem;line-height:1.8}
-
-  /* Delete modal */
-  #delete-modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:200;align-items:center;justify-content:center}
-  .del-modal{background:var(--surface);border:1px solid var(--border);border-radius:14px;width:360px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.4)}
-  .del-modal-hdr{padding:13px 18px;background:var(--surface2);border-bottom:1px solid var(--border);font-size:0.82rem;font-weight:600;color:var(--text)}
-  .del-modal-body{padding:18px}
-  .del-modal-body p{font-size:0.83rem;color:var(--text);margin-bottom:5px}
-  .del-modal-body small{font-size:0.73rem;color:var(--dim)}
-  .del-modal-actions{display:flex;gap:8px;margin-top:16px}
-  .btn-del-confirm{flex:1;padding:10px;border:none;border-radius:10px;background:#8a1a2a;color:#f8d8dc;font-family:'Inter',sans-serif;font-size:0.83rem;font-weight:600;cursor:pointer}
-  .btn-del-cancel{flex:1;padding:10px;background:transparent;border:1px solid var(--border);border-radius:10px;color:var(--dim);font-family:'Inter',sans-serif;font-size:0.83rem;cursor:pointer}
-
-  footer{background:var(--surface);border-top:1px solid var(--border);padding:10px 28px;display:flex;justify-content:space-between;font-size:0.7rem;color:var(--dim)}
+  footer{background:var(--surface);border-top:1px solid var(--border);padding:11px 28px;display:flex;justify-content:space-between;font-size:0.7rem;color:var(--dim)}
 </style>
 </head>
 <body>
 <header>
-  <div class="logo">◈ ART3MIS</div>
-  <div class="header-mid">
-    <span style="font-size:12px;color:var(--dim)">{{ username }}</span>
-    {% if role == 'Administrator' %}<span class="role-pill admin">Administrator</span>
-    {% elif role == 'Manager' %}<span class="role-pill">Manager</span>
-    {% else %}<span class="role-pill">{{ role }}</span>{% endif %}
-  </div>
-  <div class="header-right">
-
-    <!-- New Scan -->
-    <a href="/scan" class="btn-scan">▶ New Scan</a>
-
-    <!-- Resources dropdown -->
-    <div class="dd-wrap">
-      <div class="dd-btn" onclick="toggleDd('dd-resources')">
-        Resources <span class="dd-caret">▾</span>
-      </div>
-      <div class="dd-menu" id="dd-resources">
-        <a href="/clients" class="dd-item">◈ Clients</a>
-        <a href="/wiki" class="dd-item">📖 Wiki</a>
-        <a href="/breach" class="dd-item">⚠ Breach Check</a>
-        <div class="dd-divider"></div>
-        <a href="/change-password" class="dd-item">⚙ Change Password</a>
-      </div>
-    </div>
-
-    {% if role == 'Administrator' %}
-    <!-- Admin dropdown -->
-    <div class="dd-wrap">
-      <div class="dd-btn" onclick="toggleDd('dd-admin')">
-        Admin <span class="dd-caret">▾</span>
-      </div>
-      <div class="dd-menu" id="dd-admin">
-        <a href="/admin/users" class="dd-item">◈ Users</a>
-        <a href="/admin/requests" class="dd-item">◈ Account Requests</a>
-      </div>
-    </div>
-    {% endif %}
-
-    <!-- Account dropdown -->
-    <div class="dd-wrap">
-      <div class="dd-btn" onclick="toggleDd('dd-account')">
-        {{ username }} <span class="dd-caret">▾</span>
-      </div>
-      <div class="dd-menu" id="dd-account">
-        <a href="/change-password" class="dd-item">⚙ Change Password</a>
-        <div class="dd-divider"></div>
-        <a href="/logout" class="dd-item danger">⎋ Logout</a>
-      </div>
-    </div>
-
+  <div class="logo">◈ ART3MIS — Breach Check</div>
+  <div style="display:flex;gap:8px">
+    <a href="/" class="nav-btn">← Dashboard</a>
+    <a href="/logout" class="nav-btn logout">⎋ Logout</a>
   </div>
 </header>
 
 <main>
-  <div class="page-label">Overview</div>
-  <div class="page-title">Dashboard</div>
-
-  <div class="cta">
-    <div>
-      <h2>Start a New Assessment</h2>
-      <p>Configure targets, select phases, and launch the automated scan pipeline.</p>
-    </div>
-    <a href="/scan" class="btn-cta">▶ Begin Assessment</a>
+  <div class="page-label">OathNet Intelligence</div>
+  <div class="page-title">Breach Credential Check</div>
+  <div class="page-sub">
+    Check if a domain or email address appears in known breach and stealer log databases.<br>
+    Passwords shown are from public breach data. Unique credentials are counted without duplicates.
   </div>
 
-  <!-- Client directory table -->
-  <div class="section-hdr"><span class="section-title">Clients</span></div>
-  <div class="client-table-wrap">
-    <div class="client-search-row">
-      <div class="search-inner">
-        <span class="search-icon">⌕</span>
-        <input type="text" id="client-search" placeholder="Search by name..."
-               maxlength="60" onkeypress="return /[a-zA-Z0-9 ]/.test(event.key)"
-               oninput="filterTable(this.value)">
-      </div>
-      <a href="/clients" class="tbl-link">Manage clients →</a>
-    </div>
-    <table class="ctbl" id="client-tbl">
-      <thead>
-        <tr>
-          <th>Client Name</th>
-          <th>Industry</th>
-          <th>Contact</th>
-          <th>Created</th>
-        </tr>
-      </thead>
-      <tbody id="client-tbody">
-        {% if clients %}
-          {% for client in clients | sort(attribute='name') %}
-          <tr onclick="window.location='/clients/{{ client.client_id }}'">
-            <td class="tbl-name">{{ client.name }}</td>
-            <td class="tbl-dim">{{ client.industry or '—' }}</td>
-            <td class="tbl-dim">{{ client.contact_name or '—' }}</td>
-            <td class="tbl-dim">{{ client.created_at or '—' }}</td>
-          </tr>
-          {% endfor %}
-        {% else %}
-          <tr class="empty-row"><td colspan="4">No clients assigned yet.</td></tr>
-        {% endif %}
-      </tbody>
-    </table>
-  </div>
-
-  <!-- Recent assessments -->
-  <div class="section-hdr">
-    <span class="section-title">Recent Assessments</span>
-    <span class="count-pill">{{ history|length }} / 5</span>
-  </div>
-  <div class="assessment-grid">
-    {% if history %}
-      {% for entry in history %}
-      <div class="acard" onclick="window.location='/assessment/{{ entry.folder.split('/')[-1] }}'">
-        <div class="card-rank">{{ loop.index }}</div>
-        <div class="card-main">
-          <div class="card-client">{{ entry.client }}</div>
-          <div class="card-meta">
-            <span>Date: <span class="val">{{ entry.date }}</span></span>
-            <span>Domain: <span class="val">{{ entry.domain }}</span></span>
-          </div>
+  <div class="search-card">
+    <div class="accent-line"></div>
+    <div class="search-body">
+      <div class="input-row">
+        <div class="input-wrap">
+          <input type="text" id="target-input"
+                 placeholder="domain.com or user@domain.com"
+                 maxlength="120"
+                 onkeydown="if(event.key==='Enter')runCheck()">
         </div>
-        <div class="card-phases">
-          <span class="pbadge {{ 'on' if entry.phases.get('recon') else 'off' }}">P1</span>
-          <span class="pbadge {{ 'on' if entry.phases.get('scan')  else 'off' }}">P2</span>
-          <span class="pbadge {{ 'on' if entry.phases.get('vuln')  else 'off' }}">P3</span>
-        </div>
-        <div class="card-completed">{{ entry.completed }}</div>
-        <button class="btn-del"
-                data-folder="{{ entry.folder }}"
-                data-client="{{ entry.client }}"
-                onclick="event.stopPropagation(); openDeleteModal(this)"
-                title="Remove from dashboard">✕</button>
+        <button class="btn-check" id="check-btn" onclick="runCheck()">Check Breaches</button>
       </div>
-      {% endfor %}
-    {% else %}
-      <div class="empty-state">
-        <p>No assessments recorded yet.<br>
-        Complete a scan and click <strong>Exit</strong> to save it here.</p>
+      <div class="input-hint">Enter a domain to check all breached accounts, or a specific email address.</div>
+      <div class="loading" id="loading">
+        <div class="spinner"></div>
+        <span>Querying OathNet breach database...</span>
       </div>
-    {% endif %}
+    </div>
+  </div>
+
+  <div class="error-box" id="error-box"></div>
+
+  <div id="results-section">
+    <div class="summary-row">
+      <div class="stat-card">
+        <div class="stat-val breach" id="stat-total">0</div>
+        <div class="stat-lbl">Security Breaches Found</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val info" id="stat-unique">0</div>
+        <div class="stat-lbl">Unique Stolen Credentials</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val info" id="stat-sources">0</div>
+        <div class="stat-lbl">Data Sources</div>
+      </div>
+    </div>
+
+    <div class="results-card">
+      <div class="results-hdr">
+        <div class="results-hdr-left">Breach Records — <span id="tbl-target"></span></div>
+        <button class="btn-export" onclick="exportCSV()">↓ Export CSV</button>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Email</th>
+              <th>Username</th>
+              <th>Password</th>
+              <th>Email Domain</th>
+              <th>Subdomain</th>
+              <th>Indexed At</th>
+              <th>Source</th>
+            </tr>
+          </thead>
+          <tbody id="results-tbody"></tbody>
+        </table>
+      </div>
+    </div>
   </div>
 </main>
 
 <footer>
-  <span>Artemis // External Pentest Suite</span>
+  <span>Artemis // Breach Check — OathNet</span>
   <span>Confidential — Authorized Use Only</span>
 </footer>
 
-<div id="delete-modal-bg" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:200;align-items:center;justify-content:center;">
-  <div class="del-modal">
-    <div class="del-modal-hdr">Remove Assessment</div>
-    <div class="del-modal-body">
-      <p>Remove <strong id="modal-client-name"></strong> from the dashboard?</p>
-      <small>Files on disk are not deleted.</small>
-      <div class="del-modal-actions">
-        <button class="btn-del-confirm" onclick="confirmDelete()">Yes, Remove</button>
-        <button class="btn-del-cancel"  onclick="closeDeleteModal()">Cancel</button>
-      </div>
-    </div>
-  </div>
-</div>
-
 <script>
-// ── Dropdown logic ────────────────────────────────────────────────────────
-function toggleDd(id){
-  document.querySelectorAll('.dd-menu').forEach(m=>{
-    if(m.id!==id){ m.classList.remove('show'); m.previousElementSibling.classList.remove('open') }
-  })
-  const menu=document.getElementById(id)
-  const btn=menu.previousElementSibling
-  const opening=!menu.classList.contains('show')
-  menu.classList.toggle('show',opening)
-  btn.classList.toggle('open',opening)
-}
-document.addEventListener('click',e=>{
-  if(!e.target.closest('.dd-wrap')){
-    document.querySelectorAll('.dd-menu').forEach(m=>m.classList.remove('show'))
-    document.querySelectorAll('.dd-btn').forEach(b=>b.classList.remove('open'))
-  }
-})
+let currentData = null
 
-// ── Client table filter ───────────────────────────────────────────────────
-function filterTable(q){
-  const clean=q.replace(/[^a-zA-Z0-9 ]/g,'').toLowerCase()
-  const rows=document.querySelectorAll('#client-tbody tr:not(.empty-row)')
-  let visible=0
-  rows.forEach(r=>{
-    const name=r.querySelector('.tbl-name')?.textContent.toLowerCase()||''
-    const show=!clean||name.includes(clean)
-    r.style.display=show?'':'none'
-    if(show)visible++
-  })
-  // Show empty message if nothing matches
-  let noMatch=document.getElementById('no-match-row')
-  if(visible===0&&rows.length>0){
-    if(!noMatch){
-      noMatch=document.createElement('tr')
-      noMatch.id='no-match-row'
-      noMatch.className='empty-row'
-      noMatch.innerHTML='<td colspan="4">No clients match your search.</td>'
-      document.getElementById('client-tbody').appendChild(noMatch)
-    }
-    noMatch.style.display=''
-  } else if(noMatch){
-    noMatch.style.display='none'
+async function runCheck(){
+  const raw    = document.getElementById('target-input').value.trim()
+  const target = raw.replace(/[^a-zA-Z0-9@._\-]/g,'')
+  if(!target){ showError('Enter a domain or email address.'); return }
+
+  document.getElementById('check-btn').disabled    = true
+  document.getElementById('loading').style.display = 'flex'
+  document.getElementById('results-section').style.display = 'none'
+  document.getElementById('error-box').style.display      = 'none'
+
+  try{
+    const res  = await fetch('/api/breach/check',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({target})
+    })
+    const data = await res.json()
+    document.getElementById('loading').style.display = 'none'
+    document.getElementById('check-btn').disabled    = false
+    if(!data.ok){ showError(data.error); return }
+    currentData = data
+    renderResults(data)
+  } catch(err){
+    document.getElementById('loading').style.display = 'none'
+    document.getElementById('check-btn').disabled    = false
+    showError('Request failed — check your connection.')
   }
 }
 
-// ── Assessment delete ─────────────────────────────────────────────────────
-let pendingFolder=null
-function openDeleteModal(btn){
-  pendingFolder=btn.getAttribute('data-folder')
-  document.getElementById('modal-client-name').textContent=`"${btn.getAttribute('data-client')}"`
-  document.getElementById('delete-modal-bg').style.display='flex'
+function renderResults(data){
+  document.getElementById('stat-total').textContent   = data.results_found.toLocaleString()
+  document.getElementById('stat-unique').textContent  = data.unique_creds.toLocaleString()
+  document.getElementById('stat-sources').textContent = data.sources.length.toLocaleString()
+  document.getElementById('tbl-target').textContent   = data.target
+
+  const tv = document.getElementById('stat-total')
+  tv.className = 'stat-val ' + (data.results_found > 0 ? 'breach' : 'clean')
+
+  const tbody = document.getElementById('results-tbody')
+  if(!data.items || data.items.length === 0){
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="7">No breach records returned for this target.</td></tr>'
+  } else {
+    tbody.innerHTML = data.items.map(row => {
+      const typeBadge = row.type === 'stealer'
+        ? '<span class="type-stealer">stealer</span>'
+        : '<span class="type-breach">breach</span>'
+      const pwClass = row.password ? 'td-password' : 'td-redacted'
+      const pwText  = row.password ? esc(row.password) : '—'
+      return `<tr>
+        <td class="td-email" title="${esc(row.email)}">${esc(row.email||'—')}${typeBadge}</td>
+        <td class="td-username" title="${esc(row.username)}">${esc(row.username||'—')}</td>
+        <td class="${pwClass}" title="${esc(row.password)}">${pwText}</td>
+        <td class="td-domain">${esc(row.email_domain||'—')}</td>
+        <td class="td-domain" title="${esc(row.subdomain)}">${esc(row.subdomain||'—')}</td>
+        <td class="td-date">${esc(row.indexed_at||'—')}</td>
+        <td class="td-source" title="${esc(row.dbname)}">${esc(row.dbname||'—')}</td>
+      </tr>`
+    }).join('')
+  }
+  document.getElementById('results-section').style.display = 'block'
 }
-function closeDeleteModal(){pendingFolder=null;document.getElementById('delete-modal-bg').style.display='none'}
-async function confirmDelete(){
-  if(!pendingFolder)return
-  const folder=pendingFolder;closeDeleteModal()
-  const res=await fetch('/api/delete-assessment',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({folder})})
-  const data=await res.json()
-  if(!data.ok){alert('Error: '+data.error);return}
-  window.location.reload()
+
+function esc(s){
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
 }
-document.getElementById('delete-modal-bg').addEventListener('click',function(e){if(e.target===this)closeDeleteModal()})
+
+function exportCSV(){
+  if(!currentData) return
+  const target = document.getElementById('target-input').value.trim().replace(/[^a-zA-Z0-9@._\-]/g,'')
+  const fname  = `${target}_breachScan.csv`
+  const headers = ['Email','Username','Password','Email Domain','Subdomain','Indexed At','Source Database','Type']
+  const rows = (currentData.items||[]).map(r=>[
+    csvCell(r.email||''),
+    csvCell(r.username||''),
+    csvCell(r.password||''),
+    csvCell(r.email_domain||''),
+    csvCell(r.subdomain||''),
+    csvCell(r.indexed_at||''),
+    csvCell(r.dbname||''),
+    csvCell(r.type||''),
+  ])
+  const csv = [headers,...rows].map(r=>r.join(',')).join('\n')
+  const blob = new Blob([csv],{type:'text/csv'})
+  const url  = URL.createObjectURL(blob)
+  const a    = document.createElement('a')
+  a.href=url; a.download=fname; a.click()
+  URL.revokeObjectURL(url)
+}
+
+function csvCell(v){
+  const s=String(v)
+  if(s.includes(',')||s.includes('"')||s.includes('\n'))
+    return '"'+s.replace(/"/g,'""')+'"'
+  return s
+}
+
+function showError(msg){
+  const el=document.getElementById('error-box')
+  el.textContent='✗ '+msg
+  el.style.display='block'
+}
 </script>
 </body>
 </html>
