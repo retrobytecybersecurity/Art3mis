@@ -178,6 +178,7 @@
   </div>
   <div class="header-right">
     <a href="/scan" class="nav-btn new">▶ New Scan</a>
+    <a href="/clients" class="nav-btn" style="border-color:#2a3a5a;color:#8ab8d8">◈ Clients</a>
     <a href="/wiki" class="nav-btn" style="border-color:#2a3a5a;color:#8ab8d8">📖 Wiki</a>
     <a href="/change-password" class="nav-btn">⚙ Password</a>
     {% if role == 'Administrator' %}
@@ -198,6 +199,24 @@
       <p>Configure targets, select phases, and launch the automated scan pipeline.</p>
     </div>
     <a href="/scan" class="btn-cta">▶  Begin Assessment</a>
+  </div>
+
+  <!-- Client search -->
+  <div class="section-hdr" style="margin-bottom:10px">
+    <span class="section-title">Client Search</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:28px">
+    <div style="position:relative;flex:1;max-width:400px">
+      <span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);color:#4a6a8a;font-size:0.85rem;pointer-events:none">⌕</span>
+      <input type="text" id="client-search" placeholder="Search clients..."
+             maxlength="60" onkeypress="return /[a-zA-Z0-9 ]/.test(event.key)"
+             oninput="searchClients(this.value)"
+             style="width:100%;background:#ffffff;border:1px solid #c8d8e8;border-radius:10px;color:#0f1826;font-family:'Inter',sans-serif;font-size:0.85rem;padding:9px 12px 9px 36px;outline:none">
+    </div>
+    <a href="/clients" style="font-size:0.78rem;color:#5a9acc;text-decoration:none">View all →</a>
+  </div>
+  <div id="client-results" style="display:none;margin-bottom:24px">
+    <div id="client-cards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px"></div>
   </div>
 
   <div class="section-hdr">
@@ -262,7 +281,27 @@
 </div>
 
 <script>
-let pendingFolder = null;
+async function searchClients(q){
+  const clean=q.replace(/[^a-zA-Z0-9 ]/g,'').trim()
+  const results=document.getElementById('client-results')
+  const cards=document.getElementById('client-cards')
+  if(!clean){results.style.display='none';cards.innerHTML='';return}
+  const res=await fetch(`/api/clients/search?q=${encodeURIComponent(clean)}`)
+  const data=await res.json()
+  if(!data.ok) return
+  results.style.display='block'
+  if(data.clients.length===0){
+    cards.innerHTML='<div style="color:var(--dim);font-size:0.82rem;padding:10px">No clients found.</div>'
+    return
+  }
+  cards.innerHTML=data.clients.map(c=>`
+    <a href="/clients/${c.client_id}" style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px;text-decoration:none;display:block;transition:border-color 0.15s" onmouseover="this.style.borderColor='#2a4a7a'" onmouseout="this.style.borderColor='var(--border)'">
+      <div style="font-size:0.88rem;font-weight:600;color:var(--text);margin-bottom:3px">${c.name}</div>
+      <div style="font-size:0.7rem;color:var(--dim);text-transform:uppercase;letter-spacing:.06em">${c.industry||'No industry'}</div>
+      <div style="font-size:0.72rem;color:var(--dim);margin-top:6px">${c.assessments.length} assessment(s) · Last: ${c.last_tested||'Never'}</div>
+    </a>`).join('')
+}
+
 function openDeleteModal(btn) {
   pendingFolder = btn.getAttribute('data-folder');
   document.getElementById('modal-client-name').textContent = `"${btn.getAttribute('data-client')}"`;
