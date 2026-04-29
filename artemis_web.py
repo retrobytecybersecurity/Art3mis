@@ -24,6 +24,13 @@ from functools import wraps
 from flask import (Flask, render_template, request, jsonify,
                    Response, send_file, session, redirect, url_for, flash)
 
+# ── Rate limiting & CSRF store ─────────────────────────────────────────────
+import time as _time
+_login_attempts: dict = {}   # {ip: {"count": int, "lockout_until": float}}
+_csrf_tokens:    dict = {}   # {session_id: token}  (lightweight CSRF)
+LOGIN_MAX_ATTEMPTS = 5
+LOGIN_LOCKOUT_SECS = 300     # 5 minutes
+
 # ── Root check ────────────────────────────────────────────────────────────
 if os.geteuid() != 0:
     print("\n[!] Artemis requires root privileges.")
@@ -50,6 +57,8 @@ USERS_FILE     = Path("/opt/artemis/users.json")
 REQUESTS_FILE  = Path("/opt/artemis/requests.json")
 WIKI_FILE      = Path("/opt/artemis/wiki.json")
 CLIENTS_FILE   = Path("/opt/artemis/clients.json")
+FINDINGS_FILE  = Path("/opt/artemis/findings.json")
+AUDIT_LOG_FILE = Path("/opt/artemis/audit.log")
 RESULTS_BASE.mkdir(parents=True, exist_ok=True)
 QUICK_SCANS_BASE.mkdir(parents=True, exist_ok=True)
 
@@ -104,20 +113,30 @@ O365SCAN_SEARCH_PATHS = [
 # GLOBAL SCAN STATE
 # ══════════════════════════════════════════════════════════════════════════
 scan_state = {
-    "running":       False,
-    "log_queue":     queue.Queue(),
-    "results":       {},
-    "client_folder": None,
-    "tool_paths":    {},
-    "started":       "",
-    "completed":     "",
+    "running":          False,
+    "cancel_requested": False,
+    "log_queue":        queue.Queue(),
+    "results":          {},
+    "client_folder":    None,
+    "tool_paths":       {},
+    "started":          "",
+    "completed":        "",
 }
 
 # ══════════════════════════════════════════════════════════════════════════
 # HISTORY PERSISTENCE  (last 5 assessments per user)
 # ══════════════════════════════════════════════════════════════════════════
 
-def load_history() -> list:
+def audit_log(event: str, username: str = "", detail: str = ""):
+    """Append a line to the audit log."""
+    ts   = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    ip   = request.remote_addr if request else "—"
+    line = f"[{ts}] {event:<20} user={username:<20} ip={ip:<16} {detail}\n"
+    try:
+        with open(AUDIT_LOG_FILE, "a") as f:
+            f.write(line)
+    except Exception:
+        pass
     if HISTORY_FILE.exists():
         try:
             return json.loads(HISTORY_FILE.read_text())
@@ -155,15 +174,7 @@ def save_assessment(client: str, date: str, domain: str,
     # Remove any existing entry for this folder, prepend new, keep 5 per user
     history = [h for h in history if h.get("folder") != folder]
     history = [entry] + history
-    # Keep max 5 per user across the full list
-    seen = {}
-    filtered = []
-    for h in history:
-        u = h.get("username", "")
-        seen[u] = seen.get(u, 0) + 1
-        if seen[u] <= 5:
-            filtered.append(h)
-    HISTORY_FILE.write_text(json.dumps(filtered, indent=2))
+    HISTORY_FILE.write_text(json.dumps(history, indent=2))
 
     # Link assessment to client record
     if client_id:
@@ -539,6 +550,10 @@ def run_scan(scope_list, url_list, domain, phases, tools, folder, tool_paths):
     _ansi_re = re.compile(r'\x1b\[[0-9;]*[mGKHF]|\x1b\[[0-9;]*[A-Za-z]|\x1b\(B|\x1b=|\x1b>')
 
     def run_tool(cmd, out_file, label, screenshot_name=None, timeout=600):
+        # Check cancel before starting each tool
+        if scan_state.get("cancel_requested"):
+            log(f"⊘ {label} — cancelled", "warn")
+            return -2
         log(f"⟶ {label}", "info")
         try:
             r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
@@ -1284,12 +1299,20 @@ def run_scan(scope_list, url_list, domain, phases, tools, folder, tool_paths):
     scan_state["results"].update(results)
     scan_state["completed"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-    log("", "info")
-    log("╔══════════════════════════════════════╗", "phase")
-    log("║   ✅  SCAN COMPLETE                  ║", "phase")
-    log("╚══════════════════════════════════════╝", "phase")
+    if scan_state.get("cancel_requested"):
+        log("", "info")
+        log("╔══════════════════════════════════════╗", "phase")
+        log("║   ⊘  SCAN CANCELLED                  ║", "phase")
+        log("╚══════════════════════════════════════╝", "phase")
+    else:
+        log("", "info")
+        log("╔══════════════════════════════════════╗", "phase")
+        log("║   ✅  SCAN COMPLETE                  ║", "phase")
+        log("╚══════════════════════════════════════╝", "phase")
+
     log("__SCAN_COMPLETE__", "control")
-    scan_state["running"] = False
+    scan_state["running"]          = False
+    scan_state["cancel_requested"] = False
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -1389,6 +1412,27 @@ def clients_for_user(username: str, role: str) -> list:
     # Managers and Junior Testers only see assigned clients
     return [c for c in clients.values()
             if username in c.get("assigned_users", [])]
+
+
+# ── Findings repository ───────────────────────────────────────────────────
+
+SEVERITY_ORDER = {"Critical": 0, "High": 1, "Medium": 2, "Low": 3, "Informational": 4}
+
+def load_findings() -> dict:
+    if FINDINGS_FILE.exists():
+        try:
+            return json.loads(FINDINGS_FILE.read_text())
+        except Exception:
+            pass
+    return {}
+
+
+def save_findings(findings: dict):
+    FINDINGS_FILE.write_text(json.dumps(findings, indent=2))
+
+
+def get_finding(finding_id: str) -> dict | None:
+    return load_findings().get(finding_id)
 
 
 def client_summary(client: dict, history: list) -> dict:
@@ -1986,7 +2030,7 @@ PORT    STATE         SERVICE
 | State | Meaning |
 |-------|---------|
 | `open` | Service is responding |
-| `open\|filtered` | No response received — port may be open or firewalled |
+| `open/filtered` | No response received — port may be open or firewalled |
 | `closed` | ICMP port unreachable received |
 
 ## High-value UDP ports
@@ -2517,6 +2561,25 @@ def bootstrap_admin():
 # AUTH DECORATORS
 # ══════════════════════════════════════════════════════════════════════════
 
+def generate_csrf_token() -> str:
+    """Generate or retrieve a CSRF token for the current session."""
+    if "_csrf_token" not in session:
+        session["_csrf_token"] = secrets.token_hex(32)
+    return session["_csrf_token"]
+
+
+def validate_csrf(token: str) -> bool:
+    """Validate a submitted CSRF token against the session token."""
+    return secrets.compare_digest(
+        session.get("_csrf_token", ""),
+        token or ""
+    )
+
+
+# Make csrf_token available in all templates
+app.jinja_env.globals["csrf_token"] = generate_csrf_token
+
+
 def login_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
@@ -2603,34 +2666,65 @@ def login():
     error   = None
 
     if request.method == "POST":
+        # CSRF check
+        if not validate_csrf(request.form.get("_csrf_token", "")):
+            audit_log("CSRF_BLOCKED", request.form.get("username","—"))
+            error = "Invalid request — please try again."
+            return render_template("login.html", error=error,
+                                   expired=expired, locked=locked)
+
         username = request.form.get("username", "").strip()
         password = request.form.get("password", "")
-        user     = get_user(username)
+        ip       = request.remote_addr
 
+        # ── Rate limiting check ─────────────────────────────────────────
+        now  = _time.time()
+        info = _login_attempts.get(ip, {"count": 0, "lockout_until": 0})
+        if info["lockout_until"] > now:
+            remaining = int(info["lockout_until"] - now)
+            audit_log("LOGIN_BLOCKED", username, f"IP locked out — {remaining}s remaining")
+            error = f"Too many failed attempts. Try again in {remaining // 60 + 1} minute(s)."
+            return render_template("login.html", error=error,
+                                   expired=expired, locked=locked)
+
+        user = get_user(username)
         if user and _check_password(password, user["password"]):
+            # Success — clear attempts
+            _login_attempts.pop(ip, None)
             session.clear()
             session["logged_in"]  = True
             session["username"]   = username
             session["role"]       = user["role"]
             session["login_time"] = datetime.now().isoformat()
-            session.permanent     = False  # managed manually via login_time
+            session.permanent     = False
 
-            # Force password change on first login
+            audit_log("LOGIN_SUCCESS", username)
+
             if user.get("must_change"):
                 return redirect(url_for("change_password", first=1))
-
-            # Representatives go to their own portal
             if user["role"] == "Representative":
                 return redirect(url_for("rep_portal"))
-
             return redirect(url_for("dashboard"))
-        error = "Invalid credentials."
+
+        # Failed attempt
+        info["count"] += 1
+        if info["count"] >= LOGIN_MAX_ATTEMPTS:
+            info["lockout_until"] = now + LOGIN_LOCKOUT_SECS
+            info["count"]         = 0
+            audit_log("LOGIN_LOCKOUT", username, f"Locked after {LOGIN_MAX_ATTEMPTS} failures")
+            error = f"Too many failed attempts. Account locked for {LOGIN_LOCKOUT_SECS // 60} minutes."
+        else:
+            remaining_attempts = LOGIN_MAX_ATTEMPTS - info["count"]
+            audit_log("LOGIN_FAILED", username, f"Attempt {info['count']}/{LOGIN_MAX_ATTEMPTS}")
+            error = f"Invalid credentials. {remaining_attempts} attempt(s) remaining."
+        _login_attempts[ip] = info
 
     return render_template("login.html", error=error, expired=expired, locked=locked)
 
 
 @app.route("/logout")
 def logout():
+    audit_log("LOGOUT", session.get("username", "—"))
     session.clear()
     return redirect(url_for("login"))
 
@@ -2669,7 +2763,21 @@ def change_password():
 # FLASK ROUTES — ADMIN USER MANAGEMENT
 # ══════════════════════════════════════════════════════════════════════════
 
-@app.route("/admin/users")
+@app.route("/admin/audit")
+@login_required
+@admin_required
+def audit_log_view():
+    lines = []
+    if AUDIT_LOG_FILE.exists():
+        raw = AUDIT_LOG_FILE.read_text(errors="ignore").splitlines()
+        lines = list(reversed(raw))  # most recent first
+    return render_template("audit_log.html",
+                           lines=lines,
+                           role=session.get("role", ""),
+                           username=session.get("username", ""))
+
+
+
 @login_required
 @admin_required
 def admin_users():
@@ -2809,7 +2917,7 @@ def dashboard():
         return redirect(url_for("rep_portal"))
     username = session.get("username", "")
     role     = session.get("role", "")
-    history  = load_history_for_user(username)
+    history  = load_history_for_user(username)[:5]
     clients  = clients_for_user(username, role)
     return render_template("dashboard.html",
                            history=history,
@@ -2993,6 +3101,10 @@ def start_scan():
     scan_state["running"]   = True
     scan_state["started"]   = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     scan_state["completed"] = ""
+
+    results = scan_state.get("results", {})
+    audit_log("SCAN_STARTED", session.get("username", "—"),
+              f"client={results.get('client','?')} domain={results.get('domain','?')}")
     t = threading.Thread(
         target=run_scan,
         args=(scope_list, url_list, domain, phases, tools, folder, tool_paths),
@@ -3101,6 +3213,9 @@ def save_assessment_route():
         findings_count = findings_count,
     )
 
+    audit_log("SCAN_SAVED", session.get("username", "—"),
+              f"client={results.get('client','?')} domain={results.get('domain','?')}")
+
     # Reset state
     scan_state["client_folder"] = None
     scan_state["results"]       = {}
@@ -3112,17 +3227,55 @@ def save_assessment_route():
     return jsonify({"ok": True, "redirect": "/"})
 
 
+@app.route("/api/cancel", methods=["POST"])
+@login_required
+def cancel_scan():
+    if not scan_state["running"]:
+        return jsonify({"ok": False, "error": "No scan running."}), 400
+    scan_state["cancel_requested"] = True
+    return jsonify({"ok": True, "message": "Cancel requested — stopping after current tool."})
+
+
 @app.route("/api/reset", methods=["POST"])
 @login_required
 def reset():
     if scan_state["running"]:
         return jsonify({"ok": False, "error": "Scan still running."}), 409
-    scan_state["client_folder"] = None
-    scan_state["results"]       = {}
-    scan_state["started"]       = ""
-    scan_state["completed"]     = ""
+    scan_state["client_folder"]    = None
+    scan_state["results"]          = {}
+    scan_state["started"]          = ""
+    scan_state["completed"]        = ""
+    scan_state["cancel_requested"] = False
     while not scan_state["log_queue"].empty():
         scan_state["log_queue"].get_nowait()
+    return jsonify({"ok": True})
+
+
+@app.route("/api/assessment/<folder_name>/meta", methods=["POST"])
+@login_required
+def save_assessment_meta(folder_name):
+    """Save editable fields (notes, executive_summary, risk_register) to meta.json."""
+    # Locate the folder by searching results tree
+    target = None
+    for p in RESULTS_BASE.rglob("meta.json"):
+        if p.parent.name == folder_name:
+            target = p
+            break
+    if not target:
+        return jsonify({"ok": False, "error": "Assessment not found."}), 404
+
+    try:
+        meta = json.loads(target.read_text())
+    except Exception:
+        meta = {}
+
+    data = request.get_json() or {}
+    allowed = {"notes", "executive_summary", "risk_register"}
+    for key in allowed:
+        if key in data:
+            meta[key] = data[key]
+
+    target.write_text(json.dumps(meta, indent=2))
     return jsonify({"ok": True})
 
 
@@ -3133,16 +3286,19 @@ def reset():
 def _read_assessment_data(folder: Path, entry: dict) -> dict:
     """Read scan output files and build a summary data structure."""
     data = {
-        "client":    entry.get("client", ""),
-        "date":      entry.get("date", ""),
-        "domain":    entry.get("domain", "—"),
-        "folder":    str(folder),
-        "started":   entry.get("started", ""),
-        "completed": entry.get("completed", ""),
-        "phases":    entry.get("phases", {}),
-        "scope":     [],
-        "urls":      [],
-        "subdomains":[],
+        "client":            entry.get("client", ""),
+        "date":              entry.get("date", ""),
+        "domain":            entry.get("domain", "—"),
+        "folder":            str(folder),
+        "started":           entry.get("started", ""),
+        "completed":         entry.get("completed", ""),
+        "phases":            entry.get("phases", {}),
+        "scope":             [],
+        "urls":              [],
+        "subdomains":        [],
+        "notes":             "",
+        "executive_summary": "",
+        "risk_register":     [],
         "open_ports":{},
         "emails":    [],
         "vuln_count":0,
@@ -3156,9 +3312,12 @@ def _read_assessment_data(folder: Path, entry: dict) -> dict:
     if meta_f.exists():
         try:
             meta = json.loads(meta_f.read_text())
-            data["client"]    = data["client"]    or meta.get("client", "")
-            data["domain"]    = data["domain"]    or meta.get("domain", "—")
-            data["client_id"] = meta.get("client_id", "")
+            data["client"]            = data["client"]    or meta.get("client", "")
+            data["domain"]            = data["domain"]    or meta.get("domain", "—")
+            data["client_id"]         = meta.get("client_id", "")
+            data["notes"]             = meta.get("notes", "")
+            data["executive_summary"] = meta.get("executive_summary", "")
+            data["risk_register"]     = meta.get("risk_register", [])
         except Exception:
             pass
 
@@ -3889,8 +4048,8 @@ def breach_check_api():
 
     import requests as req_lib
 
-    def call_oathnet(endpoint: str) -> tuple[list, int, str]:
-        """Call an OathNet endpoint, return (items, total, error_or_empty)."""
+    def call_oathnet(endpoint: str) -> tuple[list, int, str, int | None]:
+        """Call an OathNet endpoint, return (items, total, error, lookups_left)."""
         try:
             resp = req_lib.get(
                 f"https://oathnet.org/api/service/v2/{endpoint}/search",
@@ -3901,15 +4060,17 @@ def breach_check_api():
             body = resp.json()
             if not body.get("success"):
                 if resp.status_code == 401:
-                    return [], 0, "API key invalid or expired."
+                    return [], 0, "API key invalid or expired.", None
                 if resp.status_code == 429:
-                    return [], 0, "Rate limit hit — try again shortly."
-                return [], 0, body.get("message", f"API error on {endpoint}")
-            items = body.get("data", {}).get("items", [])
-            total = body.get("data", {}).get("meta", {}).get("total", 0)
-            return items, total, ""
+                    return [], 0, "Rate limit hit — try again shortly.", None
+                return [], 0, body.get("message", f"API error on {endpoint}"), None
+            meta         = body.get("data", {}).get("meta", {})
+            items        = body.get("data", {}).get("items", [])
+            total        = meta.get("total", 0)
+            lookups_left = meta.get("lookups_left", None)
+            return items, total, "", lookups_left
         except Exception as ex:
-            return [], 0, str(ex)
+            return [], 0, str(ex), None
 
     def process_breach(items: list) -> dict:
         seen = set()
@@ -3961,8 +4122,8 @@ def breach_check_api():
         return {"items": out, "unique": len(seen), "sources": list(sources)}
 
     # Call both endpoints
-    breach_items, breach_total, breach_err   = call_oathnet("breach")
-    stealer_items, stealer_total, stealer_err = call_oathnet("stealer")
+    breach_items, breach_total, breach_err, breach_lookups   = call_oathnet("breach")
+    stealer_items, stealer_total, stealer_err, stealer_lookups = call_oathnet("stealer")
 
     # If both failed with auth error, return error
     if breach_err and stealer_err:
@@ -3971,9 +4132,13 @@ def breach_check_api():
     breach_data  = process_breach(breach_items)
     stealer_data = process_stealer(stealer_items)
 
+    # Use whichever endpoint returned a lookups count
+    lookups_left = breach_lookups if breach_lookups is not None else stealer_lookups
+
     return jsonify({
-        "ok":     True,
-        "target": target,
+        "ok":          True,
+        "target":      target,
+        "lookups_left": lookups_left,
         "breach": {
             "total":   breach_total,
             "unique":  breach_data["unique"],
@@ -3989,6 +4154,142 @@ def breach_check_api():
             "error":   stealer_err,
         },
     })
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# FLASK ROUTES — FULL HISTORY
+# ══════════════════════════════════════════════════════════════════════════
+
+@app.route("/history")
+@login_required
+def full_history():
+    username = session.get("username", "")
+    role     = session.get("role", "")
+    if role == "Administrator":
+        # Admins can see all history, grouped by user
+        history = load_history()
+    else:
+        history = load_history_for_user(username)
+    return render_template("history.html",
+                           history=history,
+                           role=role,
+                           username=username)
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# FLASK ROUTES — FINDINGS REPOSITORY
+# ══════════════════════════════════════════════════════════════════════════
+
+@app.route("/findings")
+@login_required
+def findings_repo():
+    role     = session.get("role", "")
+    username = session.get("username", "")
+    if role == "Representative":
+        return redirect(url_for("rep_portal"))
+    findings = load_findings()
+    # Sort by severity then title
+    sorted_findings = sorted(
+        findings.values(),
+        key=lambda f: (SEVERITY_ORDER.get(f.get("severity", "Low"), 5),
+                       f.get("title", "").lower())
+    )
+    return render_template("findings_repo.html",
+                           findings=sorted_findings,
+                           role=role,
+                           username=username)
+
+
+@app.route("/api/findings/create", methods=["POST"])
+@login_required
+def create_finding():
+    role = session.get("role", "")
+    if role not in ("Administrator", "Manager"):
+        return jsonify({"ok": False, "error": "Access denied."}), 403
+
+    data  = request.get_json()
+    title = data.get("title", "").strip()
+    if not title:
+        return jsonify({"ok": False, "error": "Title is required."}), 400
+
+    import uuid
+    finding_id = str(uuid.uuid4())
+    now        = datetime.now().strftime("%Y-%m-%d")
+
+    findings = load_findings()
+    findings[finding_id] = {
+        "finding_id":         finding_id,
+        "title":              title,
+        "severity":           data.get("severity", "Medium"),
+        "description":        data.get("description", "").strip(),
+        "steps_to_reproduce": data.get("steps_to_reproduce", "").strip(),
+        "affected_resource":  data.get("affected_resource", "").strip(),
+        "references":         [r.strip() for r in
+                               data.get("references", "").splitlines()
+                               if r.strip()],
+        "remediation":        data.get("remediation", "").strip(),
+        "created_by":         session.get("username", ""),
+        "created_at":         now,
+        "updated_at":         now,
+    }
+    save_findings(findings)
+    return jsonify({"ok": True, "finding_id": finding_id, "title": title})
+
+
+@app.route("/api/findings/update", methods=["POST"])
+@login_required
+def update_finding():
+    role = session.get("role", "")
+    if role not in ("Administrator", "Manager"):
+        return jsonify({"ok": False, "error": "Access denied."}), 403
+
+    data       = request.get_json()
+    finding_id = data.get("finding_id", "")
+    findings   = load_findings()
+    if finding_id not in findings:
+        return jsonify({"ok": False, "error": "Finding not found."}), 404
+
+    f = findings[finding_id]
+    if "title"              in data: f["title"]              = data["title"].strip()
+    if "severity"           in data: f["severity"]           = data["severity"]
+    if "description"        in data: f["description"]        = data["description"].strip()
+    if "steps_to_reproduce" in data: f["steps_to_reproduce"] = data["steps_to_reproduce"].strip()
+    if "affected_resource"  in data: f["affected_resource"]  = data["affected_resource"].strip()
+    if "remediation"        in data: f["remediation"]        = data["remediation"].strip()
+    if "references"         in data:
+        f["references"] = [r.strip() for r in
+                           data["references"].splitlines() if r.strip()]
+    f["updated_at"] = datetime.now().strftime("%Y-%m-%d")
+    save_findings(findings)
+    return jsonify({"ok": True})
+
+
+@app.route("/api/findings/delete", methods=["POST"])
+@login_required
+def delete_finding():
+    if session.get("role") != "Administrator":
+        return jsonify({"ok": False, "error": "Admin only."}), 403
+    data       = request.get_json()
+    finding_id = data.get("finding_id", "")
+    findings   = load_findings()
+    if finding_id not in findings:
+        return jsonify({"ok": False, "error": "Finding not found."}), 404
+    del findings[finding_id]
+    save_findings(findings)
+    return jsonify({"ok": True})
+
+
+@app.route("/api/findings/list")
+@login_required
+def list_findings():
+    """Return all findings sorted by severity — used by assessment picker modal."""
+    findings = load_findings()
+    sorted_f = sorted(
+        findings.values(),
+        key=lambda f: (SEVERITY_ORDER.get(f.get("severity", "Low"), 5),
+                       f.get("title", "").lower())
+    )
+    return jsonify({"ok": True, "findings": sorted_f})
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -4102,3 +4403,4 @@ if __name__ == "__main__":
     startup_thread = threading.Thread(target=startup, daemon=True)
     startup_thread.start()
     app.run(host="127.0.0.1", port=5000, debug=False, threaded=True)
+
