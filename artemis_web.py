@@ -43,13 +43,15 @@ app = Flask(__name__)
 # ══════════════════════════════════════════════════════════════════════════
 # CONFIGURATION
 # ══════════════════════════════════════════════════════════════════════════
-RESULTS_BASE   = Path("/opt/artemis/results")
+RESULTS_BASE    = Path("/opt/artemis/results")
+QUICK_SCANS_BASE = RESULTS_BASE / "Quick_Scans"
 HISTORY_FILE   = Path("/opt/artemis/history.json")
 USERS_FILE     = Path("/opt/artemis/users.json")
 REQUESTS_FILE  = Path("/opt/artemis/requests.json")
 WIKI_FILE      = Path("/opt/artemis/wiki.json")
 CLIENTS_FILE   = Path("/opt/artemis/clients.json")
 RESULTS_BASE.mkdir(parents=True, exist_ok=True)
+QUICK_SCANS_BASE.mkdir(parents=True, exist_ok=True)
 
 app.secret_key        = os.environ.get("ARTEMIS_SECRET", "artemis-secret-key-change-me")
 SESSION_LIFETIME_HOURS = 3
@@ -2823,9 +2825,13 @@ def dashboard():
 @app.route("/scan")
 @login_required
 def scan_page():
+    role     = session.get("role", "")
+    username = session.get("username", "")
+    clients  = clients_for_user(username, role)
     return render_template("index.html",
-                           role=session.get("role", ""),
-                           username=session.get("username", ""))
+                           role=role,
+                           username=username,
+                           clients=clients)
 
 
 @app.route("/api/startup-status")
@@ -2862,9 +2868,36 @@ def submit():
                   for l in scope_raw.splitlines() if l.strip()]
     url_list   = [l.strip() for l in urls_raw.splitlines() if l.strip()]
 
-    safe   = re.sub(r"[^\w\-_ ]", "_", client)
-    folder = RESULTS_BASE / f"{safe}_{date}"
+    client_id  = data.get("client_id", "").strip()
+
+    # Generate a unique scan ID for the folder name
+    import uuid
+    scan_id    = str(uuid.uuid4())
+
+    # Determine parent folder — client UUID dir or Quick_Scans
+    if client_id:
+        clients = load_clients()
+        if client_id in clients:
+            parent = RESULTS_BASE / client_id
+        else:
+            parent = QUICK_SCANS_BASE
+    else:
+        parent = QUICK_SCANS_BASE
+
+    parent.mkdir(parents=True, exist_ok=True)
+    folder = parent / scan_id
     folder.mkdir(parents=True, exist_ok=True)
+
+    # Store a metadata file inside the scan folder
+    meta = {
+        "client":    client,
+        "client_id": client_id,
+        "date":      date,
+        "domain":    domain,
+        "scan_id":   scan_id,
+        "created_at": datetime.now().isoformat(),
+    }
+    (folder / "meta.json").write_text(json.dumps(meta, indent=2))
 
     if scope_list: (folder / "scope.txt").write_text("\n".join(scope_list))
     if url_list:   (folder / "urls.txt").write_text("\n".join(url_list))
@@ -2872,12 +2905,18 @@ def submit():
 
     scan_state["client_folder"] = folder
     scan_state["results"] = {
-        "client": client, "date": date,
-        "domain": domain, "scope_list": scope_list, "url_list": url_list,
+        "client":    client,
+        "client_id": client_id,
+        "date":      date,
+        "domain":    domain,
+        "scope_list": scope_list,
+        "url_list":   url_list,
+        "scan_id":    scan_id,
     }
 
     return jsonify({
-        "ok": True, "folder": str(folder),
+        "ok":          True,
+        "scan_id":     scan_id,
         "scope_count": len(scope_list),
         "url_count":   len(url_list),
         "domain":      domain,
@@ -3046,7 +3085,7 @@ def save_assessment_route():
 
     data           = request.get_json() or {}
     phases         = data.get("phases", {"recon": True, "scan": True, "vuln": True})
-    client_id      = data.get("client_id", "")
+    client_id      = data.get("client_id", "") or results.get("client_id", "")
     findings_count = sum(len(v) for v in results.get("vulnerabilities", {}).values())
 
     save_assessment(
@@ -3111,6 +3150,17 @@ def _read_assessment_data(folder: Path, entry: dict) -> dict:
         "log_lines": 0,
         "duration":  "",
     }
+
+    # Read meta.json if present (new UUID-based folder structure)
+    meta_f = folder / "meta.json"
+    if meta_f.exists():
+        try:
+            meta = json.loads(meta_f.read_text())
+            data["client"]    = data["client"]    or meta.get("client", "")
+            data["domain"]    = data["domain"]    or meta.get("domain", "—")
+            data["client_id"] = meta.get("client_id", "")
+        except Exception:
+            pass
 
     # Read target files
     scope_f = folder / "scope.txt"
@@ -3837,64 +3887,108 @@ def breach_check_api():
         return jsonify({"ok": False,
                         "error": "OATHNET_API_KEY not configured in service file."}), 500
 
-    try:
-        import requests as req_lib
-        resp = req_lib.get(
-            "https://oathnet.org/api/service/v2/breach/search",
-            params={"q": target},
-            headers={"x-api-key": api_key},
-            timeout=15
-        )
-        body = resp.json()
+    import requests as req_lib
 
-        if not body.get("success"):
-            msg = body.get("message", "Unknown error from OathNet API")
-            if resp.status_code == 401:
-                return jsonify({"ok": False, "error": "API key invalid or expired."}), 401
-            if resp.status_code == 429:
-                return jsonify({"ok": False, "error": "Rate limit hit — try again shortly."}), 429
-            return jsonify({"ok": False, "error": msg}), 500
+    def call_oathnet(endpoint: str) -> tuple[list, int, str]:
+        """Call an OathNet endpoint, return (items, total, error_or_empty)."""
+        try:
+            resp = req_lib.get(
+                f"https://oathnet.org/api/service/v2/{endpoint}/search",
+                params={"q": target},
+                headers={"x-api-key": api_key},
+                timeout=15
+            )
+            body = resp.json()
+            if not body.get("success"):
+                if resp.status_code == 401:
+                    return [], 0, "API key invalid or expired."
+                if resp.status_code == 429:
+                    return [], 0, "Rate limit hit — try again shortly."
+                return [], 0, body.get("message", f"API error on {endpoint}")
+            items = body.get("data", {}).get("items", [])
+            total = body.get("data", {}).get("meta", {}).get("total", 0)
+            return items, total, ""
+        except Exception as ex:
+            return [], 0, str(ex)
 
-        total        = body.get("data", {}).get("meta", {}).get("total", 0)
-        items        = body.get("data", {}).get("items", [])
-        lookups_left = body.get("data", {}).get("meta", {}).get("lookups_left", "?")
-
-        # Deduplicate credentials by username+password combo
-        seen_creds   = set()
-        unique_creds = 0
-        sources      = set()
-        items_out    = []
-
+    def process_breach(items: list) -> dict:
+        seen = set()
+        sources = set()
+        out = []
         for i in items:
             if not isinstance(i, dict):
                 continue
             sources.add(i.get("dbname", "unknown"))
-            username = i.get("username", i.get("email", ""))
+            email        = i.get("email", "")
+            username     = i.get("username", "")
+            full_name    = i.get("full_name", "")
+            email_domain = i.get("email_domain", "")
+            key = f"{email}:{username}"
+            if key not in seen:
+                seen.add(key)
+            out.append({
+                "email":        email,
+                "username":     username,
+                "full_name":    full_name,
+                "email_domain": email_domain,
+                "dbname":       i.get("dbname", "unknown"),
+            })
+        return {"items": out, "unique": len(seen), "sources": list(sources)}
+
+    def process_stealer(items: list) -> dict:
+        seen = set()
+        sources = set()
+        out = []
+        for i in items:
+            if not isinstance(i, dict):
+                continue
+            sources.add(i.get("dbname", i.get("stealer", "unknown")))
+            username = i.get("username", "")
             password = i.get("password", "")
+            # pwned_at is the correct stealer field per OathNet docs
+            pwned_at = i.get("pwned_at", "")
+            if pwned_at and "T" in pwned_at:
+                pwned_at = pwned_at.split("T")[0]
             key = f"{username}:{password}"
-            if key not in seen_creds:
-                seen_creds.add(key)
-                unique_creds += 1
-            items_out.append({
+            if key not in seen:
+                seen.add(key)
+            out.append({
                 "username": username,
                 "password": password,
-                "domain":   i.get("domain", i.get("subdomain", "")),
-                "dbname":   i.get("dbname", "unknown"),
-                "date":     i.get("breach_date", i.get("date", "")),
+                "pwned_at": pwned_at,
+                "dbname":   i.get("dbname", i.get("stealer", "unknown")),
             })
+        return {"items": out, "unique": len(seen), "sources": list(sources)}
 
-        return jsonify({
-            "ok":            True,
-            "target":        target,
-            "results_found": total,
-            "unique_creds":  unique_creds,
-            "sources":       list(sources),
-            "items":         items_out,
-            "lookups_left":  lookups_left,
-        })
+    # Call both endpoints
+    breach_items, breach_total, breach_err   = call_oathnet("breach")
+    stealer_items, stealer_total, stealer_err = call_oathnet("stealer")
 
-    except Exception as ex:
-        return jsonify({"ok": False, "error": str(ex)}), 500
+    # If both failed with auth error, return error
+    if breach_err and stealer_err:
+        return jsonify({"ok": False, "error": breach_err or stealer_err}), 500
+
+    breach_data  = process_breach(breach_items)
+    stealer_data = process_stealer(stealer_items)
+
+    return jsonify({
+        "ok":     True,
+        "target": target,
+        "breach": {
+            "total":   breach_total,
+            "unique":  breach_data["unique"],
+            "sources": breach_data["sources"],
+            "items":   breach_data["items"],
+            "error":   breach_err,
+        },
+        "stealer": {
+            "total":   stealer_total,
+            "unique":  stealer_data["unique"],
+            "sources": stealer_data["sources"],
+            "items":   stealer_data["items"],
+            "error":   stealer_err,
+        },
+    })
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -4008,4 +4102,3 @@ if __name__ == "__main__":
     startup_thread = threading.Thread(target=startup, daemon=True)
     startup_thread.start()
     app.run(host="127.0.0.1", port=5000, debug=False, threaded=True)
-
