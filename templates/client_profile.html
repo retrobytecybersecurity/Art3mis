@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARTEMIS // {{ client.name }}</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+  :root{--bg:#0a0d14;--surface:#0f1420;--surface2:#141926;--accent:#1a4a7a;--accent2:#e8944a;--success:#2a7a4a;--text:#e8eaf0;--dim:#4a6a8a;--border:#1e2d45;--shadow:0 2px 12px rgba(0,0,0,0.3);}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-height:100vh;display:flex;flex-direction:column}
+  header{background:var(--surface);border-bottom:1px solid var(--border);padding:13px 28px;display:flex;align-items:center;justify-content:space-between;box-shadow:var(--shadow)}
+  .logo{font-size:1.05rem;font-weight:700;color:var(--text);letter-spacing:.1em}
+  .nav-btn{font-size:12px;padding:6px 14px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--dim);cursor:pointer;text-decoration:none;transition:all 0.15s;display:inline-block}
+  .nav-btn:hover{border-color:#2a4a6a;color:var(--text)}
+  .nav-btn.scan{border-color:#1e4a7a;color:#5a9acc;background:rgba(26,74,122,0.15)}
+  .nav-btn.scan:hover{background:rgba(26,74,122,0.3)}
+  .nav-btn.logout{border-color:#5a1a2a;color:#c06070;background:rgba(180,60,80,0.08)}
+  main{flex:1;max-width:1000px;width:100%;margin:0 auto;padding:32px 28px}
+
+  /* Header block */
+  .client-header{margin-bottom:28px}
+  .client-breadcrumb{font-size:0.72rem;color:var(--dim);margin-bottom:6px}
+  .client-breadcrumb a{color:var(--dim);text-decoration:none}
+  .client-breadcrumb a:hover{color:var(--text)}
+  .client-name{font-size:1.6rem;font-weight:700;color:var(--text);margin-bottom:4px}
+  .client-industry{font-size:0.78rem;color:var(--dim);text-transform:uppercase;letter-spacing:.08em}
+
+  /* Stats row */
+  .stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:24px}
+  .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px 20px;text-align:center}
+  .stat-val{font-size:2rem;font-weight:700;color:#5a9acc;margin-bottom:4px}
+  .stat-lbl{font-size:0.72rem;color:var(--dim);text-transform:uppercase;letter-spacing:.08em}
+
+  /* Cards */
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:18px;box-shadow:var(--shadow)}
+  .card-hdr{padding:12px 20px;background:var(--surface2);border-bottom:1px solid var(--border);font-size:0.74rem;font-weight:600;color:var(--dim);letter-spacing:.09em;text-transform:uppercase;display:flex;align-items:center;justify-content:space-between}
+  .card-body{padding:18px 20px}
+
+  /* Details grid */
+  .details-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .detail-item{display:flex;flex-direction:column;gap:4px}
+  .detail-label{font-size:0.7rem;color:var(--dim);text-transform:uppercase;letter-spacing:.07em;font-weight:600}
+  .detail-value{font-size:0.85rem;color:var(--text)}
+
+  /* Edit form */
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .form-group{display:flex;flex-direction:column;gap:5px}
+  .form-group.full{grid-column:1/-1}
+  .form-group label{font-size:0.72rem;font-weight:600;color:var(--dim);letter-spacing:.07em;text-transform:uppercase}
+  .form-group input,.form-group textarea{background:#ffffff;border:1px solid #c8d8e8;border-radius:10px;color:#0f1826;font-family:'Inter',sans-serif;font-size:0.85rem;padding:9px 12px;outline:none;transition:border-color 0.2s}
+  .form-group input:focus,.form-group textarea:focus{border-color:#4a7aaa}
+  .form-group textarea{resize:vertical;min-height:72px}
+  .btn-save{padding:9px 20px;background:var(--accent);border:none;border-radius:10px;color:#e8f4ff;font-family:'Inter',sans-serif;font-size:0.82rem;font-weight:600;cursor:pointer;transition:filter 0.15s;margin-top:14px}
+  .btn-save:hover{filter:brightness(1.15)}
+  .btn-danger{padding:9px 18px;background:rgba(138,42,58,0.15);border:1px solid #5a1a2a;border-radius:10px;color:#e88a9a;font-family:'Inter',sans-serif;font-size:0.82rem;cursor:pointer;transition:all 0.15s}
+  .btn-danger:hover{background:rgba(138,42,58,0.3)}
+
+  /* Assessment list */
+  .assessment-list{display:flex;flex-direction:column;gap:8px}
+  .acard{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:13px 16px;display:flex;align-items:center;gap:14px;text-decoration:none;transition:border-color 0.15s;cursor:pointer}
+  .acard:hover{border-color:#2a4a7a}
+  .acard-main{flex:1;min-width:0}
+  .acard-client{font-size:0.88rem;font-weight:600;color:var(--text);margin-bottom:3px}
+  .acard-meta{display:flex;gap:14px;flex-wrap:wrap}
+  .acard-meta span{font-size:0.7rem;color:var(--dim)}
+  .acard-meta .val{color:#8ab8d8}
+  .acard-findings{font-size:0.75rem;color:#c8a050;font-weight:500;flex-shrink:0}
+  .pbadge{font-size:0.65rem;padding:2px 7px;border-radius:4px;border:0.5px solid}
+  .pbadge.on{background:rgba(42,122,74,0.15);border-color:#2a5a3a;color:#4aaa6a}
+  .pbadge.off{background:transparent;border-color:var(--border);color:var(--dim);opacity:0.4}
+  .empty-note{font-size:0.82rem;color:var(--dim);padding:20px;text-align:center}
+
+  /* Assigned users */
+  .user-pill{display:inline-flex;align-items:center;gap:6px;background:rgba(26,74,122,0.15);border:0.5px solid #1e3a6a;border-radius:20px;padding:3px 10px;font-size:0.72rem;color:#5a9acc;margin:3px}
+  .user-pill button{background:none;border:none;color:#5a9acc;cursor:pointer;font-size:0.8rem;line-height:1;padding:0}
+  .user-pill button:hover{color:#e88a9a}
+  .user-select{background:#ffffff;border:1px solid #c8d8e8;border-radius:8px;color:#0f1826;font-family:'Inter',sans-serif;font-size:0.82rem;padding:7px 10px;outline:none;margin-top:8px}
+
+  #toast{position:fixed;bottom:24px;right:24px;padding:10px 18px;border-radius:10px;font-size:0.82rem;font-family:'Inter',sans-serif;opacity:0;pointer-events:none;transition:opacity 0.3s;z-index:999;font-weight:500}
+  #toast.show{opacity:1}
+  #toast.success{background:rgba(42,122,74,0.2);border:1px solid #2a5a3a;color:#4aaa6a}
+  #toast.error{background:rgba(138,42,58,0.2);border:1px solid #5a1a2a;color:#e88a9a}
+  footer{background:var(--surface);border-top:1px solid var(--border);padding:11px 28px;display:flex;justify-content:space-between;font-size:0.7rem;color:var(--dim)}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">◈ ART3MIS</div>
+  <div style="display:flex;gap:8px">
+    <a href="/clients" class="nav-btn">← Clients</a>
+    <a href="/scan" class="nav-btn scan">▶ New Assessment</a>
+    <a href="/logout" class="nav-btn logout">⎋ Logout</a>
+  </div>
+</header>
+
+<main>
+  <div class="client-header">
+    <div class="client-breadcrumb"><a href="/clients">Clients</a> / {{ client.name }}</div>
+    <div class="client-name">{{ client.name }}</div>
+    <div class="client-industry">{{ client.industry or 'No industry set' }}</div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-val">{{ summary.total_assessments }}</div>
+      <div class="stat-lbl">Total Assessments</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val">{{ summary.last_tested }}</div>
+      <div class="stat-lbl">Last Tested</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val">{{ summary.total_findings }}</div>
+      <div class="stat-lbl">Total Findings</div>
+    </div>
+  </div>
+
+  <!-- Client details -->
+  <div class="card">
+    <div class="card-hdr">
+      <span>Client Details</span>
+      {% if role == 'Administrator' %}
+      <span style="font-size:0.7rem;color:var(--dim);font-weight:400;cursor:pointer" onclick="toggleEdit()">✎ Edit</span>
+      {% endif %}
+    </div>
+    <div class="card-body" id="details-view">
+      <div class="details-grid">
+        <div class="detail-item"><div class="detail-label">Contact Name</div><div class="detail-value">{{ client.contact_name or '—' }}</div></div>
+        <div class="detail-item"><div class="detail-label">Contact Email</div><div class="detail-value">{{ client.contact_email or '—' }}</div></div>
+        <div class="detail-item"><div class="detail-label">Created</div><div class="detail-value">{{ client.created_at }} by {{ client.created_by }}</div></div>
+        <div class="detail-item"><div class="detail-label">Industry</div><div class="detail-value">{{ client.industry or '—' }}</div></div>
+        {% if client.notes %}
+        <div class="detail-item full" style="grid-column:1/-1"><div class="detail-label">Notes</div><div class="detail-value">{{ client.notes }}</div></div>
+        {% endif %}
+      </div>
+    </div>
+    {% if role == 'Administrator' %}
+    <div class="card-body" id="edit-form" style="display:none;border-top:1px solid var(--border)">
+      <div class="form-grid">
+        <div class="form-group full"><label>Client Name</label><input type="text" id="e-name" value="{{ client.name }}" maxlength="80" onkeypress="return /[a-zA-Z0-9 ]/.test(event.key)"></div>
+        <div class="form-group"><label>Industry</label><input type="text" id="e-industry" value="{{ client.industry or '' }}" maxlength="60" onkeypress="return /[a-zA-Z0-9 ]/.test(event.key)"></div>
+        <div class="form-group"><label>Contact Name</label><input type="text" id="e-contact" value="{{ client.contact_name or '' }}" maxlength="80" onkeypress="return /[a-zA-Z0-9 ]/.test(event.key)"></div>
+        <div class="form-group full"><label>Contact Email</label><input type="email" id="e-email" value="{{ client.contact_email or '' }}" maxlength="120"></div>
+        <div class="form-group full"><label>Notes</label><textarea id="e-notes">{{ client.notes or '' }}</textarea></div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:14px;align-items:center">
+        <button class="btn-save" onclick="saveDetails()">Save Changes</button>
+        <button class="btn-danger" onclick="deleteClient()">Delete Client</button>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Assigned users (admin only) -->
+  {% if role == 'Administrator' %}
+  <div class="card">
+    <div class="card-hdr">Assigned Users</div>
+    <div class="card-body">
+      <div id="assigned-pills">
+        {% for u in client.assigned_users %}
+        <span class="user-pill" id="pill-{{ u }}">
+          {{ u }}
+          <button onclick="removeUser('{{ u }}')" title="Remove">✕</button>
+        </span>
+        {% endfor %}
+        {% if not client.assigned_users %}<span style="font-size:0.8rem;color:var(--dim)">No users assigned yet.</span>{% endif %}
+      </div>
+      <div style="margin-top:12px;display:flex;align-items:center;gap:10px">
+        <select id="user-select" class="user-select">
+          <option value="">— Add user —</option>
+          {% for u, r in all_users.items() %}
+          {% if u not in client.assigned_users %}
+          <option value="{{ u }}">{{ u }} ({{ r }})</option>
+          {% endif %}
+          {% endfor %}
+        </select>
+        <button class="btn-save" style="margin-top:0;padding:7px 16px" onclick="addUser()">Add</button>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Assessment history -->
+  <div class="card">
+    <div class="card-hdr">
+      <span>Assessment History</span>
+      <span style="font-weight:400;font-size:0.7rem">{{ summary.total_assessments }} assessment(s)</span>
+    </div>
+    <div class="card-body" style="padding:{% if summary.assessments %}0{% else %}18px 20px{% endif %}">
+      {% if summary.assessments %}
+      <div class="assessment-list" style="padding:12px">
+        {% for entry in summary.assessments %}
+        <a class="acard" href="/assessment/{{ entry.folder.split('/')[-1] }}">
+          <div class="acard-main">
+            <div class="acard-client">{{ entry.client }}</div>
+            <div class="acard-meta">
+              <span>Date: <span class="val">{{ entry.date }}</span></span>
+              <span>Domain: <span class="val">{{ entry.domain }}</span></span>
+              {% if entry.started %}<span>Duration: <span class="val">{{ entry.completed }}</span></span>{% endif %}
+            </div>
+          </div>
+          <div style="display:flex;gap:5px;flex-shrink:0">
+            <span class="pbadge {{ 'on' if entry.phases.get('recon') else 'off' }}">P1</span>
+            <span class="pbadge {{ 'on' if entry.phases.get('scan')  else 'off' }}">P2</span>
+            <span class="pbadge {{ 'on' if entry.phases.get('vuln')  else 'off' }}">P3</span>
+          </div>
+          {% if entry.findings_count %}
+          <div class="acard-findings">⚠ {{ entry.findings_count }} finding(s)</div>
+          {% endif %}
+        </a>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="empty-note">No assessments recorded for this client yet.</p>
+      {% endif %}
+    </div>
+  </div>
+</main>
+
+<footer>
+  <span>Artemis // {{ client.name }}</span>
+  <span>Confidential — Authorized Use Only</span>
+</footer>
+<div id="toast"></div>
+
+<script>
+const CLIENT_ID = '{{ client.client_id }}';
+let assignedUsers = {{ client.assigned_users | tojson }};
+
+function toast(msg,type='success'){const el=document.getElementById('toast');el.textContent=msg;el.className=`show ${type}`;setTimeout(()=>{el.className=''},3200)}
+
+function toggleEdit(){
+  const v=document.getElementById('details-view');
+  const f=document.getElementById('edit-form');
+  const hidden=f.style.display==='none';
+  f.style.display=hidden?'block':'none';
+  v.style.display=hidden?'none':'block';
+}
+
+async function saveDetails(){
+  const res=await fetch('/api/clients/update',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({client_id:CLIENT_ID,
+      name:document.getElementById('e-name').value.trim(),
+      industry:document.getElementById('e-industry').value.trim(),
+      contact_name:document.getElementById('e-contact').value.trim(),
+      contact_email:document.getElementById('e-email').value.trim(),
+      notes:document.getElementById('e-notes').value.trim()})})
+  const d=await res.json()
+  if(d.ok){toast('✓ Client updated.');setTimeout(()=>location.reload(),1200)}
+  else toast(d.error,'error')
+}
+
+async function deleteClient(){
+  if(!confirm('Delete this client? Assessment records are kept but the client profile will be removed.')) return
+  const res=await fetch('/api/clients/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({client_id:CLIENT_ID})})
+  const d=await res.json()
+  if(d.ok){window.location.href='/clients'} else toast(d.error,'error')
+}
+
+async function saveAssignedUsers(){
+  const res=await fetch('/api/clients/assign',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({client_id:CLIENT_ID,users:assignedUsers})})
+  const d=await res.json()
+  if(!d.ok) toast(d.error,'error')
+}
+
+function addUser(){
+  const sel=document.getElementById('user-select');
+  const u=sel.value; if(!u) return;
+  if(assignedUsers.includes(u)) return;
+  assignedUsers.push(u);
+  const pills=document.getElementById('assigned-pills');
+  // Remove "no users" placeholder if present
+  if(pills.querySelector('span[style]')) pills.innerHTML='';
+  pills.insertAdjacentHTML('beforeend',
+    `<span class="user-pill" id="pill-${u}">${u} <button onclick="removeUser('${u}')" title="Remove">✕</button></span>`)
+  sel.remove(sel.selectedIndex);
+  saveAssignedUsers().then(()=>toast(`✓ ${u} assigned.`))
+}
+
+function removeUser(u){
+  assignedUsers=assignedUsers.filter(x=>x!==u);
+  const pill=document.getElementById(`pill-${u}`); if(pill) pill.remove();
+  if(assignedUsers.length===0){
+    document.getElementById('assigned-pills').innerHTML='<span style="font-size:0.8rem;color:var(--dim)">No users assigned yet.</span>'
+  }
+  saveAssignedUsers().then(()=>toast(`✓ ${u} removed.`))
+}
+</script>
+</body>
+</html>

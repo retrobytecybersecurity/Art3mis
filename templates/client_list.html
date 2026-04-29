@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARTEMIS // Clients</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+  :root{--bg:#0a0d14;--surface:#0f1420;--surface2:#141926;--accent:#1a4a7a;--accent2:#e8944a;--success:#2a7a4a;--text:#e8eaf0;--dim:#4a6a8a;--border:#1e2d45;--shadow:0 2px 12px rgba(0,0,0,0.3);}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-height:100vh;display:flex;flex-direction:column}
+  header{background:var(--surface);border-bottom:1px solid var(--border);padding:13px 28px;display:flex;align-items:center;justify-content:space-between;box-shadow:var(--shadow)}
+  .logo{font-size:1.05rem;font-weight:700;color:var(--text);letter-spacing:.1em}
+  .nav-btn{font-size:12px;padding:6px 14px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--dim);cursor:pointer;text-decoration:none;transition:all 0.15s;display:inline-block}
+  .nav-btn:hover{border-color:#2a4a6a;color:var(--text)}
+  .nav-btn.logout{border-color:#5a1a2a;color:#c06070;background:rgba(180,60,80,0.08)}
+  main{flex:1;max-width:1100px;width:100%;margin:0 auto;padding:32px 28px}
+  .page-label{font-size:11px;color:var(--dim);letter-spacing:.1em;text-transform:uppercase;margin-bottom:3px}
+  .page-title{font-size:1.3rem;font-weight:600;color:var(--text);margin-bottom:6px}
+  .page-sub{font-size:0.8rem;color:var(--dim);margin-bottom:24px}
+
+  .toolbar{display:flex;align-items:center;gap:12px;margin-bottom:22px;flex-wrap:wrap}
+  .search-wrap{position:relative;flex:1;max-width:380px}
+  .search-wrap input{width:100%;background:#ffffff;border:1px solid #c8d8e8;border-radius:10px;color:#0f1826;font-family:'Inter',sans-serif;font-size:0.85rem;padding:9px 12px 9px 36px;outline:none;transition:border-color 0.2s,box-shadow 0.2s}
+  .search-wrap input:focus{border-color:#4a7aaa;box-shadow:0 0 0 3px rgba(74,122,170,0.15)}
+  .search-icon{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:#8aaabb;font-size:0.85rem;pointer-events:none}
+  .search-wrap input::placeholder{color:#8aaabb}
+  .btn-new{padding:9px 18px;background:var(--accent);border:none;border-radius:10px;color:#e8f4ff;font-family:'Inter',sans-serif;font-size:0.82rem;font-weight:600;cursor:pointer;transition:filter 0.15s;white-space:nowrap}
+  .btn-new:hover{filter:brightness(1.15)}
+  .count-label{font-size:0.75rem;color:var(--dim);margin-left:auto}
+
+  .client-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+  .client-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px 20px;cursor:pointer;transition:border-color 0.15s,background 0.15s;position:relative;overflow:hidden;text-decoration:none;display:block}
+  .client-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:3px 0 0 3px;background:var(--accent)}
+  .client-card:hover{border-color:#2a4a7a;background:rgba(26,74,122,0.06)}
+  .card-name{font-size:1rem;font-weight:600;color:var(--text);margin-bottom:4px}
+  .card-industry{font-size:0.72rem;color:var(--dim);margin-bottom:12px;text-transform:uppercase;letter-spacing:.06em}
+  .card-stats{display:flex;gap:16px}
+  .stat{text-align:center}
+  .stat-val{font-size:1.1rem;font-weight:700;color:#5a9acc}
+  .stat-lbl{font-size:0.65rem;color:var(--dim);text-transform:uppercase;letter-spacing:.06em;margin-top:2px}
+  .card-last{font-size:0.7rem;color:var(--dim);margin-top:10px;padding-top:10px;border-top:1px solid var(--border)}
+
+  .empty-state{background:var(--surface);border:1px dashed var(--border);border-radius:14px;padding:60px 24px;text-align:center}
+  .empty-state p{color:var(--dim);font-size:0.85rem;line-height:2}
+
+  /* New client modal */
+  .modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:200;align-items:center;justify-content:center}
+  .modal-bg.open{display:flex}
+  .modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;width:480px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.5)}
+  .modal-hdr{padding:14px 20px;background:var(--surface2);border-bottom:1px solid var(--border);font-size:0.82rem;font-weight:600;color:var(--text);display:flex;justify-content:space-between;align-items:center}
+  .modal-close{background:none;border:none;color:var(--dim);cursor:pointer;font-size:1rem}
+  .modal-close:hover{color:#c06070}
+  .modal-body{padding:20px}
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .form-group{display:flex;flex-direction:column;gap:5px}
+  .form-group.full{grid-column:1/-1}
+  .form-group label{font-size:0.72rem;font-weight:600;color:var(--dim);letter-spacing:.07em;text-transform:uppercase}
+  .form-group input,.form-group textarea{background:#ffffff;border:1px solid #c8d8e8;border-radius:10px;color:#0f1826;font-family:'Inter',sans-serif;font-size:0.85rem;padding:9px 12px;outline:none;transition:border-color 0.2s}
+  .form-group input:focus,.form-group textarea:focus{border-color:#4a7aaa}
+  .form-group textarea{resize:vertical;min-height:72px}
+  .modal-actions{display:flex;gap:8px;margin-top:16px}
+  .btn-save{flex:1;padding:10px;background:var(--accent);border:none;border-radius:10px;color:#e8f4ff;font-family:'Inter',sans-serif;font-size:0.85rem;font-weight:600;cursor:pointer;transition:filter 0.15s}
+  .btn-save:hover{filter:brightness(1.15)}
+  .btn-cancel{flex:1;padding:10px;background:transparent;border:1px solid var(--border);border-radius:10px;color:var(--dim);font-family:'Inter',sans-serif;font-size:0.85rem;cursor:pointer}
+  .btn-cancel:hover{border-color:#2a4a6a;color:var(--text)}
+
+  #toast{position:fixed;bottom:24px;right:24px;padding:10px 18px;border-radius:10px;font-size:0.82rem;font-family:'Inter',sans-serif;opacity:0;pointer-events:none;transition:opacity 0.3s;z-index:999;font-weight:500}
+  #toast.show{opacity:1}
+  #toast.success{background:rgba(42,122,74,0.2);border:1px solid #2a5a3a;color:#4aaa6a}
+  #toast.error{background:rgba(138,42,58,0.2);border:1px solid #5a1a2a;color:#e88a9a}
+  footer{background:var(--surface);border-top:1px solid var(--border);padding:11px 28px;display:flex;justify-content:space-between;font-size:0.7rem;color:var(--dim)}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">◈ ART3MIS — Clients</div>
+  <div style="display:flex;gap:8px">
+    <a href="/" class="nav-btn">← Dashboard</a>
+    <a href="/logout" class="nav-btn logout">⎋ Logout</a>
+  </div>
+</header>
+<main>
+  <div class="page-label">Client Management</div>
+  <div class="page-title">Client Directory</div>
+  <div class="page-sub">
+    {% if role == 'Administrator' %}All clients across the platform.{% else %}Clients assigned to you.{% endif %}
+  </div>
+
+  <div class="toolbar">
+    <div class="search-wrap">
+      <span class="search-icon">⌕</span>
+      <input type="text" id="search-input" placeholder="Search clients..." maxlength="60"
+             oninput="filterClients(this.value)" onkeypress="return /[a-zA-Z0-9 ]/.test(event.key)">
+    </div>
+    {% if role == 'Administrator' %}
+    <button class="btn-new" onclick="openNewModal()">+ New Client</button>
+    {% endif %}
+    <span class="count-label" id="count-label">{{ clients|length }} client(s)</span>
+  </div>
+
+  <div class="client-grid" id="client-grid">
+    {% if clients %}
+      {% for client in clients|sort(attribute='name') %}
+      <a href="/clients/{{ client.client_id }}" class="client-card" data-name="{{ client.name|lower }}">
+        <div class="card-name">{{ client.name }}</div>
+        <div class="card-industry">{{ client.industry or 'No industry set' }}</div>
+        <div class="card-stats">
+          <div class="stat">
+            <div class="stat-val">{{ client.assessments|length }}</div>
+            <div class="stat-lbl">Assessments</div>
+          </div>
+          <div class="stat">
+            <div class="stat-val">{{ client.assigned_users|length }}</div>
+            <div class="stat-lbl">Assigned</div>
+          </div>
+        </div>
+        <div class="card-last">Last tested: {{ client.last_tested or 'Never' }}</div>
+      </a>
+      {% endfor %}
+    {% else %}
+      <div class="empty-state" style="grid-column:1/-1">
+        <p>No clients yet.{% if role == 'Administrator' %}<br>Click <strong>+ New Client</strong> to add your first client.{% endif %}</p>
+      </div>
+    {% endif %}
+  </div>
+</main>
+<footer>
+  <span>Artemis // Client Directory</span>
+  <span>Confidential — Authorized Use Only</span>
+</footer>
+
+{% if role == 'Administrator' %}
+<div class="modal-bg" id="new-modal">
+  <div class="modal">
+    <div class="modal-hdr">
+      <span>New Client</span>
+      <button class="modal-close" onclick="closeNewModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group full">
+          <label>Client Name <span style="color:#e88a9a">*</span></label>
+          <input type="text" id="nc-name" placeholder="e.g. Acme Corporation" maxlength="80"
+                 onkeypress="return /[a-zA-Z0-9 ]/.test(event.key)">
+        </div>
+        <div class="form-group">
+          <label>Industry</label>
+          <input type="text" id="nc-industry" placeholder="e.g. Finance" maxlength="60"
+                 onkeypress="return /[a-zA-Z0-9 ]/.test(event.key)">
+        </div>
+        <div class="form-group">
+          <label>Contact Name</label>
+          <input type="text" id="nc-contact" placeholder="e.g. John Smith" maxlength="80"
+                 onkeypress="return /[a-zA-Z0-9 ]/.test(event.key)">
+        </div>
+        <div class="form-group full">
+          <label>Contact Email</label>
+          <input type="email" id="nc-email" placeholder="jsmith@client.com" maxlength="120">
+        </div>
+        <div class="form-group full">
+          <label>Notes</label>
+          <textarea id="nc-notes" placeholder="Annual external pentest, primary contact..."></textarea>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-save" onclick="createClient()">Create Client</button>
+        <button class="btn-cancel" onclick="closeNewModal()">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+<div id="toast"></div>
+
+<script>
+function toast(msg,type='success'){const el=document.getElementById('toast');el.textContent=msg;el.className=`show ${type}`;setTimeout(()=>{el.className=''},3200)}
+function openNewModal(){document.getElementById('new-modal').classList.add('open')}
+function closeNewModal(){document.getElementById('new-modal').classList.remove('open')}
+document.getElementById('new-modal')?.addEventListener('click',function(e){if(e.target===this)closeNewModal()})
+
+async function createClient(){
+  const name=document.getElementById('nc-name').value.trim()
+  if(!name){toast('Client name is required.','error');return}
+  const res=await fetch('/api/clients/create',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({name,industry:document.getElementById('nc-industry').value.trim(),
+    contact_name:document.getElementById('nc-contact').value.trim(),
+    contact_email:document.getElementById('nc-email').value.trim(),
+    notes:document.getElementById('nc-notes').value.trim()})})
+  const d=await res.json()
+  if(d.ok){toast(`✓ Client "${d.name}" created.`);setTimeout(()=>location.reload(),1200)}
+  else toast(d.error,'error')
+}
+
+function filterClients(q){
+  // Strip non-alphanumeric from query
+  const clean=q.replace(/[^a-zA-Z0-9 ]/g,'').toLowerCase()
+  const cards=document.querySelectorAll('.client-card')
+  let visible=0
+  cards.forEach(c=>{
+    const match=!clean||c.dataset.name.includes(clean)
+    c.style.display=match?'block':'none'
+    if(match)visible++
+  })
+  document.getElementById('count-label').textContent=`${visible} client(s)`
+}
+</script>
+</body>
+</html>
