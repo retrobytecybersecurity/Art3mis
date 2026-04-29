@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARTEMIS // Breach Check</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+  :root{--bg:#0a0d14;--surface:#0f1420;--surface2:#141926;--accent:#1a4a7a;--text:#e8eaf0;--dim:#4a6a8a;--border:#1e2d45;--shadow:0 2px 12px rgba(0,0,0,0.3);}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-height:100vh;display:flex;flex-direction:column}
+
+  header{background:var(--surface);border-bottom:1px solid var(--border);padding:13px 28px;display:flex;align-items:center;justify-content:space-between;box-shadow:var(--shadow)}
+  .logo{font-size:1.05rem;font-weight:700;color:var(--text);letter-spacing:.1em}
+  .nav-btn{font-size:12px;padding:6px 14px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--dim);cursor:pointer;text-decoration:none;transition:all 0.15s;display:inline-block}
+  .nav-btn:hover{border-color:#2a4a6a;color:var(--text)}
+  .nav-btn.logout{border-color:#5a1a2a;color:#c06070;background:rgba(180,60,80,0.08)}
+
+  main{flex:1;max-width:680px;width:100%;margin:0 auto;padding:40px 28px}
+  .page-label{font-size:11px;color:var(--dim);letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px}
+  .page-title{font-size:1.4rem;font-weight:700;color:var(--text);margin-bottom:6px}
+  .page-sub{font-size:0.8rem;color:var(--dim);margin-bottom:28px;line-height:1.6}
+
+  /* Search card */
+  .search-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden;margin-bottom:20px;box-shadow:var(--shadow)}
+  .accent-line{height:2px;background:linear-gradient(90deg,transparent,#1a4a7a,#2a6aaa,#1a4a7a,transparent)}
+  .search-body{padding:22px}
+  .input-row{display:flex;gap:10px}
+  .input-wrap{flex:1;position:relative}
+  .input-wrap input{width:100%;background:#ffffff;border:1px solid #c8d8e8;border-radius:10px;color:#0f1826;font-family:'Inter',sans-serif;font-size:0.9rem;padding:11px 14px;outline:none;transition:border-color 0.2s,box-shadow 0.2s}
+  .input-wrap input:focus{border-color:#4a7aaa;box-shadow:0 0 0 3px rgba(74,122,170,0.15)}
+  .input-wrap input::placeholder{color:#8aaabb}
+  .btn-check{padding:11px 24px;background:var(--accent);border:none;border-radius:10px;color:#e8f4ff;font-family:'Inter',sans-serif;font-size:0.88rem;font-weight:600;cursor:pointer;transition:filter 0.15s;white-space:nowrap}
+  .btn-check:hover{filter:brightness(1.15)}
+  .btn-check:disabled{opacity:0.5;cursor:not-allowed;filter:none}
+  .input-hint{font-size:0.72rem;color:var(--dim);margin-top:8px}
+
+  /* History */
+  .history-wrap{margin-top:14px;border-top:1px solid var(--border);padding-top:14px}
+  .history-label{font-size:0.68rem;color:var(--dim);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;font-weight:600}
+  .history-pills{display:flex;flex-wrap:wrap;gap:6px}
+  .hist-pill{font-size:0.72rem;padding:3px 10px;border-radius:20px;border:0.5px solid var(--border);color:var(--dim);background:var(--surface2);cursor:pointer;transition:all 0.15s}
+  .hist-pill:hover{border-color:#2a4a6a;color:var(--text)}
+
+  /* Results */
+  #result-area{display:none}
+  .result-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden;box-shadow:var(--shadow)}
+  .result-hdr{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+  .result-target{font-family:'JetBrains Mono',monospace;font-size:0.88rem;color:var(--text);font-weight:500}
+  .result-body{padding:20px}
+
+  /* Clean state */
+  .state-clean{display:flex;flex-direction:column;align-items:center;padding:28px 0;text-align:center}
+  .state-clean .icon{font-size:2.5rem;margin-bottom:10px}
+  .state-clean .label{font-size:1rem;font-weight:600;color:#4aaa6a}
+  .state-clean .sub{font-size:0.78rem;color:var(--dim);margin-top:4px}
+
+  /* Breach state */
+  .state-breach .breach-count{font-size:2.8rem;font-weight:700;color:#e88a9a;margin-bottom:4px;text-align:center}
+  .state-breach .breach-label{font-size:0.78rem;color:var(--dim);text-align:center;text-transform:uppercase;letter-spacing:.08em;margin-bottom:20px}
+  .sources-label{font-size:0.7rem;color:var(--dim);text-transform:uppercase;letter-spacing:.08em;font-weight:600;margin-bottom:8px}
+  .source-grid{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px}
+  .source-pill{font-size:0.72rem;padding:3px 10px;border-radius:20px;background:rgba(138,42,58,0.12);border:0.5px solid #5a1a2a;color:#e88a9a}
+  .lookups-note{font-size:0.72rem;color:var(--dim);padding-top:12px;border-top:1px solid var(--border)}
+
+  /* Loading */
+  .loading{display:none;align-items:center;gap:10px;padding:20px;color:var(--dim);font-size:0.82rem}
+  .spinner{width:18px;height:18px;border:2px solid var(--border);border-top-color:#5a9acc;border-radius:50%;animation:spin 0.7s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  /* Error */
+  .error-box{background:rgba(138,42,58,0.12);border:1px solid #5a1a2a;border-radius:10px;padding:12px 16px;color:#e88a9a;font-size:0.82rem;display:none}
+
+  footer{background:var(--surface);border-top:1px solid var(--border);padding:11px 28px;display:flex;justify-content:space-between;font-size:0.7rem;color:var(--dim)}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">◈ ART3MIS — Breach Check</div>
+  <div style="display:flex;gap:8px">
+    <a href="/" class="nav-btn">← Dashboard</a>
+    <a href="/logout" class="nav-btn logout">⎋ Logout</a>
+  </div>
+</header>
+
+<main>
+  <div class="page-label">OathNet Intelligence</div>
+  <div class="page-title">Breach Credential Check</div>
+  <div class="page-sub">
+    Check if a domain or email address appears in known breach databases.<br>
+    Powered by OathNet — results show breach count and source databases only. Passwords are never returned.
+  </div>
+
+  <!-- Search -->
+  <div class="search-card">
+    <div class="accent-line"></div>
+    <div class="search-body">
+      <div class="input-row">
+        <div class="input-wrap">
+          <input type="text" id="target-input"
+                 placeholder="domain.com or user@domain.com"
+                 maxlength="120"
+                 onkeydown="if(event.key==='Enter')runCheck()">
+        </div>
+        <button class="btn-check" id="check-btn" onclick="runCheck()">Check</button>
+      </div>
+      <div class="input-hint">Enter a domain to check all breached accounts, or a specific email address.</div>
+
+      <div class="history-wrap" id="history-wrap" style="display:none">
+        <div class="history-label">Recent searches</div>
+        <div class="history-pills" id="history-pills"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div class="loading" id="loading">
+    <div class="spinner"></div>
+    <span>Querying OathNet breach database...</span>
+  </div>
+
+  <!-- Error -->
+  <div class="error-box" id="error-box"></div>
+
+  <!-- Result -->
+  <div id="result-area">
+    <div class="result-card">
+      <div class="result-hdr">
+        <span class="result-target" id="result-target"></span>
+        <span style="font-size:0.72rem;color:var(--dim)" id="result-lookups"></span>
+      </div>
+      <div class="result-body">
+
+        <!-- Clean -->
+        <div class="state-clean" id="state-clean" style="display:none">
+          <div class="icon">✓</div>
+          <div class="label">No breaches found</div>
+          <div class="sub">This target does not appear in OathNet's breach database.</div>
+        </div>
+
+        <!-- Breach -->
+        <div class="state-breach" id="state-breach" style="display:none">
+          <div class="breach-count" id="breach-count"></div>
+          <div class="breach-label">breach records found</div>
+          <div class="sources-label">Data sources</div>
+          <div class="source-grid" id="source-grid"></div>
+          <div class="lookups-note" id="lookups-note"></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <span>Artemis // Breach Check</span>
+  <span>Confidential — Authorized Use Only</span>
+</footer>
+
+<script>
+const HISTORY_KEY = 'artemis_breach_history'
+
+function getHistory(){
+  try{ return JSON.parse(localStorage.getItem(HISTORY_KEY)||'[]') }
+  catch{ return [] }
+}
+function addHistory(target){
+  let h = getHistory().filter(x=>x!==target)
+  h.unshift(target)
+  h = h.slice(0,8)
+  try{ localStorage.setItem(HISTORY_KEY, JSON.stringify(h)) }catch{}
+  renderHistory()
+}
+function renderHistory(){
+  const h = getHistory()
+  const wrap = document.getElementById('history-wrap')
+  const pills = document.getElementById('history-pills')
+  if(!h.length){ wrap.style.display='none'; return }
+  wrap.style.display='block'
+  pills.innerHTML = h.map(t=>
+    `<span class="hist-pill" onclick="setTarget('${t}')">${t}</span>`
+  ).join('')
+}
+function setTarget(t){
+  document.getElementById('target-input').value = t
+  runCheck()
+}
+
+async function runCheck(){
+  const raw = document.getElementById('target-input').value.trim()
+  // Strip anything not alphanumeric, @, ., _, -
+  const target = raw.replace(/[^a-zA-Z0-9@._\-]/g,'')
+  if(!target){ showError('Enter a domain or email address.'); return }
+
+  // UI state — loading
+  document.getElementById('check-btn').disabled = true
+  document.getElementById('loading').style.display = 'flex'
+  document.getElementById('result-area').style.display = 'none'
+  document.getElementById('error-box').style.display = 'none'
+
+  try{
+    const res  = await fetch('/api/breach/check', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({target})
+    })
+    const data = await res.json()
+
+    document.getElementById('loading').style.display = 'none'
+    document.getElementById('check-btn').disabled = false
+
+    if(!data.ok){ showError(data.error); return }
+
+    addHistory(target)
+
+    // Populate result card
+    document.getElementById('result-target').textContent = data.target
+    document.getElementById('result-lookups').textContent =
+      data.lookups_left !== '?' ? `${data.lookups_left} lookups remaining` : ''
+    document.getElementById('result-area').style.display = 'block'
+
+    if(data.results_found > 0){
+      document.getElementById('state-clean').style.display  = 'none'
+      document.getElementById('state-breach').style.display = 'block'
+      document.getElementById('breach-count').textContent   = data.results_found.toLocaleString()
+      document.getElementById('source-grid').innerHTML      =
+        (data.sources.length ? data.sources : ['Unknown']).map(s=>
+          `<span class="source-pill">${s}</span>`).join('')
+      document.getElementById('lookups-note').textContent =
+        data.lookups_left !== '?' ? `${data.lookups_left} API lookups remaining on your account.` : ''
+    } else {
+      document.getElementById('state-breach').style.display = 'none'
+      document.getElementById('state-clean').style.display  = 'flex'
+    }
+
+  } catch(err){
+    document.getElementById('loading').style.display = 'none'
+    document.getElementById('check-btn').disabled = false
+    showError('Request failed — check your connection.')
+  }
+}
+
+function showError(msg){
+  const el = document.getElementById('error-box')
+  el.textContent = '✗ ' + msg
+  el.style.display = 'block'
+}
+
+// Render history on load
+renderHistory()
+</script>
+</body>
+</html>
