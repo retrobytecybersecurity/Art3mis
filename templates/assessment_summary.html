@@ -182,7 +182,7 @@
           <span class="meta-label">Completed</span> <span class="meta-value">{{ data.completed or '—' }}</span>
           <span class="meta-label">Duration</span>  <span class="meta-value success">{{ data.duration or '—' }}</span>
           <span class="meta-label">Log Lines</span> <span class="meta-value">{{ data.log_lines }}</span>
-          <span class="meta-label">Folder</span>    <span class="meta-value" style="font-size:0.68rem;color:var(--dim)">{{ data.folder }}</span>
+          <span class="meta-label">Scan ID</span>    <span class="meta-value" style="font-size:0.68rem;color:var(--dim)">{{ data.folder.split('/')[-1] }}</span>
         </div>
       </div>
     </div>
