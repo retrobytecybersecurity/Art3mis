@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARTEMIS // Findings Repository</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+  :root{--bg:#0a0d14;--surface:#0f1420;--surface2:#141926;--accent:#1a4a7a;--text:#e8eaf0;--dim:#4a6a8a;--border:#1e2d45;--shadow:0 2px 12px rgba(0,0,0,0.3);}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-height:100vh;display:flex;flex-direction:column}
+  header{background:var(--surface);border-bottom:1px solid var(--border);padding:13px 28px;display:flex;align-items:center;justify-content:space-between;box-shadow:var(--shadow)}
+  .logo{font-size:1.05rem;font-weight:700;color:var(--text);letter-spacing:.1em}
+  .nav-btn{font-size:12px;padding:6px 14px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--dim);text-decoration:none;transition:all 0.15s;display:inline-block}
+  .nav-btn:hover{border-color:#2a4a6a;color:var(--text)}
+  .nav-btn.logout{border-color:#5a1a2a;color:#c06070;background:rgba(180,60,80,0.08)}
+  main{flex:1;max-width:1100px;width:100%;margin:0 auto;padding:32px 28px}
+  .page-label{font-size:11px;color:var(--dim);letter-spacing:.1em;text-transform:uppercase;margin-bottom:3px}
+  .page-title{font-size:1.3rem;font-weight:600;color:var(--text);margin-bottom:6px}
+  .page-sub{font-size:0.8rem;color:var(--dim);margin-bottom:22px;line-height:1.6}
+
+  /* Severity badges */
+  .sev{display:inline-block;font-size:0.65rem;font-weight:700;padding:2px 8px;border-radius:4px;letter-spacing:.06em;text-transform:uppercase;border:0.5px solid;white-space:nowrap}
+  .sev-Critical{background:rgba(180,30,50,0.18);border-color:#7a1a2a;color:#f08090}
+  .sev-High    {background:rgba(200,80,30,0.18);border-color:#8a3a1a;color:#f0a070}
+  .sev-Medium  {background:rgba(200,160,30,0.15);border-color:#8a6a1a;color:#e8c860}
+  .sev-Low     {background:rgba(30,120,80,0.18);border-color:#1a5a3a;color:#60c890}
+  .sev-Informational{background:rgba(60,100,180,0.18);border-color:#2a4a8a;color:#80a8e8}
+
+  /* Toolbar */
+  .toolbar{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+  .search-wrap{position:relative;flex:1;max-width:340px}
+  .search-wrap input{width:100%;background:#ffffff;border:1px solid #c8d8e8;border-radius:8px;color:#0f1826;font-family:'Inter',sans-serif;font-size:0.82rem;padding:7px 10px 7px 30px;outline:none;transition:border-color 0.2s}
+  .search-wrap input:focus{border-color:#4a7aaa}
+  .search-wrap input::placeholder{color:#8aaabb}
+  .search-icon{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:#8aaabb;font-size:0.78rem;pointer-events:none}
+  .sev-filter{display:flex;gap:5px;flex-wrap:wrap}
+  .sev-btn{font-size:0.68rem;padding:4px 10px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--dim);cursor:pointer;transition:all 0.15s}
+  .sev-btn:hover,.sev-btn.active{border-color:#2a4a6a;color:var(--text)}
+  .btn-new{padding:7px 16px;background:var(--accent);border:none;border-radius:8px;color:#e8f4ff;font-family:'Inter',sans-serif;font-size:0.78rem;font-weight:600;cursor:pointer;transition:filter 0.15s;white-space:nowrap;margin-left:auto}
+  .btn-new:hover{filter:brightness(1.15)}
+  .count-lbl{font-size:0.72rem;color:var(--dim)}
+
+  /* Findings table */
+  .tbl-wrap{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+  table{width:100%;border-collapse:collapse;font-size:0.8rem}
+  thead th{text-align:left;color:var(--dim);font-size:0.67rem;font-weight:600;letter-spacing:.07em;text-transform:uppercase;padding:8px 16px;border-bottom:1px solid var(--border);background:var(--surface2)}
+  tbody tr{border-bottom:1px solid rgba(30,45,69,0.5);cursor:pointer;transition:background 0.1s}
+  tbody tr:last-child{border-bottom:none}
+  tbody tr:hover td{background:rgba(26,74,122,0.06)}
+  td{padding:11px 16px;vertical-align:middle}
+  .td-title{font-weight:600;color:var(--text)}
+  .td-dim{color:var(--dim);font-size:0.75rem}
+  .td-actions{display:flex;gap:6px;justify-content:flex-end}
+  .btn-sm{font-size:0.68rem;padding:3px 10px;border-radius:5px;cursor:pointer;transition:all 0.15s;font-family:'Inter',sans-serif;font-weight:500;border:1px solid}
+  .btn-edit{border-color:#2a4a6a;color:#5a9acc;background:rgba(26,74,122,0.1)}
+  .btn-edit:hover{background:rgba(26,74,122,0.25)}
+  .btn-del{border-color:#5a1a2a;color:#c06070;background:rgba(180,60,80,0.08)}
+  .btn-del:hover{background:rgba(180,60,80,0.2)}
+  .empty-row td{padding:32px;text-align:center;color:var(--dim);font-size:0.82rem}
+
+  /* Modal shared */
+  .modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:200;align-items:center;justify-content:center;padding:20px}
+  .modal-bg.open{display:flex}
+  .modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;width:620px;max-height:90vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 8px 32px rgba(0,0,0,0.5)}
+  .modal-hdr{padding:13px 20px;background:var(--surface2);border-bottom:1px solid var(--border);font-size:0.84rem;font-weight:600;color:var(--text);display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
+  .modal-close{background:none;border:none;color:var(--dim);cursor:pointer;font-size:1rem;line-height:1}
+  .modal-close:hover{color:#c06070}
+  .modal-body{padding:20px;overflow-y:auto;flex:1}
+  .form-group{display:flex;flex-direction:column;gap:5px;margin-bottom:14px}
+  .form-group label{font-size:0.7rem;font-weight:600;color:var(--dim);letter-spacing:.07em;text-transform:uppercase}
+  .form-group input,.form-group textarea,.form-group select{background:#ffffff;border:1px solid #c8d8e8;border-radius:8px;color:#0f1826;font-family:'Inter',sans-serif;font-size:0.83rem;padding:8px 11px;outline:none;transition:border-color 0.2s}
+  .form-group input:focus,.form-group textarea:focus,.form-group select:focus{border-color:#4a7aaa}
+  .form-group textarea{resize:vertical;min-height:80px}
+  .form-group select option{background:#ffffff;color:#0f1826}
+  .modal-actions{display:flex;gap:8px;margin-top:16px}
+  .btn-save{flex:1;padding:9px;background:var(--accent);border:none;border-radius:8px;color:#e8f4ff;font-family:'Inter',sans-serif;font-size:0.83rem;font-weight:600;cursor:pointer;transition:filter 0.15s}
+  .btn-save:hover{filter:brightness(1.15)}
+  .btn-cancel-modal{flex:1;padding:9px;background:transparent;border:1px solid var(--border);border-radius:8px;color:var(--dim);font-family:'Inter',sans-serif;font-size:0.83rem;cursor:pointer}
+  .btn-cancel-modal:hover{border-color:#2a4a6a;color:var(--text)}
+
+  /* View modal — read only */
+  .view-field{margin-bottom:14px}
+  .view-label{font-size:0.68rem;font-weight:600;color:var(--dim);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px}
+  .view-value{font-size:0.83rem;color:var(--text);line-height:1.6;white-space:pre-wrap;word-break:break-word}
+  .ref-link{color:#5a9acc;text-decoration:none;display:block;font-size:0.78rem}
+  .ref-link:hover{text-decoration:underline}
+
+  #toast{position:fixed;bottom:24px;right:24px;padding:10px 18px;border-radius:10px;font-size:0.82rem;font-family:'Inter',sans-serif;opacity:0;pointer-events:none;transition:opacity 0.3s;z-index:999;font-weight:500}
+  #toast.show{opacity:1}
+  #toast.success{background:rgba(42,122,74,0.2);border:1px solid #2a5a3a;color:#4aaa6a}
+  #toast.error{background:rgba(138,42,58,0.2);border:1px solid #5a1a2a;color:#e88a9a}
+  footer{background:var(--surface);border-top:1px solid var(--border);padding:11px 28px;display:flex;justify-content:space-between;font-size:0.7rem;color:var(--dim)}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">◈ ART3MIS — Findings</div>
+  <div style="display:flex;gap:8px">
+    <a href="/" class="nav-btn">← Dashboard</a>
+    <a href="/logout" class="nav-btn logout">⎋ Logout</a>
+  </div>
+</header>
+
+<main>
+  <div class="page-label">Knowledge Base</div>
+  <div class="page-title">Findings Repository</div>
+  <div class="page-sub">
+    A shared library of security findings that can be added to any assessment.
+    {% if role in ('Administrator','Manager') %}Click a finding to view details, or use the edit button to update it.{% else %}Click any finding to view its full details.{% endif %}
+  </div>
+
+  <div class="toolbar">
+    <div class="search-wrap">
+      <span class="search-icon">⌕</span>
+      <input type="text" id="search-input" placeholder="Search findings..."
+             maxlength="80" oninput="filterFindings()">
+    </div>
+    <div class="sev-filter">
+      <button class="sev-btn active" onclick="setSevFilter('all',this)">All</button>
+      <button class="sev-btn" onclick="setSevFilter('Critical',this)">Critical</button>
+      <button class="sev-btn" onclick="setSevFilter('High',this)">High</button>
+      <button class="sev-btn" onclick="setSevFilter('Medium',this)">Medium</button>
+      <button class="sev-btn" onclick="setSevFilter('Low',this)">Low</button>
+      <button class="sev-btn" onclick="setSevFilter('Informational',this)">Info</button>
+    </div>
+    {% if role in ('Administrator','Manager') %}
+    <button class="btn-new" onclick="openCreateModal()">+ New Finding</button>
+    {% endif %}
+  </div>
+  <div style="margin-bottom:10px"><span class="count-lbl" id="count-lbl">{{ findings|length }} finding(s)</span></div>
+
+  <div class="tbl-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Title</th>
+          <th>Severity</th>
+          <th>Created By</th>
+          <th>Updated</th>
+          {% if role in ('Administrator','Manager') %}<th style="text-align:right">Actions</th>{% endif %}
+        </tr>
+      </thead>
+      <tbody id="findings-tbody">
+        {% if findings %}
+          {% for f in findings %}
+          <tr onclick="viewFinding('{{ f.finding_id }}')"
+              data-title="{{ f.title|lower }}"
+              data-sev="{{ f.severity }}">
+            <td class="td-title">{{ f.title }}</td>
+            <td><span class="sev sev-{{ f.severity }}">{{ f.severity }}</span></td>
+            <td class="td-dim">{{ f.created_by }}</td>
+            <td class="td-dim">{{ f.updated_at }}</td>
+            {% if role in ('Administrator','Manager') %}
+            <td>
+              <div class="td-actions">
+                <button class="btn-sm btn-edit"
+                        onclick="event.stopPropagation(); editFinding('{{ f.finding_id }}')">Edit</button>
+                {% if role == 'Administrator' %}
+                <button class="btn-sm btn-del"
+                        onclick="event.stopPropagation(); deleteFinding('{{ f.finding_id }}','{{ f.title|replace("'","\\'")|e }}')">Delete</button>
+                {% endif %}
+              </div>
+            </td>
+            {% endif %}
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr class="empty-row">
+            <td colspan="{{ '5' if role in ('Administrator','Manager') else '4' }}">
+              No findings in the repository yet.
+              {% if role in ('Administrator','Manager') %}Click <strong>+ New Finding</strong> to add the first one.{% endif %}
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</main>
+
+<footer>
+  <span>Artemis // Findings Repository</span>
+  <span>Confidential — Authorized Use Only</span>
+</footer>
+
+<!-- View modal -->
+<div class="modal-bg" id="view-modal">
+  <div class="modal">
+    <div class="modal-hdr">
+      <span id="view-title">Finding Details</span>
+      <button class="modal-close" onclick="closeModal('view-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+        <span class="sev" id="view-sev-badge"></span>
+      </div>
+      <div class="view-field"><div class="view-label">Description</div><div class="view-value" id="view-desc"></div></div>
+      <div class="view-field"><div class="view-label">Steps to Reproduce</div><div class="view-value" id="view-steps"></div></div>
+      <div class="view-field"><div class="view-label">Affected Resource</div><div class="view-value" id="view-resource"></div></div>
+      <div class="view-field"><div class="view-label">Remediation</div><div class="view-value" id="view-remediation"></div></div>
+      <div class="view-field" id="view-refs-wrap"><div class="view-label">References</div><div id="view-refs"></div></div>
+    </div>
+  </div>
+</div>
+
+{% if role in ('Administrator','Manager') %}
+<!-- Create/Edit modal -->
+<div class="modal-bg" id="edit-modal">
+  <div class="modal">
+    <div class="modal-hdr">
+      <span id="edit-modal-title">New Finding</span>
+      <button class="modal-close" onclick="closeModal('edit-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="edit-finding-id">
+      <div class="form-group">
+        <label>Title <span style="color:#e88a9a">*</span></label>
+        <input type="text" id="edit-title" placeholder="e.g. SSL Certificate Expired" maxlength="120">
+      </div>
+      <div class="form-group">
+        <label>Severity</label>
+        <select id="edit-severity">
+          <option value="Critical">Critical</option>
+          <option value="High">High</option>
+          <option value="Medium" selected>Medium</option>
+          <option value="Low">Low</option>
+          <option value="Informational">Informational</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Description</label>
+        <textarea id="edit-description" rows="3" placeholder="Brief explanation of the vulnerability..."></textarea>
+      </div>
+      <div class="form-group">
+        <label>Steps to Reproduce</label>
+        <textarea id="edit-steps" rows="3" placeholder="Steps taken to identify this issue..."></textarea>
+      </div>
+      <div class="form-group">
+        <label>Affected Resource</label>
+        <input type="text" id="edit-resource" placeholder="e.g. All public-facing HTTPS services">
+      </div>
+      <div class="form-group">
+        <label>Remediation</label>
+        <textarea id="edit-remediation" rows="3" placeholder="Recommended fix..."></textarea>
+      </div>
+      <div class="form-group">
+        <label>References <span style="color:var(--dim);font-weight:400">(one URL per line)</span></label>
+        <textarea id="edit-references" rows="3" placeholder="https://cve.mitre.org/...&#10;https://owasp.org/..."></textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-save" onclick="saveFinding()">Save Finding</button>
+        <button class="btn-cancel-modal" onclick="closeModal('edit-modal')">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<div id="toast"></div>
+
+<script>
+// All findings data for client-side view modal
+const FINDINGS_DATA = {
+  {% for f in findings %}
+  "{{ f.finding_id }}": {
+    title:              {{ f.title | tojson }},
+    severity:           {{ f.severity | tojson }},
+    description:        {{ (f.description or '') | tojson }},
+    steps_to_reproduce: {{ (f.steps_to_reproduce or '') | tojson }},
+    affected_resource:  {{ (f.affected_resource or '') | tojson }},
+    remediation:        {{ (f.remediation or '') | tojson }},
+    references:         {{ (f.references or []) | tojson }},
+    created_by:         {{ (f.created_by or '') | tojson }},
+    updated_at:         {{ (f.updated_at or '') | tojson }},
+  },
+  {% endfor %}
+};
+
+let sevFilter = 'all'
+
+function toast(msg,type='success'){const el=document.getElementById('toast');el.textContent=msg;el.className=`show ${type}`;setTimeout(()=>{el.className=''},3200)}
+function openModal(id){document.getElementById(id).classList.add('open')}
+function closeModal(id){document.getElementById(id).classList.remove('open')}
+document.querySelectorAll('.modal-bg').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open')}))
+
+function setSevFilter(sev, btn){
+  sevFilter = sev
+  document.querySelectorAll('.sev-btn').forEach(b=>b.classList.remove('active'))
+  btn.classList.add('active')
+  filterFindings()
+}
+
+function filterFindings(){
+  const q   = document.getElementById('search-input').value.toLowerCase().trim()
+  const rows = document.querySelectorAll('#findings-tbody tr[data-title]')
+  let visible = 0
+  rows.forEach(r=>{
+    const titleMatch = !q || r.dataset.title.includes(q)
+    const sevMatch   = sevFilter === 'all' || r.dataset.sev === sevFilter
+    const show = titleMatch && sevMatch
+    r.style.display = show ? '' : 'none'
+    if(show) visible++
+  })
+  document.getElementById('count-lbl').textContent = `${visible} finding(s)`
+}
+
+function viewFinding(id){
+  const f = FINDINGS_DATA[id]
+  if(!f) return
+  document.getElementById('view-title').textContent = f.title
+  const badge = document.getElementById('view-sev-badge')
+  badge.textContent = f.severity
+  badge.className   = `sev sev-${f.severity}`
+  document.getElementById('view-desc').textContent        = f.description        || '—'
+  document.getElementById('view-steps').textContent       = f.steps_to_reproduce || '—'
+  document.getElementById('view-resource').textContent    = f.affected_resource  || '—'
+  document.getElementById('view-remediation').textContent = f.remediation        || '—'
+  const refsWrap = document.getElementById('view-refs-wrap')
+  const refsEl   = document.getElementById('view-refs')
+  if(f.references && f.references.length){
+    refsEl.innerHTML = f.references.map(r=>`<a class="ref-link" href="${r}" target="_blank" rel="noopener">${r}</a>`).join('')
+    refsWrap.style.display = 'block'
+  } else {
+    refsWrap.style.display = 'none'
+  }
+  openModal('view-modal')
+}
+
+function openCreateModal(){
+  document.getElementById('edit-finding-id').value = ''
+  document.getElementById('edit-modal-title').textContent = 'New Finding'
+  document.getElementById('edit-title').value       = ''
+  document.getElementById('edit-severity').value    = 'Medium'
+  document.getElementById('edit-description').value = ''
+  document.getElementById('edit-steps').value       = ''
+  document.getElementById('edit-resource').value    = ''
+  document.getElementById('edit-remediation').value = ''
+  document.getElementById('edit-references').value  = ''
+  openModal('edit-modal')
+}
+
+function editFinding(id){
+  const f = FINDINGS_DATA[id]
+  if(!f) return
+  document.getElementById('edit-finding-id').value    = id
+  document.getElementById('edit-modal-title').textContent = 'Edit Finding'
+  document.getElementById('edit-title').value          = f.title
+  document.getElementById('edit-severity').value       = f.severity
+  document.getElementById('edit-description').value   = f.description        || ''
+  document.getElementById('edit-steps').value          = f.steps_to_reproduce || ''
+  document.getElementById('edit-resource').value       = f.affected_resource  || ''
+  document.getElementById('edit-remediation').value   = f.remediation        || ''
+  document.getElementById('edit-references').value    = (f.references || []).join('\n')
+  openModal('edit-modal')
+}
+
+async function saveFinding(){
+  const id    = document.getElementById('edit-finding-id').value
+  const title = document.getElementById('edit-title').value.trim()
+  if(!title){ toast('Title is required.','error'); return }
+
+  const payload = {
+    finding_id:         id || undefined,
+    title,
+    severity:           document.getElementById('edit-severity').value,
+    description:        document.getElementById('edit-description').value,
+    steps_to_reproduce: document.getElementById('edit-steps').value,
+    affected_resource:  document.getElementById('edit-resource').value,
+    remediation:        document.getElementById('edit-remediation').value,
+    references:         document.getElementById('edit-references').value,
+  }
+
+  const endpoint = id ? '/api/findings/update' : '/api/findings/create'
+  const res  = await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
+  const data = await res.json()
+  if(data.ok){
+    toast(`✓ Finding ${id ? 'updated' : 'created'}.`)
+    setTimeout(()=>location.reload(), 1200)
+  } else {
+    toast(data.error,'error')
+  }
+}
+
+async function deleteFinding(id, title){
+  if(!confirm(`Delete "${title}"? This cannot be undone.`)) return
+  const res  = await fetch('/api/findings/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({finding_id:id})})
+  const data = await res.json()
+  if(data.ok){ toast('✓ Finding deleted.'); setTimeout(()=>location.reload(),1200) }
+  else toast(data.error,'error')
+}
+</script>
+</body>
+</html>

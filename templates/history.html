@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARTEMIS // Assessment History</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+  :root{--bg:#0a0d14;--surface:#0f1420;--surface2:#141926;--accent:#1a4a7a;--text:#e8eaf0;--dim:#4a6a8a;--border:#1e2d45;--shadow:0 2px 12px rgba(0,0,0,0.3);}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-height:100vh;display:flex;flex-direction:column}
+  header{background:var(--surface);border-bottom:1px solid var(--border);padding:13px 28px;display:flex;align-items:center;justify-content:space-between;box-shadow:var(--shadow)}
+  .logo{font-size:1.05rem;font-weight:700;color:var(--text);letter-spacing:.1em}
+  .nav-btn{font-size:12px;padding:6px 14px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--dim);cursor:pointer;text-decoration:none;transition:all 0.15s;display:inline-block}
+  .nav-btn:hover{border-color:#2a4a6a;color:var(--text)}
+  .nav-btn.logout{border-color:#5a1a2a;color:#c06070;background:rgba(180,60,80,0.08)}
+  main{flex:1;max-width:1000px;width:100%;margin:0 auto;padding:32px 28px}
+  .page-label{font-size:11px;color:var(--dim);letter-spacing:.1em;text-transform:uppercase;margin-bottom:3px}
+  .page-title{font-size:1.3rem;font-weight:600;color:var(--text);margin-bottom:6px}
+  .page-sub{font-size:0.8rem;color:var(--dim);margin-bottom:20px}
+
+  /* Toolbar */
+  .toolbar{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+  .search-wrap{position:relative;max-width:320px;flex:1}
+  .search-wrap input{width:100%;background:#ffffff;border:1px solid #c8d8e8;border-radius:8px;color:#0f1826;font-family:'Inter',sans-serif;font-size:0.82rem;padding:7px 10px 7px 30px;outline:none}
+  .search-wrap input:focus{border-color:#4a7aaa}
+  .search-wrap input::placeholder{color:#8aaabb}
+  .search-icon{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:#8aaabb;font-size:0.78rem;pointer-events:none}
+  .count-lbl{font-size:0.72rem;color:var(--dim);margin-left:auto}
+
+  /* Phase legend */
+  .legend{display:flex;gap:14px;align-items:center;margin-bottom:16px;padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:10px;flex-wrap:wrap}
+  .legend-label{font-size:0.67rem;color:var(--dim);text-transform:uppercase;letter-spacing:.07em}
+  .legend-item{display:flex;align-items:center;gap:5px;font-size:0.7rem;color:var(--dim)}
+  .pbadge{font-size:0.63rem;padding:2px 7px;border-radius:4px;border:0.5px solid;letter-spacing:.04em}
+  .pbadge.on{background:rgba(42,122,74,0.15);border-color:#2a5a3a;color:#4aaa6a}
+  .pbadge.off{background:transparent;border-color:var(--border);color:var(--dim);opacity:0.5}
+
+  /* Assessment list */
+  .assessment-list{display:flex;flex-direction:column;gap:8px}
+  .acard{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:13px 18px;display:flex;align-items:center;gap:14px;cursor:pointer;transition:border-color 0.15s;text-decoration:none;position:relative;overflow:hidden}
+  .acard::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:3px 0 0 3px;background:var(--accent)}
+  .acard:hover{border-color:#2a4a6a}
+  .card-main{flex:1;min-width:0}
+  .card-client{font-size:0.88rem;font-weight:600;color:var(--text);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .card-meta{display:flex;gap:14px;flex-wrap:wrap}
+  .card-meta span{font-size:0.7rem;color:var(--dim)}
+  .card-meta .val{color:#8ab8d8}
+  .card-phases{display:flex;gap:5px;flex-shrink:0}
+  .card-date{font-size:0.67rem;color:var(--dim);text-align:right;flex-shrink:0;white-space:nowrap}
+
+  /* Admin grouped view */
+  .user-group{margin-bottom:28px}
+  .user-group-hdr{font-size:0.72rem;font-weight:600;color:var(--dim);text-transform:uppercase;letter-spacing:.09em;padding:6px 0;border-bottom:1px solid var(--border);margin-bottom:10px;display:flex;justify-content:space-between}
+
+  .empty-state{background:var(--surface);border:1px dashed var(--border);border-radius:12px;padding:40px;text-align:center;color:var(--dim);font-size:0.82rem}
+  footer{background:var(--surface);border-top:1px solid var(--border);padding:11px 28px;display:flex;justify-content:space-between;font-size:0.7rem;color:var(--dim)}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">◈ ART3MIS — History</div>
+  <div style="display:flex;gap:8px">
+    <a href="/" class="nav-btn">← Dashboard</a>
+    <a href="/logout" class="nav-btn logout">⎋ Logout</a>
+  </div>
+</header>
+
+<main>
+  <div class="page-label">Assessment Records</div>
+  <div class="page-title">Full Assessment History</div>
+  <div class="page-sub">
+    {% if role == 'Administrator' %}All assessments across all users.
+    {% else %}All assessments you have run and saved.{% endif %}
+  </div>
+
+  <div class="toolbar">
+    <div class="search-wrap">
+      <span class="search-icon">⌕</span>
+      <input type="text" id="search-input" placeholder="Search by client or domain..."
+             maxlength="80" oninput="filterHistory(this.value)">
+    </div>
+    <span class="count-lbl" id="count-lbl">{{ history|length }} assessment(s)</span>
+  </div>
+
+  <div class="legend">
+    <span class="legend-label">Phases:</span>
+    <span class="legend-item"><span class="pbadge on">P1</span> Recon &amp; OSINT</span>
+    <span class="legend-item"><span class="pbadge on">P2</span> Port Scanning</span>
+    <span class="legend-item"><span class="pbadge on">P3</span> Vuln Scanning</span>
+    <span class="legend-item"><span class="pbadge off">P1</span> Phase not run</span>
+  </div>
+
+  {% if history %}
+    {% if role == 'Administrator' %}
+      {# Group by username for admin view #}
+      {% set users = history | map(attribute='username') | unique | list %}
+      {% for user in users %}
+      <div class="user-group" data-group="{{ user }}">
+        <div class="user-group-hdr">
+          <span>{{ user }}</span>
+          <span>{{ history | selectattr('username', 'equalto', user) | list | length }} assessment(s)</span>
+        </div>
+        <div class="assessment-list">
+          {% for entry in history %}
+            {% if entry.username == user %}
+            <a class="acard" href="/assessment/{{ entry.folder.split('/')[-1] }}"
+               data-client="{{ entry.client | lower }}" data-domain="{{ entry.domain | lower }}">
+              <div class="card-main">
+                <div class="card-client">{{ entry.client }}</div>
+                <div class="card-meta">
+                  <span>Date: <span class="val">{{ entry.date }}</span></span>
+                  <span>Domain: <span class="val">{{ entry.domain }}</span></span>
+                  {% if entry.findings_count %}<span>Findings: <span class="val" style="color:#c8a050">{{ entry.findings_count }}</span></span>{% endif %}
+                </div>
+              </div>
+              <div class="card-phases">
+                <span class="pbadge {{ 'on' if entry.phases.get('recon') else 'off' }}">P1</span>
+                <span class="pbadge {{ 'on' if entry.phases.get('scan')  else 'off' }}">P2</span>
+                <span class="pbadge {{ 'on' if entry.phases.get('vuln')  else 'off' }}">P3</span>
+              </div>
+              <div class="card-date">{{ entry.completed }}</div>
+            </a>
+            {% endif %}
+          {% endfor %}
+        </div>
+      </div>
+      {% endfor %}
+
+    {% else %}
+      <div class="assessment-list" id="history-list">
+        {% for entry in history %}
+        <a class="acard" href="/assessment/{{ entry.folder.split('/')[-1] }}"
+           data-client="{{ entry.client | lower }}" data-domain="{{ entry.domain | lower }}">
+          <div class="card-main">
+            <div class="card-client">{{ entry.client }}</div>
+            <div class="card-meta">
+              <span>Date: <span class="val">{{ entry.date }}</span></span>
+              <span>Domain: <span class="val">{{ entry.domain }}</span></span>
+              {% if entry.findings_count %}<span>Findings: <span class="val" style="color:#c8a050">{{ entry.findings_count }}</span></span>{% endif %}
+            </div>
+          </div>
+          <div class="card-phases">
+            <span class="pbadge {{ 'on' if entry.phases.get('recon') else 'off' }}">P1</span>
+            <span class="pbadge {{ 'on' if entry.phases.get('scan')  else 'off' }}">P2</span>
+            <span class="pbadge {{ 'on' if entry.phases.get('vuln')  else 'off' }}">P3</span>
+          </div>
+          <div class="card-date">{{ entry.completed }}</div>
+        </a>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% else %}
+    <div class="empty-state">No assessments recorded yet. Complete a scan and click Exit to save it.</div>
+  {% endif %}
+</main>
+
+<footer>
+  <span>Artemis // Assessment History</span>
+  <span>Confidential — Authorized Use Only</span>
+</footer>
+
+<script>
+function filterHistory(q){
+  const clean = q.toLowerCase().trim()
+  const cards = document.querySelectorAll('.acard')
+  let visible = 0
+  cards.forEach(c=>{
+    const client = c.dataset.client || ''
+    const domain = c.dataset.domain || ''
+    const show   = !clean || client.includes(clean) || domain.includes(clean)
+    c.style.display = show ? '' : 'none'
+    if(show) visible++
+  })
+  document.getElementById('count-lbl').textContent = `${visible} assessment(s)`
+}
+</script>
+</body>
+</html>
