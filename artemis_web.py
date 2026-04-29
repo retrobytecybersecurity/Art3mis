@@ -955,46 +955,55 @@ def run_scan(scope_list, url_list, domain, phases, tools, folder, tool_paths):
 
                         for target in targets:
                             try:
-                                import requests as req_lib
-                                log(f"  → querying OathNet for: {target}", "dim")
-                                resp = req_lib.get(
-                                    "https://oathnet.org/api/service/v2/breach/search",
-                                    params={"q": target},
-                                    headers={"x-api-key": api_key},
-                                    timeout=15
+                                url_req = (
+                                    f"https://oathnet.org/api/service/v2/breach/search"
+                                    f"?q={urllib.parse.quote(target, safe='@._-')}"
                                 )
-                                body = resp.json()
+                                log(f"  → querying OathNet for: {target}", "dim")
+                                req = urllib.request.Request(
+                                    url_req,
+                                    headers={"x-api-key": api_key,
+                                             "User-Agent": "Artemis-PenTest/1.0"}
+                                )
+                                with urllib.request.urlopen(req, timeout=15) as resp:
+                                    body = json.loads(resp.read().decode())
 
-                                if not body.get("success"):
-                                    log(f"  ✗ OathNet error: {body.get('message','unknown')}", "error")
-                                    bf.write(f"[ERROR] {target} — {body.get('message','unknown')}\n")
-                                    breach_errors += 1
-                                    if resp.status_code == 401:
-                                        break
-                                    continue
+                                results_found = body.get("data", {}).get("meta", {}).get("total", 0)
+                                items         = body.get("data", {}).get("items", [])
+                                sources       = list({i.get("dbname", "unknown")
+                                                      for i in items if isinstance(i, dict)})
 
-                                total   = body.get("data", {}).get("meta", {}).get("total", 0)
-                                items   = body.get("data", {}).get("items", [])
-                                sources = list({i.get("dbname", "unknown")
-                                                for i in items if isinstance(i, dict)})
-
-                                if total > 0:
+                                if results_found > 0:
                                     bf.write(f"[FOUND] {target}\n")
-                                    bf.write(f"  Breach records: {total}\n")
+                                    bf.write(f"  Breach records: {results_found}\n")
                                     if sources:
                                         bf.write(f"  Sources: {', '.join(sources)}\n")
                                     bf.write("\n")
                                     breach_hits.append({
                                         "target":  target,
-                                        "count":   total,
+                                        "count":   results_found,
                                         "sources": sources,
                                     })
-                                    log(f"  ⚠ BREACH: {target} — {total} record(s)"
+                                    log(f"  ⚠ BREACH: {target} — {results_found} record(s)"
                                         f" in {', '.join(sources[:3])}", "warn")
                                 else:
                                     bf.write(f"[CLEAN] {target}\n")
                                     log(f"  ✓ clean: {target}", "dim")
 
+                            except urllib.error.HTTPError as e:
+                                if e.code == 401:
+                                    log("✗ OathNet API key invalid or expired", "error")
+                                    bf.write(f"[ERROR] {target} — API key invalid\n")
+                                    breach_errors += 1
+                                    break
+                                elif e.code == 429:
+                                    log("✗ OathNet rate limit hit — stopping breach check", "warn")
+                                    bf.write(f"[RATE_LIMITED] Stopped at {target}\n")
+                                    break
+                                else:
+                                    log(f"  ✗ HTTP {e.code} for {target}", "error")
+                                    bf.write(f"[ERROR] {target} — HTTP {e.code}\n")
+                                    breach_errors += 1
                             except Exception as ex:
                                 log(f"  ✗ breach check error for {target}: {ex}", "error")
                                 bf.write(f"[ERROR] {target} — {ex}\n")
@@ -3848,29 +3857,63 @@ def breach_check_api():
 
         total        = body.get("data", {}).get("meta", {}).get("total", 0)
         items        = body.get("data", {}).get("items", [])
+
+        # Also check searchResults.LOGS format (matches export structure)
+        if not items and body.get("searchResults", {}).get("LOGS"):
+            items = body["searchResults"]["LOGS"]
+            total = body["searchResults"].get("COUNT", len(items))
+
         lookups_left = body.get("data", {}).get("meta", {}).get("lookups_left", "?")
 
-        # Deduplicate credentials by username+password combo
+        # Deduplicate by email+username+password combo
         seen_creds = set()
         unique_creds = 0
         sources = set()
         clean_items = []
+
         for i in items:
             if not isinstance(i, dict):
                 continue
-            sources.add(i.get("dbname", "unknown"))
-            username = i.get("username", i.get("email", ""))
-            password = i.get("password", "")
-            key = f"{username}:{password}"
+
+            email        = i.get("email", "")
+            username     = i.get("username", "")
+            # Use plaintext password if available, else hash, else empty
+            password     = (i.get("password") or
+                            i.get("password_hash") or "")
+            email_domain = i.get("email_domain", "")
+            dbname       = i.get("dbname", "unknown")
+            rec_type     = i.get("type", "breach")
+
+            # Date — try multiple fields
+            date = (i.get("indexed_at") or
+                    i.get("pwned_at") or
+                    i.get("created_at") or
+                    i.get("date") or "")
+            # Trim to date only
+            if date and "T" in date:
+                date = date.split("T")[0]
+
+            # Subdomain — can be string or list
+            subdomain = i.get("subdomain", "")
+            if isinstance(subdomain, list):
+                subdomain = ", ".join(subdomain)
+
+            sources.add(dbname)
+
+            key = f"{email}:{username}:{password}"
             if key not in seen_creds:
                 seen_creds.add(key)
                 unique_creds += 1
+
             clean_items.append({
-                "username": username,
-                "password": password,
-                "domain":   i.get("domain", i.get("subdomain", "")),
-                "dbname":   i.get("dbname", "unknown"),
-                "date":     i.get("breach_date", i.get("date", "")),
+                "email":        email,
+                "username":     username,
+                "password":     password,
+                "email_domain": email_domain,
+                "subdomain":    subdomain,
+                "dbname":       dbname,
+                "indexed_at":   date,
+                "type":         rec_type,
             })
 
         return jsonify({
