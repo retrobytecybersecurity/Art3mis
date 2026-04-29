@@ -931,10 +931,11 @@ def run_scan(scope_list, url_list, domain, phases, tools, folder, tool_paths):
                     discovered_emails = domain_emails
 
                 # Always include the domain itself as a search target
+                # OathNet v2 API accepts email or domain as q parameter
                 targets = []
                 if domain:
-                    targets.append(domain)   # domain-level query first
-                targets.extend(sorted(discovered_emails))  # then individual emails
+                    targets.append(domain)          # domain search: example.com
+                targets.extend(sorted(discovered_emails))
 
                 if not targets:
                     log("  — breach check: no domain or emails to check", "dim")
@@ -955,9 +956,10 @@ def run_scan(scope_list, url_list, domain, phases, tools, folder, tool_paths):
                         for target in targets:
                             try:
                                 url_req = (
-                                    f"https://oathnet.org/api/service/search-breach"
-                                    f"?q={urllib.parse.quote(target)}"
+                                    f"https://oathnet.org/api/service/v2/breach/search"
+                                    f"?q={urllib.parse.quote(target, safe='@._-')}"
                                 )
+                                log(f"  → querying: {url_req}", "dim")
                                 req = urllib.request.Request(
                                     url_req,
                                     headers={"x-api-key": api_key,
@@ -3921,3 +3923,4 @@ if __name__ == "__main__":
     startup_thread = threading.Thread(target=startup, daemon=True)
     startup_thread.start()
     app.run(host="127.0.0.1", port=5000, debug=False, threaded=True)
+
