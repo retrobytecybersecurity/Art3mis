@@ -2563,17 +2563,23 @@ def bootstrap_admin():
 
 def generate_csrf_token() -> str:
     """Generate or retrieve a CSRF token for the current session."""
-    if "_csrf_token" not in session:
-        session["_csrf_token"] = secrets.token_hex(32)
-    return session["_csrf_token"]
+    try:
+        if "_csrf_token" not in session:
+            session["_csrf_token"] = secrets.token_hex(32)
+        return session["_csrf_token"]
+    except RuntimeError:
+        return ""  # Outside request context
 
 
 def validate_csrf(token: str) -> bool:
     """Validate a submitted CSRF token against the session token."""
-    return secrets.compare_digest(
-        session.get("_csrf_token", ""),
-        token or ""
-    )
+    try:
+        return secrets.compare_digest(
+            session.get("_csrf_token", ""),
+            token or ""
+        )
+    except RuntimeError:
+        return False
 
 
 # Make csrf_token available in all templates
@@ -4403,4 +4409,3 @@ if __name__ == "__main__":
     startup_thread = threading.Thread(target=startup, daemon=True)
     startup_thread.start()
     app.run(host="127.0.0.1", port=5000, debug=False, threaded=True)
-
