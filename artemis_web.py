@@ -3857,63 +3857,30 @@ def breach_check_api():
 
         total        = body.get("data", {}).get("meta", {}).get("total", 0)
         items        = body.get("data", {}).get("items", [])
-
-        # Also check searchResults.LOGS format (matches export structure)
-        if not items and body.get("searchResults", {}).get("LOGS"):
-            items = body["searchResults"]["LOGS"]
-            total = body["searchResults"].get("COUNT", len(items))
-
         lookups_left = body.get("data", {}).get("meta", {}).get("lookups_left", "?")
 
-        # Deduplicate by email+username+password combo
-        seen_creds = set()
+        # Deduplicate credentials by username+password combo
+        seen_creds   = set()
         unique_creds = 0
-        sources = set()
-        clean_items = []
+        sources      = set()
+        items_out    = []
 
         for i in items:
             if not isinstance(i, dict):
                 continue
-
-            email        = i.get("email", "")
-            username     = i.get("username", "")
-            # Use plaintext password if available, else hash, else empty
-            password     = (i.get("password") or
-                            i.get("password_hash") or "")
-            email_domain = i.get("email_domain", "")
-            dbname       = i.get("dbname", "unknown")
-            rec_type     = i.get("type", "breach")
-
-            # Date — try multiple fields
-            date = (i.get("indexed_at") or
-                    i.get("pwned_at") or
-                    i.get("created_at") or
-                    i.get("date") or "")
-            # Trim to date only
-            if date and "T" in date:
-                date = date.split("T")[0]
-
-            # Subdomain — can be string or list
-            subdomain = i.get("subdomain", "")
-            if isinstance(subdomain, list):
-                subdomain = ", ".join(subdomain)
-
-            sources.add(dbname)
-
-            key = f"{email}:{username}:{password}"
+            sources.add(i.get("dbname", "unknown"))
+            username = i.get("username", i.get("email", ""))
+            password = i.get("password", "")
+            key = f"{username}:{password}"
             if key not in seen_creds:
                 seen_creds.add(key)
                 unique_creds += 1
-
-            clean_items.append({
-                "email":        email,
-                "username":     username,
-                "password":     password,
-                "email_domain": email_domain,
-                "subdomain":    subdomain,
-                "dbname":       dbname,
-                "indexed_at":   date,
-                "type":         rec_type,
+            items_out.append({
+                "username": username,
+                "password": password,
+                "domain":   i.get("domain", i.get("subdomain", "")),
+                "dbname":   i.get("dbname", "unknown"),
+                "date":     i.get("breach_date", i.get("date", "")),
             })
 
         return jsonify({
@@ -3922,7 +3889,7 @@ def breach_check_api():
             "results_found": total,
             "unique_creds":  unique_creds,
             "sources":       list(sources),
-            "items":         clean_items,
+            "items":         items_out,
             "lookups_left":  lookups_left,
         })
 
